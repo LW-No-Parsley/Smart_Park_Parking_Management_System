@@ -2,14 +2,14 @@ package com.smart_park_parking_management_system.controller.advice;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.smart_park_parking_management_system.common.R;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.MediaType;
-import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
+import org.springframework.core.io.Resource;
+import org.springframework.http.ResponseEntity;
 
 /**
  * 拦截controller返回值，封装后统一返回格式
@@ -17,18 +17,20 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
 @RestControllerAdvice
 public class ResponseAdvice implements ResponseBodyAdvice<Object> {
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper;
+
+    public ResponseAdvice(ObjectMapper objectMapper) {
+        this.objectMapper = objectMapper;
+    }
 
     @Override
-    public boolean supports(MethodParameter returnType, Class<? extends HttpMessageConverter<?>> converterType) {
-        // 更精确的匹配条件，避免对某些特定类型进行处理
+    public boolean supports(MethodParameter returnType, Class converterType) {
         return true;
     }
 
     @Override
-    public Object beforeBodyWrite(Object body, MethodParameter returnType, MediaType selectedContentType,
-                                  Class<? extends HttpMessageConverter<?>> selectedConverterType,
+    public Object beforeBodyWrite(Object body, MethodParameter returnType,
+                                  MediaType selectedContentType, Class selectedConverterType,
                                   ServerHttpRequest request, ServerHttpResponse response) {
 
         // 如果返回的结果已经是R对象，直接返回
@@ -36,22 +38,42 @@ public class ResponseAdvice implements ResponseBodyAdvice<Object> {
             return body;
         }
 
-        // 处理void返回类型（通常是Controller方法返回void）
-        if (body == null && returnType.getParameterType().equals(void.class)) {
-            return R.success(null);
+        // 处理void返回类型 - 创建无数据的成功响应
+        if (body == null && returnType.getParameterType() == void.class) {
+            return R.success(null); // 传入null作为数据
         }
 
-        // 如果Controller返回String，需要手动转换成json
+        // 处理String类型返回
         if (body instanceof String) {
             try {
                 response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
                 return objectMapper.writeValueAsString(R.success(body));
             } catch (Exception e) {
-                throw new RuntimeException("JSON转换失败", e);
+                throw new RuntimeException("JSON转换异常", e);
             }
         }
 
-        // 其他情况统一封装为成功响应
+        // 排除特定类型的响应（如文件下载）
+        if (isExcludedResponse(body, selectedContentType)) {
+            return body;
+        }
+
+        // 默认成功包装
         return R.success(body);
+    }
+
+    /**
+     * 判断是否排除响应包装
+     */
+    private boolean isExcludedResponse(Object body, MediaType mediaType) {
+        // 排除文件流响应
+        if (body instanceof ResponseEntity ||
+                body instanceof Resource ||
+                (mediaType != null && mediaType.includes(MediaType.APPLICATION_OCTET_STREAM))) {
+            return true;
+        }
+
+        // 排除非JSON响应
+        return mediaType != null && !mediaType.includes(MediaType.APPLICATION_JSON);
     }
 }
