@@ -6,10 +6,10 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
 @MapperScan("com.syan.smart_park.dao")
-public class SmartParkParkingManagementSystemApplication {
+public class SmartParkApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(SmartParkParkingManagementSystemApplication.class, args);
+		SpringApplication.run(SmartParkApplication.class, args);
 	}
 
 }

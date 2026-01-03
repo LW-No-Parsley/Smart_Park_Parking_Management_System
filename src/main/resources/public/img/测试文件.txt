@@ -1,0 +1,4 @@
+这是一个测试文件，用于验证ResourceController对中文文件名的支持。
+文件名：测试文件.txt
+创建时间：2025-12-20
+内容：ResourceController现在可以正确处理包含非ASCII字符的文件名，使用RFC 5987规范编码。
