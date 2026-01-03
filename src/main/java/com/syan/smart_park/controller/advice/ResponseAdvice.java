@@ -1,7 +1,7 @@
-package com.smart_park_parking_management_system.controller.advice;
+package com.syan.smart_park.controller.advice;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.smart_park_parking_management_system.common.R;
+import com.syan.smart_park.common.R;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.MediaType;
 import org.springframework.http.server.ServerHttpRequest;
@@ -25,6 +25,11 @@ public class ResponseAdvice implements ResponseBodyAdvice<Object> {
 
     @Override
     public boolean supports(MethodParameter returnType, Class converterType) {
+        // 排除ResourceController的响应，避免包装文件资源
+        if (returnType.getContainingClass() != null && 
+            returnType.getContainingClass().getName().contains("ResourceController")) {
+            return false;
+        }
         return true;
     }
 
@@ -71,6 +76,24 @@ public class ResponseAdvice implements ResponseBodyAdvice<Object> {
                 body instanceof Resource ||
                 (mediaType != null && mediaType.includes(MediaType.APPLICATION_OCTET_STREAM))) {
             return true;
+        }
+
+        // 检查ResponseEntity的内容类型
+        if (body instanceof ResponseEntity) {
+            ResponseEntity<?> responseEntity = (ResponseEntity<?>) body;
+            Object responseBody = responseEntity.getBody();
+            if (responseBody instanceof Resource) {
+                return true;
+            }
+            // 检查响应头中的Content-Type
+            if (responseEntity.getHeaders().getContentType() != null &&
+                    !responseEntity.getHeaders().getContentType().includes(MediaType.APPLICATION_JSON)) {
+                return true;
+            }
+            // 如果ResponseEntity的body是null，也排除包装（如404响应）
+            if (responseBody == null) {
+                return true;
+            }
         }
 
         // 排除非JSON响应

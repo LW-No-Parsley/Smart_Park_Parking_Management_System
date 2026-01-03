@@ -1,8 +1,8 @@
-package com.smart_park_parking_management_system.controller.advice;
+package com.syan.smart_park.controller.advice;
 
-import com.smart_park_parking_management_system.common.R;
-import com.smart_park_parking_management_system.common.exception.BusinessException;
-import com.smart_park_parking_management_system.common.exception.ReturnCode;
+import com.syan.smart_park.common.R;
+import com.syan.smart_park.common.exception.BusinessException;
+import com.syan.smart_park.common.exception.ReturnCode;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.converter.HttpMessageNotReadableException;

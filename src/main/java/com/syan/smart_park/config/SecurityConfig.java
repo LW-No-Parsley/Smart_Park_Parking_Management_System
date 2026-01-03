@@ -1,4 +1,4 @@
-package com.smart_park_parking_management_system.config;
+package com.syan.smart_park.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

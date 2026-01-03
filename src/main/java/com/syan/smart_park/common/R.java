@@ -1,6 +1,6 @@
-package com.smart_park_parking_management_system.common;
+package com.syan.smart_park.common;
 
-import com.smart_park_parking_management_system.common.exception.ReturnCode;
+import com.syan.smart_park.common.exception.ReturnCode;
 import lombok.Data;
 
 @Data

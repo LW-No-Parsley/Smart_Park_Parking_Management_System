@@ -1,4 +1,4 @@
-package com.smart_park_parking_management_system.common.exception;
+package com.syan.smart_park.common.exception;
 
 public enum ReturnCode {
 
@@ -37,6 +37,14 @@ public enum ReturnCode {
     RC607(607, "账号或密码错误次数过多，请稍后再试"),
     RC608(608, "token已过期"),
     RC609(609, "token无效"),
+    
+    // 角色权限相关
+    RC610(610, "角色不存在"),
+    RC611(611, "角色编码已存在"),
+    RC612(612, "角色正在使用中，无法删除"),
+    RC613(613, "用户已拥有该角色"),
+    RC614(614, "权限不存在"),
+    RC615(615, "角色已拥有该权限"),
 
     // 停车场业务相关
     RC1000(1000, "停车场不存在"),

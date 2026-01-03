@@ -1,4 +1,4 @@
-package com.smart_park_parking_management_system.common.exception;
+package com.syan.smart_park.common.exception;
 
 import lombok.Getter;
 import lombok.Setter;
