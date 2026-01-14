@@ -104,29 +104,39 @@ public class AuthController {
     }
 
     /**
-     * 刷新token
+     * 刷新token（双token机制）
      *
-     * @param token 原token
-     * @return 新的token
+     * @param refreshToken 刷新token
+     * @return 新的access token和refresh token
      */
     @PostMapping("/refresh")
-    public R<Map<String, Object>> refreshToken(@RequestHeader("Authorization") String token) {
+    public R<Map<String, Object>> refreshToken(@RequestHeader("Authorization") String refreshToken) {
         // 移除Bearer前缀
-        if (token != null && token.startsWith("Bearer ")) {
-            token = token.substring(7);
+        if (refreshToken != null && refreshToken.startsWith("Bearer ")) {
+            refreshToken = refreshToken.substring(7);
         }
         
-        // 验证token
-        if (!jwtUtil.validateToken(token)) {
+        // 验证refresh token
+        if (!jwtUtil.validateToken(refreshToken)) {
             return R.unauthorized();
         }
         
         // 使用AuthService刷新token
-        String newToken = authService.refreshToken(token);
+        String newAccessToken = authService.refreshToken(refreshToken);
         
-        if (newToken != null) {
+        if (newAccessToken != null) {
+            // 从refresh token中获取用户信息
+            Long userId = jwtUtil.getUserIdFromToken(refreshToken);
+            String username = jwtUtil.getUsernameFromToken(refreshToken);
+            
+            // 生成新的refresh token（refresh token轮换）
+            String newRefreshToken = jwtUtil.generateRefreshToken(userId, username);
+            
             Map<String, Object> result = new HashMap<>();
-            result.put("token", newToken);
+            result.put("accessToken", newAccessToken);
+            result.put("refreshToken", newRefreshToken);
+            result.put("tokenType", "Bearer");
+            result.put("expiresIn", jwtUtil.getAccessTokenExpiration());
             return R.success(result);
         } else {
             return R.error(ReturnCode.RC500);

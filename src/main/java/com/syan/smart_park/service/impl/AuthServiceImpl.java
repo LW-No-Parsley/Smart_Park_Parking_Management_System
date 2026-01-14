@@ -65,10 +65,10 @@ public class AuthServiceImpl implements AuthService {
         loginLog.setFailureReason(""); // 登录成功时为空
         loginLogService.recordLogin(loginLog);
 
-        // 4. 返回结果（使用安全的UserDTO，不返回refreshToken）
+        // 4. 返回结果（启用双token机制，返回refreshToken）
         Map<String, Object> result = new HashMap<>();
         result.put("accessToken", accessToken);
-        // 注意：refreshToken不返回给客户端，通过其他安全方式存储
+        result.put("refreshToken", refreshToken); // 返回refresh token给客户端
         result.put("tokenType", "Bearer");
         result.put("expiresIn", jwtUtil.getAccessTokenExpiration());
         result.put("user", UserDTO.fromUser(user));
@@ -107,10 +107,10 @@ public class AuthServiceImpl implements AuthService {
         loginLog.setFailureReason(""); // 登录成功时为空
         loginLogService.recordLogin(loginLog);
 
-        // 6. 返回结果（使用安全的UserDTO，不返回refreshToken）
+        // 6. 返回结果（启用双token机制，返回refreshToken）
         Map<String, Object> result = new HashMap<>();
         result.put("accessToken", accessToken);
-        // 注意：refreshToken不返回给客户端，通过其他安全方式存储
+        result.put("refreshToken", refreshToken); // 返回refresh token给客户端
         result.put("tokenType", "Bearer");
         result.put("expiresIn", jwtUtil.getAccessTokenExpiration());
         result.put("user", UserDTO.fromUser(user));
