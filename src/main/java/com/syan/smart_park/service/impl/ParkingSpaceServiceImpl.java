@@ -1,0 +1,152 @@
+package com.syan.smart_park.service.impl;
+
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.syan.smart_park.dao.ParkingSpaceMapper;
+import com.syan.smart_park.entity.ParkingSpace;
+import com.syan.smart_park.entity.ParkingSpaceDTO;
+import com.syan.smart_park.service.ParkingSpaceService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+/**
+ * 车位服务实现类
+ */
+@Service
+@RequiredArgsConstructor
+public class ParkingSpaceServiceImpl extends ServiceImpl<ParkingSpaceMapper, ParkingSpace> implements ParkingSpaceService {
+
+    private final ParkingSpaceMapper parkingSpaceMapper;
+
+    @Override
+    public List<ParkingSpaceDTO> getAllParkingSpaces() {
+        List<ParkingSpace> parkingSpaces = this.list();
+        return parkingSpaces.stream()
+                .map(ParkingSpaceDTO::fromParkingSpace)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public ParkingSpaceDTO getParkingSpaceById(Long id) {
+        ParkingSpace parkingSpace = this.getById(id);
+        return ParkingSpaceDTO.fromParkingSpace(parkingSpace);
+    }
+
+    @Override
+    @Transactional
+    public ParkingSpaceDTO createParkingSpace(ParkingSpaceDTO parkingSpaceDTO) {
+        ParkingSpace parkingSpace = parkingSpaceDTO.toParkingSpace();
+        this.save(parkingSpace);
+        return ParkingSpaceDTO.fromParkingSpace(parkingSpace);
+    }
+
+    @Override
+    @Transactional
+    public ParkingSpaceDTO updateParkingSpace(Long id, ParkingSpaceDTO parkingSpaceDTO) {
+        ParkingSpace existingParkingSpace = this.getById(id);
+        if (existingParkingSpace == null) {
+            return null;
+        }
+        
+        ParkingSpace parkingSpace = parkingSpaceDTO.toParkingSpace();
+        parkingSpace.setId(id);
+        this.updateById(parkingSpace);
+        
+        return ParkingSpaceDTO.fromParkingSpace(parkingSpace);
+    }
+
+    @Override
+    @Transactional
+    public boolean deleteParkingSpace(Long id) {
+        return this.removeById(id);
+    }
+
+    @Override
+    public List<ParkingSpaceDTO> getParkingSpacesByParkAreaId(Long parkAreaId) {
+        LambdaQueryWrapper<ParkingSpace> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(ParkingSpace::getParkAreaId, parkAreaId);
+        List<ParkingSpace> parkingSpaces = this.list(queryWrapper);
+        
+        return parkingSpaces.stream()
+                .map(ParkingSpaceDTO::fromParkingSpace)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<ParkingSpaceDTO> getParkingSpacesByZoneId(Long zoneId) {
+        LambdaQueryWrapper<ParkingSpace> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(ParkingSpace::getZoneId, zoneId);
+        List<ParkingSpace> parkingSpaces = this.list(queryWrapper);
+        
+        return parkingSpaces.stream()
+                .map(ParkingSpaceDTO::fromParkingSpace)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<ParkingSpaceDTO> getParkingSpacesByStatus(Integer status) {
+        LambdaQueryWrapper<ParkingSpace> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(ParkingSpace::getStatus, status);
+        List<ParkingSpace> parkingSpaces = this.list(queryWrapper);
+        
+        return parkingSpaces.stream()
+                .map(ParkingSpaceDTO::fromParkingSpace)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<ParkingSpaceDTO> getParkingSpacesByType(Integer spaceType) {
+        LambdaQueryWrapper<ParkingSpace> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(ParkingSpace::getSpaceType, spaceType);
+        List<ParkingSpace> parkingSpaces = this.list(queryWrapper);
+        
+        return parkingSpaces.stream()
+                .map(ParkingSpaceDTO::fromParkingSpace)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<ParkingSpaceDTO> getParkingSpacesByBindUserId(Long bindUserId) {
+        LambdaQueryWrapper<ParkingSpace> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(ParkingSpace::getBindUserId, bindUserId);
+        List<ParkingSpace> parkingSpaces = this.list(queryWrapper);
+        
+        return parkingSpaces.stream()
+                .map(ParkingSpaceDTO::fromParkingSpace)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<ParkingSpaceDTO> getAvailableParkingSpaces() {
+        LambdaQueryWrapper<ParkingSpace> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(ParkingSpace::getStatus, 1); // 1表示空闲状态
+        List<ParkingSpace> parkingSpaces = this.list(queryWrapper);
+        
+        return parkingSpaces.stream()
+                .map(ParkingSpaceDTO::fromParkingSpace)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public boolean batchUpdateParkingSpaceStatus(List<Long> ids, Integer status) {
+        if (ids == null || ids.isEmpty()) {
+            return false;
+        }
+        
+        List<ParkingSpace> parkingSpaces = ids.stream()
+                .map(id -> {
+                    ParkingSpace parkingSpace = new ParkingSpace();
+                    parkingSpace.setId(id);
+                    parkingSpace.setStatus(status);
+                    return parkingSpace;
+                })
+                .collect(Collectors.toList());
+        
+        return this.updateBatchById(parkingSpaces);
+    }
+}
