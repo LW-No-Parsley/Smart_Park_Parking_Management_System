@@ -124,9 +124,38 @@ public class ParkingZoneController {
      */
     @GetMapping("/search")
     public R<List<ParkingZoneDTO>> searchParkingZones(@RequestParam String keyword) {
-        // 这里需要实现搜索逻辑，暂时返回所有车位分区
-        // 实际项目中应该实现具体的搜索逻辑
-        List<ParkingZoneDTO> parkingZones = parkingZoneService.getAllParkingZones();
+        List<ParkingZoneDTO> parkingZones = parkingZoneService.searchParkingZones(keyword);
         return R.success(parkingZones);
+    }
+
+    /**
+     * 批量更新分区状态
+     *
+     * @param ids 分区ID列表
+     * @param status 状态
+     * @return 更新结果
+     */
+    @PutMapping("/batch/status")
+    public R<Boolean> batchUpdateParkingZoneStatus(@RequestParam List<Long> ids, @RequestParam Integer status) {
+        boolean success = parkingZoneService.batchUpdateParkingZoneStatus(ids, status);
+        if (!success) {
+            return R.error(ReturnCode.RC500); // 批量更新失败
+        }
+        return R.success(true);
+    }
+
+    /**
+     * 批量删除分区
+     *
+     * @param ids 分区ID列表
+     * @return 删除结果
+     */
+    @DeleteMapping("/batch")
+    public R<Boolean> batchDeleteParkingZones(@RequestParam List<Long> ids) {
+        boolean success = parkingZoneService.batchDeleteParkingZones(ids);
+        if (!success) {
+            return R.error(ReturnCode.RC500); // 批量删除失败
+        }
+        return R.success(true);
     }
 }

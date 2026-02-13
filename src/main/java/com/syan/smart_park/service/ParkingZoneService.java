@@ -59,4 +59,26 @@ public interface ParkingZoneService extends IService<ParkingZone> {
      * @return 车位分区DTO列表
      */
     List<ParkingZoneDTO> getParkingZonesByStatus(Integer status);
+
+    /**
+     * 搜索车位分区（按分区名称）
+     * @param keyword 搜索关键词
+     * @return 车位分区DTO列表
+     */
+    List<ParkingZoneDTO> searchParkingZones(String keyword);
+
+    /**
+     * 批量更新分区状态
+     * @param ids 分区ID列表
+     * @param status 状态
+     * @return 是否更新成功
+     */
+    boolean batchUpdateParkingZoneStatus(List<Long> ids, Integer status);
+
+    /**
+     * 批量删除分区
+     * @param ids 分区ID列表
+     * @return 是否删除成功
+     */
+    boolean batchDeleteParkingZones(List<Long> ids);
 }

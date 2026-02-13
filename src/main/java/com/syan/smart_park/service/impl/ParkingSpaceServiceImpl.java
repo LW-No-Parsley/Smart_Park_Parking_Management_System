@@ -3,8 +3,10 @@ package com.syan.smart_park.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.syan.smart_park.dao.ParkingSpaceMapper;
+import com.syan.smart_park.dao.ParkingZoneMapper;
 import com.syan.smart_park.entity.ParkingSpace;
 import com.syan.smart_park.entity.ParkingSpaceDTO;
+import com.syan.smart_park.entity.ParkingZone;
 import com.syan.smart_park.service.ParkingSpaceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -21,6 +23,7 @@ import java.util.stream.Collectors;
 public class ParkingSpaceServiceImpl extends ServiceImpl<ParkingSpaceMapper, ParkingSpace> implements ParkingSpaceService {
 
     private final ParkingSpaceMapper parkingSpaceMapper;
+    private final ParkingZoneMapper parkingZoneMapper;
 
     @Override
     public List<ParkingSpaceDTO> getAllParkingSpaces() {
@@ -39,6 +42,22 @@ public class ParkingSpaceServiceImpl extends ServiceImpl<ParkingSpaceMapper, Par
     @Override
     @Transactional
     public ParkingSpaceDTO createParkingSpace(ParkingSpaceDTO parkingSpaceDTO) {
+        // 检查zoneId是否有效（如果提供了zoneId）
+        if (parkingSpaceDTO.getZoneId() != null) {
+            // 检查分区是否存在且未删除
+            LambdaQueryWrapper<ParkingZone> zoneQueryWrapper = new LambdaQueryWrapper<>();
+            zoneQueryWrapper.eq(ParkingZone::getId, parkingSpaceDTO.getZoneId())
+                           .eq(ParkingZone::getDeleted, 0);
+            Long zoneCount = parkingZoneMapper.selectCount(zoneQueryWrapper);
+            
+            if (zoneCount == 0) {
+                throw new com.syan.smart_park.common.exception.BusinessException(
+                    com.syan.smart_park.common.exception.ReturnCode.RC1301, 
+                    "指定的分区不存在或已被删除"
+                );
+            }
+        }
+        
         ParkingSpace parkingSpace = parkingSpaceDTO.toParkingSpace();
         this.save(parkingSpace);
         return ParkingSpaceDTO.fromParkingSpace(parkingSpace);

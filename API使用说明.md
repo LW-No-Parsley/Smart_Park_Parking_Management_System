@@ -41,7 +41,9 @@ CREATE DATABASE Smart_Park_Parking_Management_System;
 
 ## API接口说明
 
-### 1. 获取验证码
+### 1. 认证相关接口
+
+#### 1.1 获取验证码
 
 **接口地址**: `GET /api/auth/captcha`
 
@@ -62,7 +64,7 @@ CREATE DATABASE Smart_Park_Parking_Management_System;
 }
 ```
 
-### 2. 用户登录（增强版，需要验证码）
+#### 1.2 用户登录（增强版，需要验证码）
 
 **接口地址**: `POST /api/auth/login`
 
@@ -79,8 +81,13 @@ CREATE DATABASE Smart_Park_Parking_Management_System;
 **请求示例**:
 ```bash
 curl -X POST "http://localhost:8080/api/auth/login" \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "username=admin&password=admin123&captchaId=captcha_1234567890&captchaCode=AB12"
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "admin",
+    "password": "admin123",
+    "captchaId": "captcha_1234567890",
+    "captchaCode": "AB12"
+  }'
 ```
 
 **响应示例**:
@@ -90,10 +97,11 @@ curl -X POST "http://localhost:8080/api/auth/login" \
   "status": true,
   "message": "操作成功",
   "data": {
-    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
     "tokenType": "Bearer",
     "expiresIn": 86400,
-    "userInfo": {
+    "user": {
       "username": "admin",
       "phone": "13800138000",
       "email": "admin@smartpark.com",
@@ -104,12 +112,7 @@ curl -X POST "http://localhost:8080/api/auth/login" \
 }
 ```
 
-**优化说明**:
-1. 移除了`id`和`userId`字段，增强安全性
-2. 移除了`roles`、`permissions`和`roleInfo`字段，减少响应数据量
-3. 仅保留必要的用户基本信息
-
-### 3. 用户注册（增强版，需要验证码）
+#### 1.3 用户注册（增强版，需要验证码）
 
 **接口地址**: `POST /api/auth/register`
 
@@ -139,13 +142,13 @@ curl -X POST "http://localhost:8080/api/auth/register" \
   }'
 ```
 
-### 4. Token刷新
+#### 1.4 Token刷新
 
 **接口地址**: `POST /api/auth/refresh`
 
 **请求头**:
 ```
-Authorization: Bearer {原token}
+Authorization: Bearer {refreshToken}
 ```
 
 **请求示例**:
@@ -161,7 +164,8 @@ curl -X POST "http://localhost:8080/api/auth/refresh" \
   "status": true,
   "message": "操作成功",
   "data": {
-    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
     "tokenType": "Bearer",
     "expiresIn": 86400
   },
@@ -169,7 +173,7 @@ curl -X POST "http://localhost:8080/api/auth/refresh" \
 }
 ```
 
-### 5. 用户登出
+#### 1.5 用户登出
 
 **接口地址**: `POST /api/auth/logout`
 
@@ -184,47 +188,7 @@ curl -X POST "http://localhost:8080/api/auth/logout" \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
-### 6. 忘记密码
-
-**接口地址**: `POST /api/auth/forgot-password`
-
-**请求参数**:
-```json
-{
-  "username": "admin",
-  "email": "admin@smartpark.com",
-  "captchaId": "captcha_1234567890",
-  "captchaCode": "AB12"
-}
-```
-
-**请求示例**:
-```bash
-curl -X POST "http://localhost:8080/api/auth/forgot-password" \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "username=admin&email=admin@smartpark.com&captchaId=captcha_1234567890&captchaCode=AB12"
-```
-
-### 7. 重置密码
-
-**接口地址**: `POST /api/auth/reset-password`
-
-**请求参数**:
-```json
-{
-  "token": "reset_token_123456",
-  "newPassword": "newpassword123"
-}
-```
-
-**请求示例**:
-```bash
-curl -X POST "http://localhost:8080/api/auth/reset-password" \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "token=reset_token_123456&newPassword=newpassword123"
-```
-
-### 8. 验证Token
+#### 1.6 验证Token
 
 **接口地址**: `POST /api/auth/validate`
 
@@ -239,51 +203,334 @@ curl -X POST "http://localhost:8080/api/auth/validate" \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
-### 9. 获取登录日志
+#### 1.7 获取登录日志
 
 **接口地址**: `GET /api/auth/login-logs`
 
 **请求参数**:
 - `userId` (可选): 用户ID，不传则查询所有用户
-- `page` (可选): 页码，默认1
-- `size` (可选): 每页大小，默认10
+- `limit` (可选): 限制条数，默认10
 
 **请求示例**:
 ```bash
-curl -X GET "http://localhost:8080/api/auth/login-logs?userId=1&page=1&size=10"
+curl -X GET "http://localhost:8080/api/auth/login-logs?userId=1&limit=10"
 ```
 
-### 10. 角色权限管理接口
+### 2. 园区管理接口
 
-**获取用户角色信息**:
-```bash
-GET /api/role/user/{userId}
+#### 2.1 获取所有园区列表
+**接口地址**: `GET /api/park-area/list`
+
+#### 2.2 根据ID获取园区详情
+**接口地址**: `GET /api/park-area/{id}`
+
+#### 2.3 创建园区
+**接口地址**: `POST /api/park-area`
+```json
+{
+  "name": "园区A",
+  "address": "北京市朝阳区",
+  "totalSpaces": 100,
+  "latitude": 39.9042,
+  "longitude": 116.4074,
+  "status": 1
+}
 ```
 
-**获取所有角色**:
-```bash
-GET /api/role/list
+#### 2.4 更新园区信息
+**接口地址**: `PUT /api/park-area/{id}`
+
+#### 2.5 删除园区
+**接口地址**: `DELETE /api/park-area/{id}`
+
+#### 2.6 根据状态获取园区列表
+**接口地址**: `GET /api/park-area/status/{status}`
+
+#### 2.7 搜索园区
+**接口地址**: `GET /api/park-area/search?keyword={keyword}`
+
+### 3. 车位分区管理接口
+
+#### 3.1 获取所有车位分区列表
+**接口地址**: `GET /api/parking-zone/list`
+
+**请求参数**: 无
+
+**响应示例**:
+```json
+{
+  "code": 200,
+  "status": true,
+  "message": "操作成功",
+  "data": [
+    {
+      "id": 1,
+      "parkAreaId": 1,
+      "parkAreaName": "园区A",
+      "zoneName": "A区",
+      "description": "A区车位",
+      "sortOrder": 1,
+      "status": 1,
+      "createTime": "2024-01-01T10:00:00",
+      "updateTime": "2024-01-01T10:00:00"
+    }
+  ],
+  "timestamp": 1732982400000
+}
 ```
 
-**创建角色**:
-```bash
-POST /api/role/create
+#### 3.2 根据ID获取车位分区详情
+**接口地址**: `GET /api/parking-zone/{id}`
+
+**请求参数**:
+- `id`: 分区ID（路径参数）
+
+#### 3.3 创建车位分区
+**接口地址**: `POST /api/parking-zone`
+
+**请求参数**:
+```json
+{
+  "parkAreaId": 1,
+  "zoneName": "B区",
+  "description": "B区车位",
+  "sortOrder": 2,
+  "status": 1
+}
 ```
 
-**分配用户角色**:
-```bash
-POST /api/role/assign
+**注意事项**:
+- 同一个园区内分区名称必须唯一
+- 如果园区已存在相同名称的分区，会返回错误（RC1301）
+
+#### 3.4 更新车位分区信息
+**接口地址**: `PUT /api/parking-zone/{id}`
+
+#### 3.5 删除车位分区
+**接口地址**: `DELETE /api/parking-zone/{id}`
+
+#### 3.6 根据园区ID获取车位分区列表
+**接口地址**: `GET /api/parking-zone/park-area/{parkAreaId}`
+
+#### 3.7 根据状态获取车位分区列表
+**接口地址**: `GET /api/parking-zone/status/{status}`
+
+#### 3.8 搜索车位分区（按分区名称）
+**接口地址**: `GET /api/parking-zone/search?keyword={keyword}`
+
+#### 3.9 批量更新分区状态
+**接口地址**: `PUT /api/parking-zone/batch/status?ids=1,2,3&status=1`
+
+**请求参数**:
+- `ids`: 分区ID列表，用逗号分隔
+- `status`: 状态（0-禁用，1-启用）
+
+#### 3.10 批量删除分区
+**接口地址**: `DELETE /api/parking-zone/batch?ids=1,2,3`
+
+**请求参数**:
+- `ids`: 分区ID列表，用逗号分隔
+
+### 4. 车位管理接口
+
+#### 4.1 获取所有车位列表
+**接口地址**: `GET /api/parking-space/list`
+
+#### 4.2 根据ID获取车位详情
+**接口地址**: `GET /api/parking-space/{id}`
+
+#### 4.3 创建车位
+**接口地址**: `POST /api/parking-space`
+```json
+{
+  "parkAreaId": 1,
+  "zoneId": 1,
+  "spaceNumber": "A-101",
+  "spaceType": 2,
+  "status": 1,
+  "latitude": 39.9042,
+  "longitude": 116.4074
+}
 ```
 
-**获取角色权限**:
-```bash
-GET /api/role/permissions/{roleId}
+#### 4.4 更新车位
+**接口地址**: `PUT /api/parking-space/{id}`
+
+#### 4.5 删除车位
+**接口地址**: `DELETE /api/parking-space/{id}`
+
+#### 4.6 根据园区ID获取车位列表
+**接口地址**: `GET /api/parking-space/park-area/{parkAreaId}`
+
+#### 4.7 根据分区ID获取车位列表
+**接口地址**: `GET /api/parking-space/zone/{zoneId}`
+
+#### 4.8 根据车位状态获取车位列表
+**接口地址**: `GET /api/parking-space/status/{status}`
+
+#### 4.9 根据车位类型获取车位列表
+**接口地址**: `GET /api/parking-space/type/{spaceType}`
+
+#### 4.10 获取空闲车位列表
+**接口地址**: `GET /api/parking-space/available`
+
+#### 4.11 批量更新车位状态
+**接口地址**: `PUT /api/parking-space/batch-update-status?ids=1,2,3&status=1`
+
+### 5. 车辆管理接口
+
+#### 5.1 获取所有车辆列表
+**接口地址**: `GET /api/vehicle/list`
+
+#### 5.2 根据ID获取车辆详情
+**接口地址**: `GET /api/vehicle/{id}`
+
+#### 5.3 创建车辆
+**接口地址**: `POST /api/vehicle`
+```json
+{
+  "userId": 1,
+  "plateNumber": "京A12345",
+  "isDefault": 1,
+  "vehicleType": 1,
+  "brand": "特斯拉",
+  "color": "黑色",
+  "status": 1
+}
 ```
 
-**分配角色权限**:
-```bash
-POST /api/role/assign-permissions
+#### 5.4 更新车辆
+**接口地址**: `PUT /api/vehicle/{id}`
+
+#### 5.5 删除车辆
+**接口地址**: `DELETE /api/vehicle/{id}`
+
+#### 5.6 根据用户ID获取车辆列表
+**接口地址**: `GET /api/vehicle/user/{userId}`
+
+#### 5.7 根据车牌号获取车辆
+**接口地址**: `GET /api/vehicle/plate-number/{plateNumber}`
+
+#### 5.8 获取用户的默认车辆
+**接口地址**: `GET /api/vehicle/user/{userId}/default`
+
+#### 5.9 设置默认车辆
+**接口地址**: `PUT /api/vehicle/user/{userId}/set-default/{vehicleId}`
+
+#### 5.10 批量更新车辆状态
+**接口地址**: `PUT /api/vehicle/batch-update-status?ids=1,2,3&status=1`
+
+### 6. 预约管理接口
+
+#### 6.1 获取所有预约列表
+**接口地址**: `GET /api/reservation/list`
+
+#### 6.2 根据ID获取预约详情
+**接口地址**: `GET /api/reservation/{id}`
+
+#### 6.3 创建预约
+**接口地址**: `POST /api/reservation`
+```json
+{
+  "userId": 1,
+  "vehicleId": 1,
+  "spaceId": 1,
+  "reservationType": 1,
+  "startTime": "2024-01-01T10:00:00",
+  "endTime": "2024-01-01T18:00:00",
+  "status": 1
+}
 ```
+
+#### 6.4 更新预约
+**接口地址**: `PUT /api/reservation/{id}`
+
+#### 6.5 删除预约
+**接口地址**: `DELETE /api/reservation/{id}`
+
+#### 6.6 根据用户ID获取预约列表
+**接口地址**: `GET /api/reservation/user/{userId}`
+
+#### 6.7 根据车辆ID获取预约列表
+**接口地址**: `GET /api/reservation/vehicle/{vehicleId}`
+
+#### 6.8 根据车位ID获取预约列表
+**接口地址**: `GET /api/reservation/space/{spaceId}`
+
+#### 6.9 审批预约
+**接口地址**: `PUT /api/reservation/{id}/approve?approvedBy=1`
+
+#### 6.10 拒绝预约
+**接口地址**: `PUT /api/reservation/{id}/reject?approvedBy=1&rejectReason=车位已满`
+
+#### 6.11 更新预约状态
+**接口地址**: `PUT /api/reservation/{id}/status?status=2`
+
+#### 6.12 记录到达时间
+**接口地址**: `PUT /api/reservation/{id}/arrive?arriveTime=2024-01-01T10:05:00`
+
+#### 6.13 记录离开时间
+**接口地址**: `PUT /api/reservation/{id}/leave?leaveTime=2024-01-01T17:55:00&totalFee=50.00`
+
+#### 6.14 检查车位可用性
+**接口地址**: `GET /api/reservation/check-availability?spaceId=1&startTime=2024-01-01T10:00:00&endTime=2024-01-01T18:00:00`
+
+#### 6.15 获取待审批预约列表
+**接口地址**: `GET /api/reservation/pending-approval`
+
+#### 6.16 获取用户当前有效预约
+**接口地址**: `GET /api/reservation/user/{userId}/current-valid`
+
+### 7. 其他业务接口
+
+#### 7.1 进出记录管理
+- `GET /api/access-log/list` - 获取进出记录列表
+- `GET /api/access-log/{id}` - 根据ID获取进出记录详情
+- `POST /api/access-log` - 创建进出记录
+- `GET /api/access-log/plate/{plateNumber}` - 根据车牌号查询进出记录
+
+#### 7.2 黑名单管理
+- `GET /api/blacklist/list` - 获取黑名单列表
+- `POST /api/blacklist` - 添加黑名单
+- `DELETE /api/blacklist/{id}` - 移除黑名单
+
+#### 7.3 支付记录管理
+- `GET /api/payment-record/list` - 获取支付记录列表
+- `GET /api/payment-record/reservation/{reservationId}` - 根据预约ID获取支付记录
+
+#### 7.4 异常上报管理
+- `GET /api/exception-report/list` - 获取异常上报列表
+- `POST /api/exception-report` - 提交异常上报
+- `PUT /api/exception-report/{id}/handle` - 处理异常上报
+
+#### 7.5 道闸设备管理
+- `GET /api/gate-device/list` - 获取道闸设备列表
+- `POST /api/gate-device` - 添加道闸设备
+- `PUT /api/gate-device/{id}/status` - 更新设备状态
+
+#### 7.6 操作日志管理
+- `GET /api/operation-log/list` - 获取操作日志列表
+- `GET /api/operation-log/user/{userId}` - 根据用户ID获取操作日志
+
+### 8. 角色权限管理接口
+
+#### 8.1 获取用户角色信息
+**接口地址**: `GET /api/role/user/{userId}`
+
+#### 8.2 获取所有角色
+**接口地址**: `GET /api/role/list`
+
+#### 8.3 创建角色
+**接口地址**: `POST /api/role/create`
+
+#### 8.4 分配用户角色
+**接口地址**: `POST /api/role/assign`
+
+#### 8.5 获取角色权限
+**接口地址**: `GET /api/role/permissions/{roleId}`
+
+#### 8.6 分配角色权限
+**接口地址**: `POST /api/role/assign-permissions`
 
 ## 错误码说明
 
@@ -304,6 +551,7 @@ POST /api/role/assign-permissions
 - `606`: 角色不存在
 - `607`: 权限不存在
 - `608`: 密码重置token无效或已过期
+- `1300`: 数据不存在
 
 ## 安全特性
 
@@ -345,7 +593,7 @@ POST /api/role/assign-permissions
 1. 确保MySQL数据库已启动并创建相应数据库
 2. 执行数据库初始化脚本：
 ```bash
-mysql -u root -p Smart_Park_Parking_Management_System < src/main/resources/sql/init_tables.sql
+mysql -u root -p Smart_Park_Parking_Management_System < src/main/resources/sql/smart_park_parking_management_system.sql
 ```
 
 3. 运行项目：
@@ -378,4 +626,82 @@ mvn spring-boot:run
 
 1. JWT token默认有效期为24小时
 2. 验证码默认有效期为5分钟
-3. Token黑名单会随Token
+3. Token黑名单会随Token过期自动清理
+4. 所有敏感操作都需要验证码保护
+5. 建议在生产环境中启用HTTPS
+
+## 快速开始
+
+### 1. 环境准备
+- JDK 17+
+- MySQL 5.7+/8.0+
+- Maven 3.6+
+
+### 2. 数据库配置
+修改 `src/main/resources/application.properties` 中的数据库连接信息：
+```properties
+spring.datasource.url=jdbc:mysql://localhost:3306/Smart_Park?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai
+spring.datasource.username=root
+spring.datasource.password=123456
+```
+
+### 3. 启动应用
+```bash
+mvn clean install
+mvn spring-boot:run
+```
+
+### 4. 测试API
+使用Postman或curl测试API：
+```bash
+# 获取验证码
+curl -X GET "http://localhost:8080/api/auth/captcha"
+
+# 用户登录
+curl -X POST "http://localhost:8080/api/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "admin",
+    "password": "admin123",
+    "captchaId": "captcha_1234567890",
+    "captchaCode": "AB12"
+  }'
+```
+
+### 5. 访问Swagger文档
+项目集成了Swagger API文档，启动后访问：
+```
+http://localhost:8080/swagger-ui.html
+```
+
+## 常见问题
+
+### Q1: 验证码获取失败
+A: 检查验证码服务是否正常启动，验证码表是否创建。
+
+### Q2: 登录返回401错误
+A: 检查用户名密码是否正确，验证码是否有效。
+
+### Q3: Token验证失败
+A: 检查Token是否过期或被加入黑名单。
+
+### Q4: 数据库连接失败
+A: 检查application.properties中的数据库配置是否正确。
+
+### Q5: 权限不足
+A: 检查用户角色和权限配置。
+
+## 版本更新
+
+### v1.0.0 (2024-11-30)
+- 初始版本发布
+- 实现JWT认证系统
+- 完成RBAC权限管理
+- 集成验证码功能
+- 添加登录日志审计
+
+### v1.1.0 (计划中)
+- 集成微信小程序登录
+- 添加支付功能
+- 优化性能监控
+- 增强安全防护

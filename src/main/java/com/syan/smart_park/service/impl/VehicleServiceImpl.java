@@ -39,6 +39,18 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
     @Override
     @Transactional
     public VehicleDTO createVehicle(VehicleDTO vehicleDTO) {
+        // 检查是否已存在相同车牌号的记录
+        LambdaQueryWrapper<Vehicle> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(Vehicle::getPlateNumber, vehicleDTO.getPlateNumber());
+        Long count = this.count(queryWrapper);
+        
+        if (count > 0) {
+            throw new com.syan.smart_park.common.exception.BusinessException(
+                com.syan.smart_park.common.exception.ReturnCode.RC1301, 
+                "该车牌号已存在"
+            );
+        }
+        
         Vehicle vehicle = vehicleDTO.toVehicle();
         this.save(vehicle);
         return VehicleDTO.fromVehicle(vehicle);
@@ -50,6 +62,22 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
         Vehicle existingVehicle = this.getById(id);
         if (existingVehicle == null) {
             return null;
+        }
+        
+        // 如果车牌号有变化，需要检查是否会导致重复
+        if (!existingVehicle.getPlateNumber().equals(vehicleDTO.getPlateNumber())) {
+            // 检查是否已存在相同车牌号的记录（排除当前记录）
+            LambdaQueryWrapper<Vehicle> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(Vehicle::getPlateNumber, vehicleDTO.getPlateNumber())
+                       .ne(Vehicle::getId, id); // 排除当前记录
+            Long count = this.count(queryWrapper);
+            
+            if (count > 0) {
+                throw new com.syan.smart_park.common.exception.BusinessException(
+                    com.syan.smart_park.common.exception.ReturnCode.RC1301, 
+                    "该车牌号已存在"
+                );
+            }
         }
         
         Vehicle vehicle = vehicleDTO.toVehicle();
