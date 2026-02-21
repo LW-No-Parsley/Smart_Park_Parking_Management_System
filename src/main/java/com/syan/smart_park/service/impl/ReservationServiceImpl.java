@@ -55,9 +55,13 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper, Reser
     @Override
     @Transactional
     public ReservationDTO updateReservation(Long id, ReservationDTO reservationDTO) {
-        Reservation existingReservation = this.getById(id);
+        // 使用FOR UPDATE锁定记录，防止并发冲突
+        Reservation existingReservation = reservationMapper.selectForUpdate(id);
         if (existingReservation == null) {
-            return null;
+            throw new com.syan.smart_park.common.exception.BusinessException(
+                com.syan.smart_park.common.exception.ReturnCode.RC1300,
+                "预约不存在或已被删除"
+            );
         }
         
         // 检查车位是否可用（排除当前预约）
@@ -68,6 +72,8 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper, Reser
         
         Reservation reservation = reservationDTO.toReservation();
         reservation.setId(id);
+        // 设置乐观锁版本号
+        reservation.setVersion(existingReservation.getVersion());
         this.updateById(reservation);
         
         return ReservationDTO.fromReservation(reservation);
@@ -182,7 +188,8 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper, Reser
     @Override
     @Transactional
     public boolean approveReservation(Long id, Long approvedBy, String rejectReason) {
-        Reservation reservation = this.getById(id);
+        // 使用FOR UPDATE锁定记录，防止并发冲突
+        Reservation reservation = reservationMapper.selectForUpdate(id);
         if (reservation == null) {
             return false;
         }
@@ -194,11 +201,12 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper, Reser
         
         return this.updateById(reservation);
     }
-
+    
     @Override
     @Transactional
     public boolean rejectReservation(Long id, Long approvedBy, String rejectReason) {
-        Reservation reservation = this.getById(id);
+        // 使用FOR UPDATE锁定记录，防止并发冲突
+        Reservation reservation = reservationMapper.selectForUpdate(id);
         if (reservation == null) {
             return false;
         }
@@ -210,11 +218,12 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper, Reser
         
         return this.updateById(reservation);
     }
-
+    
     @Override
     @Transactional
     public boolean updateReservationStatus(Long id, Integer status) {
-        Reservation reservation = this.getById(id);
+        // 使用FOR UPDATE锁定记录，防止并发冲突
+        Reservation reservation = reservationMapper.selectForUpdate(id);
         if (reservation == null) {
             return false;
         }
@@ -222,11 +231,12 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper, Reser
         reservation.setStatus(status);
         return this.updateById(reservation);
     }
-
+    
     @Override
     @Transactional
     public boolean updatePaymentStatus(Long id, Integer payStatus, BigDecimal paidAmount) {
-        Reservation reservation = this.getById(id);
+        // 使用FOR UPDATE锁定记录，防止并发冲突
+        Reservation reservation = reservationMapper.selectForUpdate(id);
         if (reservation == null) {
             return false;
         }
@@ -239,11 +249,12 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper, Reser
         
         return this.updateById(reservation);
     }
-
+    
     @Override
     @Transactional
     public boolean recordArrival(Long id, LocalDateTime arriveTime) {
-        Reservation reservation = this.getById(id);
+        // 使用FOR UPDATE锁定记录，防止并发冲突
+        Reservation reservation = reservationMapper.selectForUpdate(id);
         if (reservation == null) {
             return false;
         }
@@ -252,11 +263,12 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper, Reser
         reservation.setStatus(2); // 已使用
         return this.updateById(reservation);
     }
-
+    
     @Override
     @Transactional
     public boolean recordDeparture(Long id, LocalDateTime leaveTime, BigDecimal totalFee) {
-        Reservation reservation = this.getById(id);
+        // 使用FOR UPDATE锁定记录，防止并发冲突
+        Reservation reservation = reservationMapper.selectForUpdate(id);
         if (reservation == null) {
             return false;
         }

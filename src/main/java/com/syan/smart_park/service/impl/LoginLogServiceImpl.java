@@ -30,8 +30,10 @@ public class LoginLogServiceImpl implements LoginLogService {
     @Override
     public List<LoginLog> getUserLoginLogs(Long userId, int limit) {
         QueryWrapper<LoginLog> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("user_id", userId)
-                   .orderByDesc("login_time")
+        if (userId != null) {
+            queryWrapper.eq("user_id", userId);
+        }
+        queryWrapper.orderByDesc("login_time")
                    .last("LIMIT " + limit);
         
         return loginLogMapper.selectList(queryWrapper);

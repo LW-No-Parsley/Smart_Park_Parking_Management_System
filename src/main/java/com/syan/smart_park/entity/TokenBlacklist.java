@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
  * Token黑名单实体类
  */
 @Data
-@TableName("sys_token_blacklist")
+@TableName("sys_token_jti_blacklist")
 public class TokenBlacklist {
     
     /**
@@ -19,19 +19,28 @@ public class TokenBlacklist {
     private Long id;
     
     /**
-     * JWT token
+     * JWT ID (jti)
      */
+    @TableField("jti")
     private String token;
     
     /**
      * 用户ID
      */
+    @TableField("user_id")
     private Long userId;
     
     /**
      * 过期时间
      */
-    private LocalDateTime expireTime;
+    @TableField("expiration_time")
+    private LocalDateTime expirationTime;
+    
+    /**
+     * 失效时间（加入黑名单的时间）
+     */
+    @TableField("invalidated_time")
+    private LocalDateTime invalidatedTime;
     
     /**
      * 加入黑名单原因：1-用户登出，2-密码修改，3-管理员强制下线
@@ -43,4 +52,16 @@ public class TokenBlacklist {
      */
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
+    
+    /**
+     * 更新时间
+     */
+    @TableField(fill = FieldFill.INSERT_UPDATE)
+    private LocalDateTime updateTime;
+    
+    /**
+     * 逻辑删除标志
+     */
+    @TableLogic
+    private Integer deleted;
 }

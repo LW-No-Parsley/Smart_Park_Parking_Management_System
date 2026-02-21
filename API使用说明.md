@@ -34,7 +34,7 @@ CREATE DATABASE Smart_Park_Parking_Management_System;
 ### 3. 默认用户
 系统预置了以下默认用户：
 - **管理员用户**: 
-  - 用户名：admin，密码：admin123（MD5: e10adc3949ba59abbe56e057f20f883e）
+  - 用户名：admin，密码：123456（MD5: e10adc3949ba59abbe56e057f20f883e）
   - 角色：系统管理员（拥有所有权限）
 - **普通用户**: 可通过注册接口创建
 - **停车场管理员**: 可通过角色管理接口创建
@@ -64,7 +64,7 @@ CREATE DATABASE Smart_Park_Parking_Management_System;
 }
 ```
 
-#### 1.2 用户登录（增强版，需要验证码）
+#### 1.2 用户登录（需要验证码）
 
 **接口地址**: `POST /api/auth/login`
 
@@ -72,7 +72,7 @@ CREATE DATABASE Smart_Park_Parking_Management_System;
 ```json
 {
   "username": "admin",
-  "password": "admin123",
+  "password": "123456",
   "captchaId": "captcha_1234567890",
   "captchaCode": "AB12"
 }
@@ -84,7 +84,7 @@ curl -X POST "http://localhost:8080/api/auth/login" \
   -H "Content-Type: application/json" \
   -d '{
     "username": "admin",
-    "password": "admin123",
+    "password": "123456",
     "captchaId": "captcha_1234567890",
     "captchaCode": "AB12"
   }'
@@ -120,7 +120,7 @@ curl -X POST "http://localhost:8080/api/auth/login" \
 ```json
 {
   "username": "newuser",
-  "password": "123456",
+  "password": "Test@123",
   "phone": "13800138003",
   "email": "newuser@smartpark.com",
   "captchaId": "captcha_1234567890",
@@ -134,7 +134,7 @@ curl -X POST "http://localhost:8080/api/auth/register" \
   -H "Content-Type: application/json" \
   -d '{
     "username": "newuser",
-    "password": "123456",
+    "password": "admin123",
     "phone": "13800138003",
     "email": "newuser@smartpark.com",
     "captchaId": "captcha_1234567890",
@@ -221,11 +221,76 @@ curl -X GET "http://localhost:8080/api/auth/login-logs?userId=1&limit=10"
 #### 2.1 获取所有园区列表
 **接口地址**: `GET /api/park-area/list`
 
+**请求参数**: 无
+
+**响应示例**:
+```json
+{
+  "code": 200,
+  "status": true,
+  "message": "操作成功",
+  "data": [
+    {
+      "id": 1,
+      "name": "园区A",
+      "address": "北京市朝阳区",
+      "totalSpaces": 100,
+      "availableSpaces": 85,
+      "latitude": 39.9042,
+      "longitude": 116.4074,
+      "status": 1,
+      "createTime": "2024-01-01T10:00:00",
+      "updateTime": "2024-01-01T10:00:00"
+    },
+    {
+      "id": 2,
+      "name": "园区B",
+      "address": "北京市海淀区",
+      "totalSpaces": 150,
+      "availableSpaces": 120,
+      "latitude": 39.9834,
+      "longitude": 116.3164,
+      "status": 1,
+      "createTime": "2024-01-01T10:00:00",
+      "updateTime": "2024-01-01T10:00:00"
+    }
+  ],
+  "timestamp": 1732982400000
+}
+```
+
 #### 2.2 根据ID获取园区详情
 **接口地址**: `GET /api/park-area/{id}`
 
+**请求参数**:
+- `id`: 园区ID（路径参数）
+
+**响应示例**:
+```json
+{
+  "code": 200,
+  "status": true,
+  "message": "操作成功",
+  "data": {
+    "id": 1,
+    "name": "园区A",
+    "address": "北京市朝阳区",
+    "totalSpaces": 100,
+    "availableSpaces": 85,
+    "latitude": 39.9042,
+    "longitude": 116.4074,
+    "status": 1,
+    "createTime": "2024-01-01T10:00:00",
+    "updateTime": "2024-01-01T10:00:00"
+  },
+  "timestamp": 1732982400000
+}
+```
+
 #### 2.3 创建园区
 **接口地址**: `POST /api/park-area`
+
+**请求参数**:
 ```json
 {
   "name": "园区A",
@@ -237,17 +302,141 @@ curl -X GET "http://localhost:8080/api/auth/login-logs?userId=1&limit=10"
 }
 ```
 
+**响应示例**:
+```json
+{
+  "code": 200,
+  "status": true,
+  "message": "操作成功",
+  "data": {
+    "id": 1,
+    "name": "园区A",
+    "address": "北京市朝阳区",
+    "totalSpaces": 100,
+    "availableSpaces": 100,
+    "latitude": 39.9042,
+    "longitude": 116.4074,
+    "status": 1,
+    "createTime": "2024-01-01T10:00:00",
+    "updateTime": "2024-01-01T10:00:00"
+  },
+  "timestamp": 1732982400000
+}
+```
+
 #### 2.4 更新园区信息
 **接口地址**: `PUT /api/park-area/{id}`
+
+**请求参数**:
+```json
+{
+  "name": "园区A-更新",
+  "address": "北京市朝阳区更新地址",
+  "totalSpaces": 120,
+  "latitude": 39.9042,
+  "longitude": 116.4074,
+  "status": 1
+}
+```
+
+**响应示例**:
+```json
+{
+  "code": 200,
+  "status": true,
+  "message": "操作成功",
+  "data": {
+    "id": 1,
+    "name": "园区A-更新",
+    "address": "北京市朝阳区更新地址",
+    "totalSpaces": 120,
+    "availableSpaces": 100,
+    "latitude": 39.9042,
+    "longitude": 116.4074,
+    "status": 1,
+    "createTime": "2024-01-01T10:00:00",
+    "updateTime": "2024-01-02T10:00:00"
+  },
+  "timestamp": 1732982400000
+}
+```
 
 #### 2.5 删除园区
 **接口地址**: `DELETE /api/park-area/{id}`
 
+**请求参数**:
+- `id`: 园区ID（路径参数）
+
+**响应示例**:
+```json
+{
+  "code": 200,
+  "status": true,
+  "message": "删除成功",
+  "data": null,
+  "timestamp": 1732982400000
+}
+```
+
 #### 2.6 根据状态获取园区列表
 **接口地址**: `GET /api/park-area/status/{status}`
 
+**请求参数**:
+- `status`: 状态（0-禁用，1-启用）
+
+**响应示例**:
+```json
+{
+  "code": 200,
+  "status": true,
+  "message": "操作成功",
+  "data": [
+    {
+      "id": 1,
+      "name": "园区A",
+      "address": "北京市朝阳区",
+      "totalSpaces": 100,
+      "availableSpaces": 85,
+      "latitude": 39.9042,
+      "longitude": 116.4074,
+      "status": 1,
+      "createTime": "2024-01-01T10:00:00",
+      "updateTime": "2024-01-01T10:00:00"
+    }
+  ],
+  "timestamp": 1732982400000
+}
+```
+
 #### 2.7 搜索园区
 **接口地址**: `GET /api/park-area/search?keyword={keyword}`
+
+**请求参数**:
+- `keyword`: 搜索关键词（园区名称或地址）
+
+**响应示例**:
+```json
+{
+  "code": 200,
+  "status": true,
+  "message": "操作成功",
+  "data": [
+    {
+      "id": 1,
+      "name": "园区A",
+      "address": "北京市朝阳区",
+      "totalSpaces": 100,
+      "availableSpaces": 85,
+      "latitude": 39.9042,
+      "longitude": 116.4074,
+      "status": 1,
+      "createTime": "2024-01-01T10:00:00",
+      "updateTime": "2024-01-01T10:00:00"
+    }
+  ],
+  "timestamp": 1732982400000
+}
+```
 
 ### 3. 车位分区管理接口
 
@@ -285,6 +474,27 @@ curl -X GET "http://localhost:8080/api/auth/login-logs?userId=1&limit=10"
 **请求参数**:
 - `id`: 分区ID（路径参数）
 
+**响应示例**:
+```json
+{
+  "code": 200,
+  "status": true,
+  "message": "操作成功",
+  "data": {
+    "id": 1,
+    "parkAreaId": 1,
+    "parkAreaName": "园区A",
+    "zoneName": "A区",
+    "description": "A区车位",
+    "sortOrder": 1,
+    "status": 1,
+    "createTime": "2024-01-01T10:00:00",
+    "updateTime": "2024-01-01T10:00:00"
+  },
+  "timestamp": 1732982400000
+}
+```
+
 #### 3.3 创建车位分区
 **接口地址**: `POST /api/parking-zone`
 
@@ -299,6 +509,27 @@ curl -X GET "http://localhost:8080/api/auth/login-logs?userId=1&limit=10"
 }
 ```
 
+**响应示例**:
+```json
+{
+  "code": 200,
+  "status": true,
+  "message": "操作成功",
+  "data": {
+    "id": 2,
+    "parkAreaId": 1,
+    "parkAreaName": "园区A",
+    "zoneName": "B区",
+    "description": "B区车位",
+    "sortOrder": 2,
+    "status": 1,
+    "createTime": "2024-01-01T10:00:00",
+    "updateTime": "2024-01-01T10:00:00"
+  },
+  "timestamp": 1732982400000
+}
+```
+
 **注意事项**:
 - 同一个园区内分区名称必须唯一
 - 如果园区已存在相同名称的分区，会返回错误（RC1301）
@@ -306,17 +537,151 @@ curl -X GET "http://localhost:8080/api/auth/login-logs?userId=1&limit=10"
 #### 3.4 更新车位分区信息
 **接口地址**: `PUT /api/parking-zone/{id}`
 
+**请求参数**:
+```json
+{
+  "zoneName": "B区-更新",
+  "description": "B区车位-更新描述",
+  "sortOrder": 3,
+  "status": 1
+}
+```
+
+**响应示例**:
+```json
+{
+  "code": 200,
+  "status": true,
+  "message": "操作成功",
+  "data": {
+    "id": 2,
+    "parkAreaId": 1,
+    "parkAreaName": "园区A",
+    "zoneName": "B区-更新",
+    "description": "B区车位-更新描述",
+    "sortOrder": 3,
+    "status": 1,
+    "createTime": "2024-01-01T10:00:00",
+    "updateTime": "2024-01-02T10:00:00"
+  },
+  "timestamp": 1732982400000
+}
+```
+
 #### 3.5 删除车位分区
 **接口地址**: `DELETE /api/parking-zone/{id}`
+
+**请求参数**:
+- `id`: 分区ID（路径参数）
+
+**响应示例**:
+```json
+{
+  "code": 200,
+  "status": true,
+  "message": "删除成功",
+  "data": null,
+  "timestamp": 1732982400000
+}
+```
 
 #### 3.6 根据园区ID获取车位分区列表
 **接口地址**: `GET /api/parking-zone/park-area/{parkAreaId}`
 
+**请求参数**:
+- `parkAreaId`: 园区ID（路径参数）
+
+**响应示例**:
+```json
+{
+  "code": 200,
+  "status": true,
+  "message": "操作成功",
+  "data": [
+    {
+      "id": 1,
+      "parkAreaId": 1,
+      "parkAreaName": "园区A",
+      "zoneName": "A区",
+      "description": "A区车位",
+      "sortOrder": 1,
+      "status": 1,
+      "createTime": "2024-01-01T10:00:00",
+      "updateTime": "2024-01-01T10:00:00"
+    },
+    {
+      "id": 2,
+      "parkAreaId": 1,
+      "parkAreaName": "园区A",
+      "zoneName": "B区",
+      "description": "B区车位",
+      "sortOrder": 2,
+      "status": 1,
+      "createTime": "2024-01-01T10:00:00",
+      "updateTime": "2024-01-01T10:00:00"
+    }
+  ],
+  "timestamp": 1732982400000
+}
+```
+
 #### 3.7 根据状态获取车位分区列表
 **接口地址**: `GET /api/parking-zone/status/{status}`
 
+**请求参数**:
+- `status`: 状态（0-禁用，1-启用）
+
+**响应示例**:
+```json
+{
+  "code": 200,
+  "status": true,
+  "message": "操作成功",
+  "data": [
+    {
+      "id": 1,
+      "parkAreaId": 1,
+      "parkAreaName": "园区A",
+      "zoneName": "A区",
+      "description": "A区车位",
+      "sortOrder": 1,
+      "status": 1,
+      "createTime": "2024-01-01T10:00:00",
+      "updateTime": "2024-01-01T10:00:00"
+    }
+  ],
+  "timestamp": 1732982400000
+}
+```
+
 #### 3.8 搜索车位分区（按分区名称）
 **接口地址**: `GET /api/parking-zone/search?keyword={keyword}`
+
+**请求参数**:
+- `keyword`: 搜索关键词（分区名称）
+
+**响应示例**:
+```json
+{
+  "code": 200,
+  "status": true,
+  "message": "操作成功",
+  "data": [
+    {
+      "id": 1,
+      "parkAreaId": 1,
+      "parkAreaName": "园区A",
+      "zoneName": "A区",
+      "description": "A区车位",
+      "sortOrder": 1,
+      "status": 1,
+      "createTime": "2024-01-01T10:00:00",
+      "updateTime": "2024-01-01T10:00:00"
+    }
+  ],
+  "timestamp": 1732982400000
+}
+```
 
 #### 3.9 批量更新分区状态
 **接口地址**: `PUT /api/parking-zone/batch/status?ids=1,2,3&status=1`
@@ -325,11 +690,39 @@ curl -X GET "http://localhost:8080/api/auth/login-logs?userId=1&limit=10"
 - `ids`: 分区ID列表，用逗号分隔
 - `status`: 状态（0-禁用，1-启用）
 
+**响应示例**:
+```json
+{
+  "code": 200,
+  "status": true,
+  "message": "批量更新成功",
+  "data": {
+    "successCount": 3,
+    "failedCount": 0
+  },
+  "timestamp": 1732982400000
+}
+```
+
 #### 3.10 批量删除分区
 **接口地址**: `DELETE /api/parking-zone/batch?ids=1,2,3`
 
 **请求参数**:
 - `ids`: 分区ID列表，用逗号分隔
+
+**响应示例**:
+```json
+{
+  "code": 200,
+  "status": true,
+  "message": "批量删除成功",
+  "data": {
+    "successCount": 3,
+    "failedCount": 0
+  },
+  "timestamp": 1732982400000
+}
+```
 
 ### 4. 车位管理接口
 
@@ -349,7 +742,31 @@ curl -X GET "http://localhost:8080/api/auth/login-logs?userId=1&limit=10"
   "spaceType": 2,
   "status": 1,
   "latitude": 39.9042,
-  "longitude": 116.4074
+  "longitude": 116.4074,
+  "bindUserId": null
+}
+```
+
+**响应示例**:
+```json
+{
+  "code": 200,
+  "status": true,
+  "message": "操作成功",
+  "data": {
+    "id": 1,
+    "parkAreaId": 1,
+    "zoneId": 1,
+    "spaceNumber": "A-101",
+    "spaceType": 2,
+    "status": 1,
+    "latitude": 39.9042,
+    "longitude": 116.4074,
+    "bindUserId": null,
+    "createTime": "2024-01-01T10:00:00",
+    "updateTime": "2024-01-01T10:00:00"
+  },
+  "timestamp": 1732982400000
 }
 ```
 
@@ -493,6 +910,41 @@ curl -X GET "http://localhost:8080/api/auth/login-logs?userId=1&limit=10"
 - `GET /api/blacklist/list` - 获取黑名单列表
 - `POST /api/blacklist` - 添加黑名单
 - `DELETE /api/blacklist/{id}` - 移除黑名单
+
+**创建黑名单请求参数**:
+```json
+{
+  "plateNumber": "京A12345",
+  "reason": "违规停车",
+  "parkAreaId": 1,
+  "startTime": "2024-01-01T10:00:00",
+  "endTime": "2024-12-31T23:59:59",
+  "status": 1
+}
+```
+
+**响应示例**:
+```json
+{
+  "code": 200,
+  "status": true,
+  "message": "操作成功",
+  "data": {
+    "id": 1,
+    "plateNumber": "京A12345",
+    "reason": "违规停车",
+    "parkAreaId": 1,
+    "createdBy": 1,
+    "updatedBy": 1,
+    "startTime": "2024-01-01T10:00:00",
+    "endTime": "2024-12-31T23:59:59",
+    "status": 1,
+    "createTime": "2024-01-01T10:00:00",
+    "updateTime": "2024-01-01T10:00:00"
+  },
+  "timestamp": 1732982400000
+}
+```
 
 #### 7.3 支付记录管理
 - `GET /api/payment-record/list` - 获取支付记录列表
@@ -662,17 +1114,12 @@ curl -X POST "http://localhost:8080/api/auth/login" \
   -H "Content-Type: application/json" \
   -d '{
     "username": "admin",
-    "password": "admin123",
+    "password": "123456",
     "captchaId": "captcha_1234567890",
     "captchaCode": "AB12"
   }'
 ```
 
-### 5. 访问Swagger文档
-项目集成了Swagger API文档，启动后访问：
-```
-http://localhost:8080/swagger-ui.html
-```
 
 ## 常见问题
 

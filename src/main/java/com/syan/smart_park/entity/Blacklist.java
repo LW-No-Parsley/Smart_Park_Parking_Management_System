@@ -55,6 +55,11 @@ public class Blacklist {
     private Integer status;
     
     /**
+     * 所属园区ID
+     */
+    private Long parkAreaId;
+    
+    /**
      * 创建时间
      */
     @TableField(fill = FieldFill.INSERT)

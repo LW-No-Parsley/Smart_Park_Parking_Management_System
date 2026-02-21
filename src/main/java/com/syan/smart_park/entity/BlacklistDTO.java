@@ -51,6 +51,11 @@ public class BlacklistDTO {
     private Integer status;
     
     /**
+     * 所属园区ID
+     */
+    private Long parkAreaId;
+    
+    /**
      * 创建时间
      */
     private LocalDateTime createTime;
@@ -77,6 +82,7 @@ public class BlacklistDTO {
         dto.setStartTime(blacklist.getStartTime());
         dto.setEndTime(blacklist.getEndTime());
         dto.setStatus(blacklist.getStatus());
+        dto.setParkAreaId(blacklist.getParkAreaId());
         dto.setCreateTime(blacklist.getCreateTime());
         dto.setUpdateTime(blacklist.getUpdateTime());
         
@@ -96,6 +102,7 @@ public class BlacklistDTO {
         blacklist.setStartTime(this.startTime);
         blacklist.setEndTime(this.endTime);
         blacklist.setStatus(this.status);
+        blacklist.setParkAreaId(this.parkAreaId);
         
         return blacklist;
     }

@@ -129,15 +129,12 @@ public class AuthServiceImpl implements AuthService {
     public String refreshToken(String refreshToken) {
         // 1. 验证refresh token
         if (!jwtUtil.validateToken(refreshToken)) {
-            throw new BusinessException(ReturnCode.RC605); // token无效
+            throw new BusinessException(ReturnCode.RC609); // token无效
         }
 
-        // 2. 检查token是否在黑名单中
-        QueryWrapper<TokenBlacklist> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("token", refreshToken);
-        TokenBlacklist blacklistedToken = tokenBlacklistMapper.selectOne(queryWrapper);
-        if (blacklistedToken != null) {
-            throw new BusinessException(ReturnCode.RC605); // token无效
+        // 2. 检查token是否在黑名单中（使用JwtUtil的方法，它会处理jti查询）
+        if (jwtUtil.isTokenBlacklisted(refreshToken)) {
+            throw new BusinessException(ReturnCode.RC609); // token无效
         }
 
         // 3. 解析token获取用户信息
@@ -156,18 +153,9 @@ public class AuthServiceImpl implements AuthService {
             return false;
         }
 
-        // 2. 将token加入黑名单
-        TokenBlacklist tokenBlacklist = new TokenBlacklist();
-        tokenBlacklist.setToken(token);
-        tokenBlacklist.setCreateTime(LocalDateTime.now());
-        // 将Date转换为LocalDateTime
-        Date expirationDate = jwtUtil.getExpirationDateFromToken(token);
-        tokenBlacklist.setExpireTime(expirationDate.toInstant()
-                .atZone(java.time.ZoneId.systemDefault())
-                .toLocalDateTime());
-        
-        int result = tokenBlacklistMapper.insert(tokenBlacklist);
-        return result > 0;
+        // 2. 将token加入黑名单（使用JwtUtil的方法，它会处理jti存储）
+        jwtUtil.addToBlacklist(token);
+        return true;
     }
 
     @Override
@@ -177,12 +165,8 @@ public class AuthServiceImpl implements AuthService {
             return false;
         }
 
-        // 2. 检查token是否在黑名单中
-        QueryWrapper<TokenBlacklist> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("token", token);
-        TokenBlacklist blacklistedToken = tokenBlacklistMapper.selectOne(queryWrapper);
-        
-        return blacklistedToken == null;
+        // 2. 检查token是否在黑名单中（使用JwtUtil的方法，它会处理jti查询）
+        return !jwtUtil.isTokenBlacklisted(token);
     }
 
     @Override

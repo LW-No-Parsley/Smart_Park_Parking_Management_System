@@ -66,13 +66,19 @@ public class ParkingSpaceServiceImpl extends ServiceImpl<ParkingSpaceMapper, Par
     @Override
     @Transactional
     public ParkingSpaceDTO updateParkingSpace(Long id, ParkingSpaceDTO parkingSpaceDTO) {
-        ParkingSpace existingParkingSpace = this.getById(id);
+        // 使用FOR UPDATE锁定记录，防止并发冲突
+        ParkingSpace existingParkingSpace = parkingSpaceMapper.selectForUpdate(id);
         if (existingParkingSpace == null) {
-            return null;
+            throw new com.syan.smart_park.common.exception.BusinessException(
+                com.syan.smart_park.common.exception.ReturnCode.RC1300,
+                "车位不存在或已被删除"
+            );
         }
         
         ParkingSpace parkingSpace = parkingSpaceDTO.toParkingSpace();
         parkingSpace.setId(id);
+        // 设置乐观锁版本号
+        parkingSpace.setVersion(existingParkingSpace.getVersion());
         this.updateById(parkingSpace);
         
         return ParkingSpaceDTO.fromParkingSpace(parkingSpace);

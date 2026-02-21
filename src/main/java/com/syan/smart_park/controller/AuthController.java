@@ -1,6 +1,7 @@
 package com.syan.smart_park.controller;
 
 import com.syan.smart_park.common.R;
+import com.syan.smart_park.common.exception.BusinessException;
 import com.syan.smart_park.common.exception.ReturnCode;
 import com.syan.smart_park.common.utils.JwtUtil;
 import com.syan.smart_park.entity.User;
@@ -116,30 +117,35 @@ public class AuthController {
             refreshToken = refreshToken.substring(7);
         }
         
-        // 验证refresh token
-        if (!jwtUtil.validateToken(refreshToken)) {
-            return R.unauthorized();
-        }
-        
-        // 使用AuthService刷新token
-        String newAccessToken = authService.refreshToken(refreshToken);
-        
-        if (newAccessToken != null) {
-            // 从refresh token中获取用户信息
-            Long userId = jwtUtil.getUserIdFromToken(refreshToken);
-            String username = jwtUtil.getUsernameFromToken(refreshToken);
+        try {
+            // 使用AuthService刷新token（AuthService内部会验证token）
+            String newAccessToken = authService.refreshToken(refreshToken);
             
-            // 生成新的refresh token（refresh token轮换）
-            String newRefreshToken = jwtUtil.generateRefreshToken(userId, username);
-            
-            Map<String, Object> result = new HashMap<>();
-            result.put("accessToken", newAccessToken);
-            result.put("refreshToken", newRefreshToken);
-            result.put("tokenType", "Bearer");
-            result.put("expiresIn", jwtUtil.getAccessTokenExpiration());
-            return R.success(result);
-        } else {
-            return R.error(ReturnCode.RC500);
+            if (newAccessToken != null) {
+                // 从refresh token中获取用户信息
+                Long userId = jwtUtil.getUserIdFromToken(refreshToken);
+                String username = jwtUtil.getUsernameFromToken(refreshToken);
+                
+                // 生成新的refresh token（refresh token轮换）
+                String newRefreshToken = jwtUtil.generateRefreshToken(userId, username);
+                
+                Map<String, Object> result = new HashMap<>();
+                result.put("accessToken", newAccessToken);
+                result.put("refreshToken", newRefreshToken);
+                result.put("tokenType", "Bearer");
+                result.put("expiresIn", jwtUtil.getAccessTokenExpiration());
+                return R.success(result);
+            } else {
+                return R.error(ReturnCode.RC500);
+            }
+        } catch (BusinessException e) {
+            // 捕获业务异常，返回对应的错误码和消息
+            System.out.println("BusinessException caught: code=" + e.getCode() + ", message=" + e.getMessage());
+            return R.error(e.getCode(), e.getMessage());
+        } catch (Exception e) {
+            // 捕获其他异常，返回401未授权
+            e.printStackTrace();
+            return R.error(ReturnCode.RC401, "Token刷新失败: " + e.getMessage());
         }
     }
 

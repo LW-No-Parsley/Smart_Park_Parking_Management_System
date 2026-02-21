@@ -1,5 +1,6 @@
 package com.syan.smart_park.common.utils;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.syan.smart_park.dao.TokenBlacklistMapper;
 import com.syan.smart_park.entity.TokenBlacklist;
 import io.jsonwebtoken.Claims;
@@ -9,10 +10,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import jakarta.annotation.PostConstruct;
 import javax.crypto.SecretKey;
+import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * JWT工具类
@@ -26,6 +30,12 @@ public class JwtUtil {
 
     @Value("${jwt.expiration:86400000}")
     private Long expiration; // 默认24小时
+    
+    @PostConstruct
+    public void init() {
+        System.out.println("JWT Secret: " + secret);
+        System.out.println("JWT Expiration: " + expiration);
+    }
 
     private final TokenBlacklistMapper tokenBlacklistMapper;
 
@@ -49,7 +59,7 @@ public class JwtUtil {
      */
     public String generateRefreshToken(Long userId, String username) {
         // 刷新token有效期更长，例如7天
-        return generateToken(username, userId, expiration * 7);
+        return generateToken(username, userId, expiration * 24 * 7);
     }
 
     /**
@@ -77,6 +87,9 @@ public class JwtUtil {
         claims.put("username", username);
         claims.put("userId", userId);
         claims.put("created", new Date());
+        // 添加jti（JWT ID）用于黑名单管理
+        String jti = UUID.randomUUID().toString();
+        claims.put("jti", jti);
 
         return Jwts.builder()
                 .claims(claims)
@@ -142,12 +155,14 @@ public class JwtUtil {
         try {
             // 检查token是否在黑名单中
             if (isTokenBlacklisted(token)) {
+                System.out.println("Token is blacklisted: " + token);
                 return false;
             }
             
             getClaimsFromToken(token);
             return true;
         } catch (Exception e) {
+            System.out.println("Token validation failed: " + e.getMessage());
             return false;
         }
     }
@@ -190,8 +205,22 @@ public class JwtUtil {
      * @return 是否在黑名单中
      */
     public boolean isTokenBlacklisted(String token) {
-        TokenBlacklist blacklist = tokenBlacklistMapper.selectByToken(token);
-        return blacklist != null;
+        try {
+            // 从token中获取jti
+            Claims claims = getClaimsFromToken(token);
+            String jti = claims.get("jti", String.class);
+            if (jti == null) {
+                return false;
+            }
+            
+            QueryWrapper<TokenBlacklist> queryWrapper = new QueryWrapper<>();
+            queryWrapper.eq("jti", jti);
+            TokenBlacklist blacklist = tokenBlacklistMapper.selectOne(queryWrapper);
+            return blacklist != null;
+        } catch (Exception e) {
+            System.out.println("Failed to check token blacklist: " + e.getMessage());
+            return false;
+        }
     }
 
     /**
@@ -200,15 +229,30 @@ public class JwtUtil {
      * @param token token字符串
      */
     public void addToBlacklist(String token) {
-        if (validateToken(token)) {
-            Date expirationDate = getExpirationDateFromToken(token);
-            TokenBlacklist blacklist = new TokenBlacklist();
-            blacklist.setToken(token);
-            // 将Date转换为LocalDateTime
-            blacklist.setExpireTime(expirationDate.toInstant()
-                    .atZone(java.time.ZoneId.systemDefault())
-                    .toLocalDateTime());
-            tokenBlacklistMapper.insert(blacklist);
+        try {
+            if (validateToken(token)) {
+                Claims claims = getClaimsFromToken(token);
+                String jti = claims.get("jti", String.class);
+                if (jti == null) {
+                    return;
+                }
+                
+                Date expirationDate = getExpirationDateFromToken(token);
+                TokenBlacklist blacklist = new TokenBlacklist();
+                blacklist.setToken(jti); // 存储jti而不是整个token
+                blacklist.setUserId(getUserIdFromToken(token));
+                // 将Date转换为LocalDateTime
+                blacklist.setExpirationTime(expirationDate.toInstant()
+                        .atZone(java.time.ZoneId.systemDefault())
+                        .toLocalDateTime());
+                // 设置失效时间为当前时间
+                blacklist.setInvalidatedTime(LocalDateTime.now());
+                // 设置原因：1-用户登出
+                blacklist.setReason(1);
+                tokenBlacklistMapper.insert(blacklist);
+            }
+        } catch (Exception e) {
+            System.out.println("Failed to add token to blacklist: " + e.getMessage());
         }
     }
 
