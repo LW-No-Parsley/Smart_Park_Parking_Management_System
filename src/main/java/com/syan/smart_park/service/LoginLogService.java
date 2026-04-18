@@ -53,6 +53,12 @@ public interface LoginLogService {
     int cleanExpiredLogs(int days);
     
     /**
+     * 定时清理过期登录日志（默认30天）
+     * @return 清理的记录数
+     */
+    int cleanExpiredLogs();
+    
+    /**
      * 获取登录统计信息
      *
      * @param days 统计天数

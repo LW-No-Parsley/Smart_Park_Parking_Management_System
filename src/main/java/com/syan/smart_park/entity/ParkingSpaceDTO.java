@@ -37,7 +37,7 @@ public class ParkingSpaceDTO {
     private Integer spaceType;
     
     /**
-     * 车位状态：0-禁用，1-空闲，2-已预约，3-已占用，4-故障
+     * 车位状态：0-禁用，1-正常，4-故障
      */
     private Integer status;
     
@@ -65,6 +65,11 @@ public class ParkingSpaceDTO {
      * 更新时间
      */
     private LocalDateTime updateTime;
+    
+    /**
+     * 当前占用状态：0-未占用，1-占用中（不写入数据库，动态计算）
+     */
+    private Integer currentOccupiedStatus;
     
     /**
      * 静态方法：从ParkingSpace实体转换为ParkingSpaceDTO
@@ -105,6 +110,15 @@ public class ParkingSpaceDTO {
         parkingSpace.setLongitude(this.longitude);
         parkingSpace.setBindUserId(this.bindUserId);
         
+        return parkingSpace;
+    }
+    
+    /**
+     * 转换为ParkingSpace实体（包含版本号）
+     */
+    public ParkingSpace toParkingSpaceWithVersion(Integer version) {
+        ParkingSpace parkingSpace = this.toParkingSpace();
+        parkingSpace.setVersion(version);
         return parkingSpace;
     }
 }

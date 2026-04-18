@@ -143,7 +143,7 @@ public class IpUtil {
         
         // 对于通过多个代理的情况，第一个IP为客户端真实IP
         if (StringUtils.hasText(ip) && ip.contains(SEPARATOR)) {
-            ip = ip.substring(1, ip.indexOf(SEPARATOR));
+            ip = ip.split(SEPARATOR)[0].trim();
         }
         
         return ip;

@@ -89,7 +89,7 @@ public class ParkAreaController {
         if (!success) {
             return R.error(ReturnCode.RC601); // 园区不存在或删除失败
         }
-        return R.success(true);
+        return R.success();
     }
 
     /**
@@ -116,5 +116,57 @@ public class ParkAreaController {
         // 实际项目中应该实现具体的搜索逻辑
         List<ParkAreaDTO> parkAreas = parkAreaService.getAllParkAreas();
         return R.success(parkAreas);
+    }
+
+    /**
+     * 手动触发更新所有园区的总车位数
+     *
+     * @return 更新的园区数量
+     */
+    @PostMapping("/update-all-total-spaces")
+    public R<Integer> updateAllTotalSpaces() {
+        int updatedCount = parkAreaService.updateAllTotalSpaces();
+        return R.success(updatedCount);
+    }
+
+    /**
+     * 更新指定园区的总车位数
+     *
+     * @param id 园区ID
+     * @return 更新结果
+     */
+    @PostMapping("/{id}/update-total-spaces")
+    public R<Boolean> updateTotalSpaces(@PathVariable Long id) {
+        boolean success = parkAreaService.updateTotalSpaces(id);
+        if (!success) {
+            return R.error(ReturnCode.RC601); // 园区不存在或更新失败
+        }
+        return R.success();
+    }
+    
+    /**
+     * 获取园区占用统计信息
+     *
+     * @param id 园区ID
+     * @return 占用统计信息
+     */
+    @GetMapping("/{id}/occupancy-stats")
+    public R<com.syan.smart_park.entity.ParkAreaOccupancyStats> getParkAreaOccupancyStats(@PathVariable Long id) {
+        com.syan.smart_park.entity.ParkAreaOccupancyStats stats = parkAreaService.getParkAreaOccupancyStats(id);
+        if (stats == null) {
+            return R.error(ReturnCode.RC601); // 园区不存在
+        }
+        return R.success(stats);
+    }
+    
+    /**
+     * 获取所有园区的占用统计信息
+     *
+     * @return 所有园区的占用统计信息列表
+     */
+    @GetMapping("/occupancy-stats/all")
+    public R<List<com.syan.smart_park.entity.ParkAreaOccupancyStats>> getAllParkAreasOccupancyStats() {
+        List<com.syan.smart_park.entity.ParkAreaOccupancyStats> statsList = parkAreaService.getAllParkAreasOccupancyStats();
+        return R.success(statsList);
     }
 }

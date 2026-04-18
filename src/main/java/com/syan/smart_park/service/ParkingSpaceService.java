@@ -12,9 +12,12 @@ import java.util.List;
 public interface ParkingSpaceService extends IService<ParkingSpace> {
     
     /**
-     * 获取所有车位
+     * 获取车位详情（包含当前占用状态）
+     *
+     * @param id 车位ID
+     * @return 车位详情（包含占用状态）
      */
-    List<ParkingSpaceDTO> getAllParkingSpaces();
+    ParkingSpaceDTO getParkingSpaceWithOccupiedStatus(Long id);
     
     /**
      * 根据ID获取车位
@@ -70,4 +73,29 @@ public interface ParkingSpaceService extends IService<ParkingSpace> {
      * 批量更新车位状态
      */
     boolean batchUpdateParkingSpaceStatus(List<Long> ids, Integer status);
+    
+    /**
+     * 检查车位在当前时间是否被占用
+     *
+     * @param spaceId 车位ID
+     * @return true-占用中，false-未占用
+     */
+    boolean isSpaceOccupied(Long spaceId);
+    
+
+    
+    /**
+     * 获取所有车位（包含当前占用状态）
+     *
+     * @return 车位列表（包含占用状态）
+     */
+    List<ParkingSpaceDTO> getAllParkingSpacesWithOccupiedStatus();
+    
+    /**
+     * 根据园区ID获取车位列表（包含当前占用状态）
+     *
+     * @param parkAreaId 园区ID
+     * @return 车位列表（包含占用状态）
+     */
+    List<ParkingSpaceDTO> getParkingSpacesByParkAreaIdWithOccupiedStatus(Long parkAreaId);
 }

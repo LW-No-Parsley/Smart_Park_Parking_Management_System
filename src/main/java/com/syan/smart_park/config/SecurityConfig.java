@@ -31,7 +31,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/validate").permitAll()
                         
                         // 静态资源
-                        .requestMatchers("/public/**").permitAll()
+                        .requestMatchers("/api/resources/**").permitAll()
                         
                         // 其他所有接口都需要认证
                         .anyRequest().authenticated()

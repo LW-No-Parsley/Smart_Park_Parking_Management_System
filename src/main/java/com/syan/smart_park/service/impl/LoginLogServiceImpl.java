@@ -62,7 +62,6 @@ public class LoginLogServiceImpl implements LoginLogService {
     }
 
     @Override
-    @Scheduled(cron = "0 0 2 * * ?") // 每天凌晨2点执行
     public int cleanExpiredLogs(int days) {
         LocalDateTime expireTime = LocalDateTime.now().minusDays(days);
         
@@ -70,6 +69,13 @@ public class LoginLogServiceImpl implements LoginLogService {
         queryWrapper.lt("login_time", expireTime);
         
         return loginLogMapper.delete(queryWrapper);
+    }
+
+    @Override
+    @Scheduled(cron = "0 0 2 * * ?") // 每天凌晨2点执行
+    public int cleanExpiredLogs() {
+        // 默认清理30天前的日志
+        return cleanExpiredLogs(30);
     }
 
     @Override

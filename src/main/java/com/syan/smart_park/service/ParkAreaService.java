@@ -3,6 +3,7 @@ package com.syan.smart_park.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.syan.smart_park.entity.ParkArea;
 import com.syan.smart_park.entity.ParkAreaDTO;
+import com.syan.smart_park.entity.ParkAreaOccupancyStats;
 
 import java.util.List;
 
@@ -52,4 +53,32 @@ public interface ParkAreaService extends IService<ParkArea> {
      * @return 园区DTO列表
      */
     List<ParkAreaDTO> getParkAreasByStatus(Integer status);
+
+    /**
+     * 更新园区总车位数
+     * @param parkAreaId 园区ID
+     * @return 是否更新成功
+     */
+    boolean updateTotalSpaces(Long parkAreaId);
+
+    /**
+     * 更新所有园区的总车位数
+     * @return 更新的园区数量
+     */
+    int updateAllTotalSpaces();
+    
+    /**
+     * 获取园区占用统计信息
+     *
+     * @param parkAreaId 园区ID
+     * @return 占用统计信息，包含总车位数、占用车位数、空闲车位数
+     */
+    ParkAreaOccupancyStats getParkAreaOccupancyStats(Long parkAreaId);
+    
+    /**
+     * 获取所有园区的占用统计信息
+     *
+     * @return 所有园区的占用统计信息列表
+     */
+    List<ParkAreaOccupancyStats> getAllParkAreasOccupancyStats();
 }

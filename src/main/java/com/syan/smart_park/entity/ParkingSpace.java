@@ -41,7 +41,7 @@ public class ParkingSpace {
     private Integer spaceType;
     
     /**
-     * 车位状态：0-禁用，1-空闲，2-已预约，3-已占用，4-故障
+     * 车位状态：0-禁用，1-正常，4-故障
      */
     private Integer status;
     
@@ -81,6 +81,6 @@ public class ParkingSpace {
     /**
      * 乐观锁版本号
      */
-    @Version
+    // @Version
     private Integer version;
 }

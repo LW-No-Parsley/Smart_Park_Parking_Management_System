@@ -72,6 +72,11 @@ public class ParkAreaDTO {
      * 更新时间
      */
     private LocalDateTime updateTime;
+
+    /**
+     * 逻辑删除：0-未删除，1-已删除
+     */
+    private Integer deleted;
     
     /**
      * 静态方法：从ParkArea实体转换为ParkAreaDTO
@@ -94,6 +99,7 @@ public class ParkAreaDTO {
         dto.setStatus(parkArea.getStatus());
         dto.setCreateTime(parkArea.getCreateTime());
         dto.setUpdateTime(parkArea.getUpdateTime());
+        dto.setDeleted(parkArea.getDeleted());
         
         return dto;
     }
@@ -113,6 +119,7 @@ public class ParkAreaDTO {
         parkArea.setBusinessHoursStart(this.businessHoursStart);
         parkArea.setBusinessHoursEnd(this.businessHoursEnd);
         parkArea.setStatus(this.status);
+        parkArea.setDeleted(this.deleted);
         
         return parkArea;
     }

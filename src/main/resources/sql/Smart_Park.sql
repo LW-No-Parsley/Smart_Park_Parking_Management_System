@@ -11,7 +11,7 @@
  Target Server Version : 80032 (8.0.32)
  File Encoding         : 65001
 
- Date: 20/02/2026 20:05:46
+ Date: 04/03/2026 14:04:28
 */
 
 SET NAMES utf8mb4;
@@ -46,7 +46,7 @@ CREATE TABLE `access_log` (
   CONSTRAINT `fk_access_handled_by_sys_user` FOREIGN KEY (`handled_by`) REFERENCES `sys_user` (`id`) ON DELETE SET NULL ON UPDATE RESTRICT,
   CONSTRAINT `fk_access_park_area` FOREIGN KEY (`park_area_id`) REFERENCES `park_area` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
   CONSTRAINT `fk_access_vehicle` FOREIGN KEY (`vehicle_id`) REFERENCES `vehicle` (`id`) ON DELETE SET NULL ON UPDATE RESTRICT
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='进出记录表';
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='进出记录表';
 
 -- ----------------------------
 -- Table structure for blacklist
@@ -125,7 +125,7 @@ CREATE TABLE `gate_device` (
   UNIQUE KEY `uk_device_sn` (`device_sn`) USING BTREE,
   KEY `idx_park_area` (`park_area_id`) USING BTREE,
   CONSTRAINT `fk_gate_park_area` FOREIGN KEY (`park_area_id`) REFERENCES `park_area` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='道闸设备表';
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='道闸设备表';
 
 -- ----------------------------
 -- Table structure for operation_log
@@ -169,7 +169,7 @@ CREATE TABLE `park_area` (
   PRIMARY KEY (`id`) USING BTREE,
   KEY `idx_primary_admin_user` (`primary_admin_user_id`) USING BTREE,
   CONSTRAINT `fk_park_area_primary_admin` FOREIGN KEY (`primary_admin_user_id`) REFERENCES `sys_user` (`id`) ON DELETE SET NULL ON UPDATE RESTRICT
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='园区表';
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='园区表';
 
 -- ----------------------------
 -- Table structure for park_user
@@ -220,7 +220,7 @@ CREATE TABLE `parking_space` (
   CONSTRAINT `fk_space_bind_user` FOREIGN KEY (`bind_user_id`) REFERENCES `park_user` (`id`) ON DELETE SET NULL ON UPDATE RESTRICT,
   CONSTRAINT `fk_space_park_area` FOREIGN KEY (`park_area_id`) REFERENCES `park_area` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT,
   CONSTRAINT `fk_space_zone` FOREIGN KEY (`zone_id`) REFERENCES `parking_zone` (`id`) ON DELETE SET NULL ON UPDATE RESTRICT
-) ENGINE=InnoDB AUTO_INCREMENT=15 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='车位表';
+) ENGINE=InnoDB AUTO_INCREMENT=16 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='车位表';
 
 -- ----------------------------
 -- Table structure for parking_zone
@@ -334,7 +334,7 @@ CREATE TABLE `reservation` (
   CONSTRAINT `fk_reservation_space` FOREIGN KEY (`space_id`) REFERENCES `parking_space` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT,
   CONSTRAINT `fk_reservation_user` FOREIGN KEY (`user_id`) REFERENCES `park_user` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT,
   CONSTRAINT `fk_reservation_vehicle` FOREIGN KEY (`vehicle_id`) REFERENCES `vehicle` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='预约表';
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='预约表';
 
 -- ----------------------------
 -- Table structure for space_occupy
@@ -342,15 +342,15 @@ CREATE TABLE `reservation` (
 DROP TABLE IF EXISTS `space_occupy`;
 CREATE TABLE `space_occupy` (
   `id` bigint NOT NULL AUTO_INCREMENT,
-  `space_id` bigint NOT NULL,
-  `reservation_id` bigint NOT NULL,
-  `start_time` datetime(6) NOT NULL,
-  `end_time` datetime(6) NOT NULL,
-  `create_time` datetime(6) DEFAULT CURRENT_TIMESTAMP(6),
+  `space_id` bigint NOT NULL COMMENT 'ID',
+  `reservation_id` bigint NOT NULL COMMENT '预订ID',
+  `start_time` datetime(6) NOT NULL COMMENT '开始时间',
+  `end_time` datetime(6) NOT NULL COMMENT '结束时间',
+  `create_time` datetime(6) DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_space_time` (`space_id`,`start_time`,`end_time`),
   KEY `idx_space_range` (`space_id`,`start_time`,`end_time`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='占用表';
 
 -- ----------------------------
 -- Table structure for sys_captcha
@@ -370,7 +370,7 @@ CREATE TABLE `sys_captcha` (
   UNIQUE KEY `uk_captcha_id` (`captcha_id`) USING BTREE,
   KEY `idx_expiration_time` (`expiration_time`) USING BTREE,
   KEY `idx_used` (`used`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=46 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci ROW_FORMAT=DYNAMIC COMMENT='验证码表';
+) ENGINE=InnoDB AUTO_INCREMENT=104 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci ROW_FORMAT=DYNAMIC COMMENT='验证码表';
 
 -- ----------------------------
 -- Table structure for sys_login_log
@@ -394,7 +394,7 @@ CREATE TABLE `sys_login_log` (
   KEY `idx_user_id` (`user_id`) USING BTREE,
   KEY `idx_login_time` (`login_time`) USING BTREE,
   KEY `idx_login_status` (`status`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=22 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci ROW_FORMAT=DYNAMIC COMMENT='登录日志表';
+) ENGINE=InnoDB AUTO_INCREMENT=50 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci ROW_FORMAT=DYNAMIC COMMENT='登录日志表';
 
 -- ----------------------------
 -- Table structure for sys_permission
@@ -476,7 +476,7 @@ CREATE TABLE `sys_token_jti_blacklist` (
   KEY `idx_expiration_time` (`expiration_time`) USING BTREE,
   KEY `idx_user_id` (`user_id`) USING BTREE,
   CONSTRAINT `fk_jti_user` FOREIGN KEY (`user_id`) REFERENCES `sys_user` (`id`) ON DELETE SET NULL ON UPDATE RESTRICT
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci ROW_FORMAT=DYNAMIC COMMENT='JWT jti黑名单表';
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci ROW_FORMAT=DYNAMIC COMMENT='JWT jti黑名单表';
 
 -- ----------------------------
 -- Table structure for sys_user
@@ -498,7 +498,7 @@ CREATE TABLE `sys_user` (
   KEY `idx_email` (`email`) USING BTREE,
   KEY `idx_status` (`status`) USING BTREE,
   KEY `idx_create_time` (`create_time`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='系统用户表（后台管理员）';
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='系统用户表（后台管理员）';
 
 -- ----------------------------
 -- Table structure for sys_user_park_area

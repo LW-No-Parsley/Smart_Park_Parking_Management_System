@@ -28,7 +28,12 @@ public class R<T> {
 
     // 成功，无数据
     public static <T> R<T> success() {
-        return success(null);
+        R<T> r = new R<>();
+        r.setCode(ReturnCode.RC200.getCode());
+        r.setStatus(true);
+        r.setMessage(ReturnCode.RC200.getMessage());
+        r.setData((T) "");
+        return r;
     }
 
     // 成功，自定义消息
@@ -37,7 +42,7 @@ public class R<T> {
         r.setCode(ReturnCode.RC200.getCode());
         r.setStatus(true);
         r.setMessage(message);
-        r.setData(null);
+        r.setData((T) "");
         return r;
     }
 

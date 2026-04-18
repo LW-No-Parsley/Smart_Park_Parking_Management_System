@@ -24,8 +24,8 @@ public class ParkingSpaceController {
      * 获取所有车位列表
      */
     @GetMapping("/list")
-    public R<List<ParkingSpaceDTO>> getAllParkingSpaces() {
-        List<ParkingSpaceDTO> parkingSpaces = parkingSpaceService.getAllParkingSpaces();
+    public R<List<ParkingSpaceDTO>> getAllParkingSpacesWithOccupiedStatus() {
+        List<ParkingSpaceDTO> parkingSpaces = parkingSpaceService.getAllParkingSpacesWithOccupiedStatus();
         return R.success(parkingSpaces);
     }
     
@@ -141,5 +141,36 @@ public class ParkingSpaceController {
             return R.error(ReturnCode.RC500); // 批量更新失败
         }
         return R.success(true);
+    }
+    
+    /**
+     * 获取车位详情（包含当前占用状态）
+     */
+    @GetMapping("/{id}/with-occupied-status")
+    public R<ParkingSpaceDTO> getParkingSpaceWithOccupiedStatus(@PathVariable Long id) {
+        ParkingSpaceDTO parkingSpace = parkingSpaceService.getParkingSpaceWithOccupiedStatus(id);
+        if (parkingSpace == null) {
+            return R.error(ReturnCode.RC1300); // 数据不存在
+        }
+        return R.success(parkingSpace);
+    }
+    
+    
+    /**
+     * 根据园区ID获取车位列表（包含当前占用状态）
+     */
+    @GetMapping("/park-area/{parkAreaId}/with-occupied-status")
+    public R<List<ParkingSpaceDTO>> getParkingSpacesByParkAreaIdWithOccupiedStatus(@PathVariable Long parkAreaId) {
+        List<ParkingSpaceDTO> parkingSpaces = parkingSpaceService.getParkingSpacesByParkAreaIdWithOccupiedStatus(parkAreaId);
+        return R.success(parkingSpaces);
+    }
+    
+    /**
+     * 检查车位在当前时间是否被占用
+     */
+    @GetMapping("/{id}/is-occupied")
+    public R<Boolean> isSpaceOccupied(@PathVariable Long id) {
+        boolean isOccupied = parkingSpaceService.isSpaceOccupied(id);
+        return R.success(isOccupied);
     }
 }

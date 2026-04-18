@@ -30,12 +30,6 @@ public class JwtUtil {
 
     @Value("${jwt.expiration:86400000}")
     private Long expiration; // 默认24小时
-    
-    @PostConstruct
-    public void init() {
-        System.out.println("JWT Secret: " + secret);
-        System.out.println("JWT Expiration: " + expiration);
-    }
 
     private final TokenBlacklistMapper tokenBlacklistMapper;
 
@@ -155,14 +149,12 @@ public class JwtUtil {
         try {
             // 检查token是否在黑名单中
             if (isTokenBlacklisted(token)) {
-                System.out.println("Token is blacklisted: " + token);
                 return false;
             }
             
             getClaimsFromToken(token);
             return true;
         } catch (Exception e) {
-            System.out.println("Token validation failed: " + e.getMessage());
             return false;
         }
     }

@@ -1,7 +1,9 @@
 package com.syan.smart_park.service.impl;
 
 import cn.hutool.captcha.CaptchaUtil;
+import cn.hutool.captcha.CircleCaptcha;
 import cn.hutool.captcha.LineCaptcha;
+import cn.hutool.captcha.ShearCaptcha;
 import cn.hutool.core.codec.Base64;
 import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
@@ -35,15 +37,15 @@ public class CaptchaServiceImpl implements CaptchaService {
     private static final int WIDTH = 120;
     private static final int HEIGHT = 40;
     private static final int CODE_COUNT = 4;
-    private static final int LINE_COUNT = 10;
+    private static final int LINE_COUNT = 4;
     private static final int EXPIRE_MINUTES = 5; // 验证码有效期5分钟
 
     @Override
     public CaptchaInfo generateCaptcha() {
         // 1. 生成验证码
-        LineCaptcha lineCaptcha = CaptchaUtil.createLineCaptcha(WIDTH, HEIGHT, CODE_COUNT, LINE_COUNT);
-        String captchaCode = lineCaptcha.getCode();
-        BufferedImage captchaImage = lineCaptcha.getImage();
+        ShearCaptcha ShearCaptcha = CaptchaUtil.createShearCaptcha(WIDTH, HEIGHT, CODE_COUNT, LINE_COUNT);
+        String captchaCode = ShearCaptcha.getCode();
+        BufferedImage captchaImage = ShearCaptcha.getImage();
         
         // 2. 将BufferedImage转换为Base64字符串
         String captchaImageBase64 = convertBufferedImageToBase64(captchaImage);
