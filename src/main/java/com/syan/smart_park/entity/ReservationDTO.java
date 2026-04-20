@@ -1,5 +1,6 @@
 package com.syan.smart_park.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -17,19 +18,37 @@ public class ReservationDTO {
     private Long id;
     
     /**
-     * 用户ID（park_user.id）
+     * 用户ID（park_user.id）- 不暴露给API
      */
+    @JsonIgnore
     private Long userId;
     
     /**
-     * 车辆ID（vehicle.id）
+     * 用户名
      */
+    private String username;
+    
+    /**
+     * 车辆ID（vehicle.id）- 不暴露给API
+     */
+    @JsonIgnore
     private Long vehicleId;
     
     /**
-     * 车位ID（parking_space.id）
+     * 车牌号
      */
+    private String plateNumber;
+    
+    /**
+     * 车位ID（parking_space.id）- 不暴露给API
+     */
+    @JsonIgnore
     private Long spaceId;
+    
+    /**
+     * 车位编号
+     */
+    private String spaceNumber;
     
     /**
      * 预约类型：1-车主预约，2-访客申请，3-保安现场
@@ -122,8 +141,9 @@ public class ReservationDTO {
     private LocalDateTime updateTime;
     
     /**
-     * 乐观锁版本号
+     * 乐观锁版本号 - 不暴露给API
      */
+    @JsonIgnore
     private Integer version;
     
     /**
