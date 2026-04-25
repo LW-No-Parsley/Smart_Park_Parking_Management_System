@@ -2,7 +2,9 @@ package com.syan.smart_park.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.syan.smart_park.dao.ParkUserMapper;
 import com.syan.smart_park.dao.VehicleMapper;
+import com.syan.smart_park.entity.ParkUser;
 import com.syan.smart_park.entity.Vehicle;
 import com.syan.smart_park.entity.VehicleDTO;
 import com.syan.smart_park.service.VehicleService;
@@ -11,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -21,19 +24,64 @@ import java.util.stream.Collectors;
 public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> implements VehicleService {
 
     private final VehicleMapper vehicleMapper;
+    private final ParkUserMapper parkUserMapper;
+
+    /**
+     * 填充车辆DTO中的用户名
+     */
+    private void fillUsername(VehicleDTO dto) {
+        if (dto == null || dto.getUserId() == null) {
+            return;
+        }
+        ParkUser parkUser = parkUserMapper.selectById(dto.getUserId());
+        if (parkUser != null) {
+            dto.setUsername(parkUser.getUsername());
+        }
+    }
+
+    /**
+     * 批量填充车辆DTO列表中的用户名
+     */
+    private void fillUsernames(List<VehicleDTO> dtos) {
+        if (dtos == null || dtos.isEmpty()) {
+            return;
+        }
+        // 收集所有用户ID
+        List<Long> userIds = dtos.stream()
+                .map(VehicleDTO::getUserId)
+                .distinct()
+                .collect(Collectors.toList());
+        
+        if (userIds.isEmpty()) {
+            return;
+        }
+        
+        // 批量查询用户信息
+        Map<Long, String> userMap = parkUserMapper.selectBatchIds(userIds).stream()
+                .collect(Collectors.toMap(ParkUser::getId, ParkUser::getUsername));
+        
+        // 填充用户名
+        for (VehicleDTO dto : dtos) {
+            dto.setUsername(userMap.get(dto.getUserId()));
+        }
+    }
 
     @Override
     public List<VehicleDTO> getAllVehicles() {
         List<Vehicle> vehicles = this.list();
-        return vehicles.stream()
+        List<VehicleDTO> dtos = vehicles.stream()
                 .map(VehicleDTO::fromVehicle)
                 .collect(Collectors.toList());
+        fillUsernames(dtos);
+        return dtos;
     }
 
     @Override
     public VehicleDTO getVehicleById(Long id) {
         Vehicle vehicle = this.getById(id);
-        return VehicleDTO.fromVehicle(vehicle);
+        VehicleDTO dto = VehicleDTO.fromVehicle(vehicle);
+        fillUsername(dto);
+        return dto;
     }
 
     @Override
@@ -53,7 +101,9 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
         
         Vehicle vehicle = vehicleDTO.toVehicle();
         this.save(vehicle);
-        return VehicleDTO.fromVehicle(vehicle);
+        VehicleDTO dto = VehicleDTO.fromVehicle(vehicle);
+        fillUsername(dto);
+        return dto;
     }
 
     @Override
@@ -83,8 +133,9 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
         Vehicle vehicle = vehicleDTO.toVehicle();
         vehicle.setId(id);
         this.updateById(vehicle);
-        
-        return VehicleDTO.fromVehicle(vehicle);
+        VehicleDTO dto = VehicleDTO.fromVehicle(vehicle);
+        fillUsername(dto);
+        return dto;
     }
 
     @Override
@@ -98,10 +149,11 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
         LambdaQueryWrapper<Vehicle> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(Vehicle::getUserId, userId);
         List<Vehicle> vehicles = this.list(queryWrapper);
-        
-        return vehicles.stream()
+        List<VehicleDTO> dtos = vehicles.stream()
                 .map(VehicleDTO::fromVehicle)
                 .collect(Collectors.toList());
+        fillUsernames(dtos);
+        return dtos;
     }
 
     @Override
@@ -109,8 +161,9 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
         LambdaQueryWrapper<Vehicle> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(Vehicle::getPlateNumber, plateNumber);
         Vehicle vehicle = this.getOne(queryWrapper);
-        
-        return VehicleDTO.fromVehicle(vehicle);
+        VehicleDTO dto = VehicleDTO.fromVehicle(vehicle);
+        fillUsername(dto);
+        return dto;
     }
 
     @Override
@@ -118,10 +171,11 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
         LambdaQueryWrapper<Vehicle> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(Vehicle::getStatus, status);
         List<Vehicle> vehicles = this.list(queryWrapper);
-        
-        return vehicles.stream()
+        List<VehicleDTO> dtos = vehicles.stream()
                 .map(VehicleDTO::fromVehicle)
                 .collect(Collectors.toList());
+        fillUsernames(dtos);
+        return dtos;
     }
 
     @Override
@@ -129,10 +183,11 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
         LambdaQueryWrapper<Vehicle> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(Vehicle::getVehicleType, vehicleType);
         List<Vehicle> vehicles = this.list(queryWrapper);
-        
-        return vehicles.stream()
+        List<VehicleDTO> dtos = vehicles.stream()
                 .map(VehicleDTO::fromVehicle)
                 .collect(Collectors.toList());
+        fillUsernames(dtos);
+        return dtos;
     }
 
     @Override
@@ -141,8 +196,9 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
         queryWrapper.eq(Vehicle::getUserId, userId)
                    .eq(Vehicle::getIsDefault, 1);
         Vehicle vehicle = this.getOne(queryWrapper);
-        
-        return VehicleDTO.fromVehicle(vehicle);
+        VehicleDTO dto = VehicleDTO.fromVehicle(vehicle);
+        fillUsername(dto);
+        return dto;
     }
 
     @Override

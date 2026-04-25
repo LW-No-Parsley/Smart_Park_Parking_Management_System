@@ -1,6 +1,7 @@
 package com.syan.smart_park.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.syan.smart_park.entity.FeeCalculationResult;
 import com.syan.smart_park.entity.Reservation;
 import com.syan.smart_park.entity.ReservationDTO;
 
@@ -112,6 +113,15 @@ public interface ReservationService extends IService<Reservation> {
      * 记录离开时间
      */
     boolean recordDeparture(Long id, LocalDateTime leaveTime, BigDecimal totalFee);
+
+    /**
+     * 记录离开时间（自动计算费用）
+     *
+     * @param id        预约ID
+     * @param leaveTime 离开时间
+     * @return 费用计算结果（含自动计算的费用）
+     */
+    FeeCalculationResult recordDepartureWithAutoFee(Long id, LocalDateTime leaveTime);
     
     /**
      * 批量更新预约状态

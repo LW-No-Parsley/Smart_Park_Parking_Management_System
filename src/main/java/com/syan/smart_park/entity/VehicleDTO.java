@@ -19,6 +19,11 @@ public class VehicleDTO {
      * 用户ID（关联 park_user.id）
      */
     private Long userId;
+
+    /**
+     * 用户名（关联 park_user.username）
+     */
+    private String username;
     
     /**
      * 车牌号

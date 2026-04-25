@@ -2,10 +2,12 @@ package com.syan.smart_park.controller;
 
 import com.syan.smart_park.common.R;
 import com.syan.smart_park.common.exception.ReturnCode;
+import com.syan.smart_park.entity.FeeCalculationResult;
 import com.syan.smart_park.entity.ReservationDTO;
 import com.syan.smart_park.service.ReservationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
@@ -163,11 +165,12 @@ public class ReservationController {
     }
     
     /**
-     * 审批预约
+     * 审批预约（从Token中获取当前用户作为审批人）
      */
     @PutMapping("/{id}/approve")
-    public R<Boolean> approveReservation(@PathVariable Long id, @RequestParam Long approvedBy) {
-        boolean result = reservationService.approveReservation(id, approvedBy, null);
+    public R<Boolean> approveReservation(@PathVariable Long id, Authentication authentication) {
+        Long currentUserId = (Long) authentication.getPrincipal();
+        boolean result = reservationService.approveReservation(id, currentUserId, null);
         if (!result) {
             return R.error(ReturnCode.RC500); // 审批失败
         }
@@ -175,13 +178,14 @@ public class ReservationController {
     }
     
     /**
-     * 拒绝预约
+     * 拒绝预约（从Token中获取当前用户作为审批人）
      */
     @PutMapping("/{id}/reject")
     public R<Boolean> rejectReservation(@PathVariable Long id, 
-                                        @RequestParam Long approvedBy,
-                                        @RequestParam String rejectReason) {
-        boolean result = reservationService.rejectReservation(id, approvedBy, rejectReason);
+                                        @RequestParam String rejectReason,
+                                        Authentication authentication) {
+        Long currentUserId = (Long) authentication.getPrincipal();
+        boolean result = reservationService.rejectReservation(id, currentUserId, rejectReason);
         if (!result) {
             return R.error(ReturnCode.RC500); // 拒绝失败
         }
@@ -283,5 +287,17 @@ public class ReservationController {
                                              @RequestParam(required = false) Long excludeReservationId) {
         boolean isAvailable = reservationService.isSpaceAvailable(spaceId, startTime, endTime, excludeReservationId);
         return R.success(isAvailable);
+    }
+
+    /**
+     * 记录离开时间（自动计算费用）
+     * 根据到达时间/预约开始时间和离开时间，自动匹配计费规则计算停车费用
+     */
+    @PutMapping("/{id}/leave-auto-fee")
+    public R<FeeCalculationResult> recordDepartureWithAutoFee(
+            @PathVariable Long id,
+            @RequestParam LocalDateTime leaveTime) {
+        FeeCalculationResult feeResult = reservationService.recordDepartureWithAutoFee(id, leaveTime);
+        return R.success(feeResult);
     }
 }

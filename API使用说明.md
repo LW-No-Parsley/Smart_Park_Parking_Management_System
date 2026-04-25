@@ -1630,11 +1630,11 @@ curl -X GET "http://localhost:8080/api/reservation/time-range?startTime=2024-01-
 
 **请求参数**:
 - `id`: 预约ID（路径参数）
-- `approvedBy`: 审批人ID（查询参数）
+- 无需传`approvedBy`参数，系统自动从请求Token中获取当前登录用户作为审批人
 
 **请求示例**:
 ```bash
-curl -X PUT "http://localhost:8080/api/reservation/2/approve?approvedBy=1" \
+curl -X PUT "http://localhost:8080/api/reservation/2/approve" \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
@@ -1643,7 +1643,7 @@ curl -X PUT "http://localhost:8080/api/reservation/2/approve?approvedBy=1" \
 {
   "code": 200,
   "status": true,
-  "message": "审批成功",
+  "message": "操作成功",
   "data": true,
   "timestamp": 1732982400000
 }
@@ -1654,12 +1654,12 @@ curl -X PUT "http://localhost:8080/api/reservation/2/approve?approvedBy=1" \
 
 **请求参数**:
 - `id`: 预约ID（路径参数）
-- `approvedBy`: 审批人ID（查询参数）
 - `rejectReason`: 拒绝原因（查询参数）
+- 无需传`approvedBy`参数，系统自动从请求Token中获取当前登录用户作为审批人
 
 **请求示例**:
 ```bash
-curl -X PUT "http://localhost:8080/api/reservation/2/reject?approvedBy=1&rejectReason=车位已满" \
+curl -X PUT "http://localhost:8080/api/reservation/2/reject?rejectReason=车位已满" \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
@@ -1669,30 +1669,7 @@ curl -X PUT "http://localhost:8080/api/reservation/2/reject?approvedBy=1&rejectR
   "code": 200,
   "status": true,
   "message": "操作成功",
-  "data": {
-    "id": 1,
-    "userId": 1,
-    "vehicleId": 1,
-    "spaceId": 1,
-    "reservationType": 1,
-    "approvalStatus": 1,
-    "approvedBy": 1,
-    "approvedTime": "2024-01-01T10:00:00",
-    "rejectReason": null,
-    "createdBy": 1,
-    "source": 1,
-    "startTime": "2024-01-01T10:00:00",
-    "endTime": "2024-01-01T18:00:00",
-    "status": 1,
-    "arriveTime": "2024-01-01T10:05:00",
-    "leaveTime": "2024-01-01T17:55:00",
-    "totalFee": 50.00,
-    "paidAmount": 50.00,
-    "settlementTime": "2024-01-01T17:55:00",
-    "payStatus": 1,
-    "createTime": "2024-01-01T09:00:00",
-    "updateTime": "2024-01-01T17:55:00"
-  },
+  "data": true,
   "timestamp": 1732982400000
 }
 ```
@@ -1887,7 +1864,69 @@ curl -X GET "http://localhost:8080/api/reservation/user/1/current-valid" \
 }
 ```
 
-#### 6.24 检查车位可用性
+#### 6.24 记录离开时间（自动计算费用）
+**接口地址**: `PUT /api/reservation/{id}/leave-auto-fee`
+
+**接口说明**: 根据到达时间（或预约开始时间）和离开时间，自动匹配计费规则计算停车费用，并更新预约记录。
+
+**请求参数**:
+- `id`: 预约ID（路径参数）
+- `leaveTime`: 离开时间（ISO 8601格式）
+
+**计费逻辑**:
+1. 获取预约的到达时间（arriveTime），如果没有则使用预约开始时间（startTime）
+2. 根据车辆ID获取车辆类型（vehicleType）
+3. 根据车位ID获取所属园区ID（parkAreaId）
+4. 调用计费规则接口自动匹配规则并计算费用
+5. 更新预约记录的离开时间、总费用和结算时间
+
+**请求示例**:
+```bash
+curl -X PUT "http://localhost:8080/api/reservation/1/leave-auto-fee?leaveTime=2024-01-01T17:55:00" \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+**响应示例**:
+```json
+{
+  "code": 200,
+  "status": true,
+  "message": "操作成功",
+  "data": {
+    "ruleId": 1,
+    "ruleName": "标准计费",
+    "feeMode": 1,
+    "feeModeName": "按时间段计费",
+    "parkAreaId": 1,
+    "vehicleType": 1,
+    "startTime": "2024-01-01T10:00:00",
+    "endTime": "2024-01-01T17:55:00",
+    "totalMinutes": 475,
+    "freeMinutes": 0,
+    "chargeableMinutes": 475,
+    "totalFee": 96.00,
+    "dailyCap": 50.00,
+    "capped": true,
+    "details": [
+      {
+        "description": "停车计费（每20分钟4元）",
+        "durationMinutes": 475,
+        "unitPrice": 4.00,
+        "subtotal": 96.00
+      },
+      {
+        "description": "每日封顶优惠",
+        "durationMinutes": 0,
+        "unitPrice": 0,
+        "subtotal": -46.00
+      }
+    ]
+  },
+  "timestamp": 1732982400000
+}
+```
+
+#### 6.25 检查车位可用性
 **接口地址**: `GET /api/reservation/check-availability`
 
 **请求参数**:
@@ -1909,6 +1948,303 @@ curl -X GET "http://localhost:8080/api/reservation/check-availability?spaceId=1&
   "status": true,
   "message": "操作成功",
   "data": true,
+  "timestamp": 1732982400000
+}
+```
+
+### 9. 停车计费规则接口
+
+#### 9.1 获取所有计费规则列表
+**接口地址**: `GET /api/fee-rule/list`
+
+**请求参数**: 无
+
+**请求示例**:
+```bash
+curl -X GET "http://localhost:8080/api/fee-rule/list" \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+**响应示例**:
+```json
+{
+  "code": 200,
+  "status": true,
+  "message": "操作成功",
+  "data": [
+    {
+      "id": 1,
+      "parkAreaId": null,
+      "parkAreaName": null,
+      "vehicleType": null,
+      "vehicleTypeName": null,
+      "ruleName": "标准计费",
+      "feeMode": 1,
+      "feeModeName": "按时间段计费",
+      "freeMinutes": 0,
+      "unitDuration": 20,
+      "unitPrice": 4.00,
+      "dailyCap": 50.00,
+      "maxChargeHours": null,
+      "timePeriods": null,
+      "tieredPricing": null,
+      "fixedPrice": null,
+      "status": 1,
+      "sortOrder": 0,
+      "remark": "默认计费规则：每20分钟4元，每日封顶50元",
+      "createTime": "2024-01-01T10:00:00",
+      "updateTime": "2024-01-01T10:00:00"
+    }
+  ],
+  "timestamp": 1732982400000
+}
+```
+
+#### 9.2 根据ID获取计费规则详情
+**接口地址**: `GET /api/fee-rule/{id}`
+
+**请求参数**:
+- `id`: 规则ID（路径参数）
+
+**请求示例**:
+```bash
+curl -X GET "http://localhost:8080/api/fee-rule/1" \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+**响应示例**:
+```json
+{
+  "code": 200,
+  "status": true,
+  "message": "操作成功",
+  "data": {
+    "id": 1,
+    "ruleName": "标准计费",
+    "feeMode": 1,
+    "feeModeName": "按时间段计费",
+    "freeMinutes": 0,
+    "unitDuration": 20,
+    "unitPrice": 4.00,
+    "dailyCap": 50.00,
+    "status": 1,
+    "sortOrder": 0,
+    "remark": "默认计费规则：每20分钟4元，每日封顶50元"
+  },
+  "timestamp": 1732982400000
+}
+```
+
+#### 9.3 创建计费规则
+**接口地址**: `POST /api/fee-rule`
+
+**请求参数**:
+```json
+{
+  "parkAreaId": null,
+  "vehicleType": null,
+  "ruleName": "园区A标准计费",
+  "feeMode": 1,
+  "freeMinutes": 15,
+  "unitDuration": 20,
+  "unitPrice": 5.00,
+  "dailyCap": 60.00,
+  "maxChargeHours": null,
+  "timePeriods": "[{\"start\":\"08:00\",\"end\":\"20:00\",\"unitPrice\":5,\"unitDuration\":20},{\"start\":\"20:00\",\"end\":\"08:00\",\"unitPrice\":2.5,\"unitDuration\":30}]",
+  "tieredPricing": null,
+  "fixedPrice": null,
+  "status": 1,
+  "sortOrder": 0,
+  "remark": "园区A计费规则"
+}
+```
+
+**参数说明**:
+- `parkAreaId`: 园区ID（null表示全局规则）
+- `vehicleType`: 车辆类型（1-小型车，2-大型车，null表示所有类型）
+- `ruleName`: 规则名称（必填）
+- `feeMode`: 计费模式（1-按时间段计费，2-按次计费，3-阶梯计费，必填）
+- `freeMinutes`: 免费时长（分钟，默认0）
+- `unitDuration`: 计费单位时长（分钟），如20
+- `unitPrice`: 每单位时长价格，如4.00
+- `dailyCap`: 每日封顶金额（null表示不封顶）
+- `maxChargeHours`: 最大计费小时数
+- `timePeriods`: 时段差异化定价（JSON字符串），格式：`[{"start":"08:00","end":"20:00","unitPrice":5,"unitDuration":20}]`
+- `tieredPricing`: 阶梯定价（JSON字符串），格式：`[{"fromHour":0,"toHour":2,"price":10},{"fromHour":2,"toHour":4,"price":15,"perHour":true}]`
+- `fixedPrice`: 按次计费的固定价格
+- `status`: 状态（0-禁用，1-启用）
+- `sortOrder`: 排序（数字越小优先级越高）
+
+**请求示例**:
+```bash
+curl -X POST "http://localhost:8080/api/fee-rule" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  -d '{
+    "ruleName": "园区A标准计费",
+    "feeMode": 1,
+    "freeMinutes": 15,
+    "unitDuration": 20,
+    "unitPrice": 5.00,
+    "dailyCap": 60.00,
+    "status": 1
+  }'
+```
+
+**响应示例**:
+```json
+{
+  "code": 200,
+  "status": true,
+  "message": "操作成功",
+  "data": {
+    "id": 2,
+    "ruleName": "园区A标准计费",
+    "feeMode": 1,
+    "feeModeName": "按时间段计费",
+    "freeMinutes": 15,
+    "unitDuration": 20,
+    "unitPrice": 5.00,
+    "dailyCap": 60.00,
+    "status": 1,
+    "sortOrder": 0,
+    "remark": null
+  },
+  "timestamp": 1732982400000
+}
+```
+
+#### 9.4 更新计费规则
+**接口地址**: `PUT /api/fee-rule/{id}`
+
+**请求参数**: 同创建接口
+
+**请求示例**:
+```bash
+curl -X PUT "http://localhost:8080/api/fee-rule/1" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  -d '{
+    "ruleName": "标准计费-更新",
+    "unitPrice": 5.00,
+    "dailyCap": 60.00
+  }'
+```
+
+**响应示例**:
+```json
+{
+  "code": 200,
+  "status": true,
+  "message": "操作成功",
+  "data": {
+    "id": 1,
+    "ruleName": "标准计费-更新",
+    "unitPrice": 5.00,
+    "dailyCap": 60.00
+  },
+  "timestamp": 1732982400000
+}
+```
+
+#### 9.5 删除计费规则
+**接口地址**: `DELETE /api/fee-rule/{id}`
+
+**请求参数**:
+- `id`: 规则ID（路径参数）
+
+**请求示例**:
+```bash
+curl -X DELETE "http://localhost:8080/api/fee-rule/1" \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+**响应示例**:
+```json
+{
+  "code": 200,
+  "status": true,
+  "message": "删除成功",
+  "data": null,
+  "timestamp": 1732982400000
+}
+```
+
+#### 9.6 根据园区ID获取计费规则列表
+**接口地址**: `GET /api/fee-rule/park-area/{parkAreaId}`
+
+**请求参数**:
+- `parkAreaId`: 园区ID（路径参数）
+
+**请求示例**:
+```bash
+curl -X GET "http://localhost:8080/api/fee-rule/park-area/1" \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+#### 9.7 根据状态获取计费规则列表
+**接口地址**: `GET /api/fee-rule/status/{status}`
+
+**请求参数**:
+- `status`: 状态（0-禁用，1-启用）
+
+**请求示例**:
+```bash
+curl -X GET "http://localhost:8080/api/fee-rule/status/1" \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+#### 9.8 计算停车费用（核心接口）
+**接口地址**: `GET /api/fee-rule/calculate`
+
+**请求参数**:
+- `parkAreaId` (可选): 园区ID，用于匹配园区级计费规则
+- `vehicleType` (可选): 车辆类型（1-小型车，2-大型车，默认1）
+- `startTime`: 停车开始时间（ISO 8601格式）
+- `endTime`: 停车结束时间（ISO 8601格式）
+
+**计费规则匹配优先级**:
+1. 园区ID + 车辆类型（精确匹配）
+2. 园区ID + 所有类型（园区通用规则）
+3. 全局 + 车辆类型
+4. 全局 + 所有类型（全局默认规则）
+
+**请求示例**:
+```bash
+curl -X GET "http://localhost:8080/api/fee-rule/calculate?parkAreaId=1&vehicleType=1&startTime=2024-01-01T10:00:00&endTime=2024-01-01T12:30:00" \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+**响应示例**:
+```json
+{
+  "code": 200,
+  "status": true,
+  "message": "操作成功",
+  "data": {
+    "ruleId": 1,
+    "ruleName": "标准计费",
+    "feeMode": 1,
+    "feeModeName": "按时间段计费",
+    "parkAreaId": 1,
+    "vehicleType": 1,
+    "startTime": "2024-01-01T10:00:00",
+    "endTime": "2024-01-01T12:30:00",
+    "totalMinutes": 150,
+    "freeMinutes": 0,
+    "chargeableMinutes": 150,
+    "totalFee": 32.00,
+    "dailyCap": 50.00,
+    "capped": false,
+    "details": [
+      {
+        "description": "停车计费（每20分钟4元）",
+        "durationMinutes": 150,
+        "unitPrice": 4.00,
+        "subtotal": 32.00
+      }
+    ]
+  },
   "timestamp": 1732982400000
 }
 ```

@@ -40,6 +40,7 @@ public interface VehicleService extends IService<Vehicle> {
      * 根据用户ID获取车辆列表
      */
     List<VehicleDTO> getVehiclesByUserId(Long userId);
+
     
     /**
      * 根据车牌号获取车辆

@@ -6,6 +6,7 @@ import com.syan.smart_park.dao.*;
 import com.syan.smart_park.entity.*;
 import com.syan.smart_park.service.*;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,6 +27,8 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper, Reser
     private final ParkUserMapper parkUserMapper;
     private final VehicleMapper vehicleMapper;
     private final ParkingSpaceMapper parkingSpaceMapper;
+    private final FeeRuleService feeRuleService;
+    private final ParkingSpaceService parkingSpaceService;
 
     @Override
     public List<ReservationDTO> getAllReservations() {
@@ -413,6 +416,67 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper, Reser
                 .eq(Reservation::getId, id)
                 .eq(Reservation::getVersion, originalVersion)
         );
+    }
+
+    @Override
+    @Transactional
+    public FeeCalculationResult recordDepartureWithAutoFee(Long id, LocalDateTime leaveTime) {
+        // 使用FOR UPDATE锁定记录，防止并发冲突
+        Reservation reservation = reservationMapper.selectForUpdate(id);
+        if (reservation == null) {
+            throw new com.syan.smart_park.common.exception.BusinessException(
+                com.syan.smart_park.common.exception.ReturnCode.RC1300,
+                "预约不存在或已被删除"
+            );
+        }
+
+        // 获取到达时间（如果没有到达时间，使用预约开始时间）
+        LocalDateTime arriveTime = reservation.getArriveTime();
+        if (arriveTime == null) {
+            arriveTime = reservation.getStartTime();
+        }
+
+        // 获取车辆信息以确定车辆类型
+        Integer vehicleType = 1; // 默认小型车
+        Vehicle vehicle = vehicleMapper.selectById(reservation.getVehicleId());
+        if (vehicle != null && vehicle.getVehicleType() != null) {
+            vehicleType = vehicle.getVehicleType();
+        }
+
+        // 获取车位信息以确定园区ID
+        Long parkAreaId = null;
+        ParkingSpace parkingSpace = parkingSpaceMapper.selectById(reservation.getSpaceId());
+        if (parkingSpace != null) {
+            parkAreaId = parkingSpace.getParkAreaId();
+        }
+
+        // 自动计算费用
+        FeeCalculationResult feeResult = feeRuleService.calculateFeeWithDetail(
+                parkAreaId, vehicleType, arriveTime, leaveTime);
+
+        // 保存原始版本号
+        Integer originalVersion = reservation.getVersion();
+
+        // 创建更新对象
+        Reservation updateReservation = new Reservation();
+        updateReservation.setId(id);
+        updateReservation.setLeaveTime(leaveTime);
+        updateReservation.setTotalFee(feeResult.getTotalFee());
+        updateReservation.setSettlementTime(LocalDateTime.now());
+        updateReservation.setVersion(originalVersion);
+
+        // 使用update方法并指定版本号条件
+        boolean updated = this.update(updateReservation,
+            new LambdaQueryWrapper<Reservation>()
+                .eq(Reservation::getId, id)
+                .eq(Reservation::getVersion, originalVersion)
+        );
+
+        if (!updated) {
+            throw new RuntimeException("更新失败，可能已被其他用户修改");
+        }
+
+        return feeResult;
     }
 
     @Override
