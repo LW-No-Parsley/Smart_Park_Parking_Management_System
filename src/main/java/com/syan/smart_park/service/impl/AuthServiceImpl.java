@@ -49,7 +49,10 @@ public class AuthServiceImpl implements AuthService {
         // 1. 验证用户登录
         User user = userService.login(username, password);
 
-        // 2. 生成token
+        // 2. 清除该用户的全局拉黑标记（如果之前登出过）
+        jwtUtil.clearUserGlobalInvalidation(user.getId());
+
+        // 3. 生成token
         String accessToken = jwtUtil.generateAccessToken(user.getId(), user.getUsername());
         String refreshToken = jwtUtil.generateRefreshToken(user.getId(), user.getUsername());
 
@@ -82,7 +85,10 @@ public class AuthServiceImpl implements AuthService {
         // 1. 验证用户登录
         User user = userService.login(username, password);
 
-        // 2. 生成token
+        // 2. 清除该用户的全局拉黑标记（如果之前登出过）
+        jwtUtil.clearUserGlobalInvalidation(user.getId());
+
+        // 3. 生成token
         String accessToken = jwtUtil.generateAccessToken(user.getId(), user.getUsername());
         String refreshToken = jwtUtil.generateRefreshToken(user.getId(), user.getUsername());
 
@@ -127,46 +133,106 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public String refreshToken(String refreshToken) {
-        // 1. 验证refresh token
+        // 1. 验证refresh token（包含黑名单检查、签名验证、过期检查和全局拉黑检查）
         if (!jwtUtil.validateToken(refreshToken)) {
             throw new BusinessException(ReturnCode.RC609); // token无效
         }
 
-        // 2. 检查token是否在黑名单中（使用JwtUtil的方法，它会处理jti查询）
-        if (jwtUtil.isTokenBlacklisted(refreshToken)) {
-            throw new BusinessException(ReturnCode.RC609); // token无效
+        // 2. 检查token类型是否为refreshToken，防止使用accessToken来刷新
+        if (!jwtUtil.isRefreshToken(refreshToken)) {
+            throw new BusinessException(ReturnCode.RC609, "仅支持使用refreshToken刷新");
         }
 
         // 3. 解析token获取用户信息
         Long userId = jwtUtil.getUserIdFromToken(refreshToken);
         String username = jwtUtil.getUsernameFromToken(refreshToken);
 
-        // 4. 生成新的access token
+        // 4. 生成新的access token（不生成新的refreshToken）
+        // 安全设计：refreshToken仅在登录时获取一次，刷新接口只返回新的accessToken，
+        // 不返回新的refreshToken。这样即使refreshToken泄露，攻击者也只能获取短期
+        // 有效的accessToken，无法无限续期。当refreshToken过期后，用户必须重新登录。
+        return jwtUtil.generateAccessToken(userId, username);
+    }
+
+    @Override
+    public String refreshToken(String refreshToken, String oldAccessToken) {
+        // 1. 验证refresh token（包含黑名单检查、签名验证、过期检查和全局拉黑检查）
+        if (!jwtUtil.validateToken(refreshToken)) {
+            throw new BusinessException(ReturnCode.RC609); // token无效
+        }
+
+        // 2. 检查token类型是否为refreshToken，防止使用accessToken来刷新
+        if (!jwtUtil.isRefreshToken(refreshToken)) {
+            throw new BusinessException(ReturnCode.RC609, "仅支持使用refreshToken刷新");
+        }
+
+        // 3. 解析token获取用户信息
+        Long userId = jwtUtil.getUserIdFromToken(refreshToken);
+        String username = jwtUtil.getUsernameFromToken(refreshToken);
+
+        // 4. 将旧的accessToken加入黑名单，防止其在有效期内被继续使用
+        if (oldAccessToken != null && !oldAccessToken.isEmpty()) {
+            jwtUtil.addToBlacklist(oldAccessToken);
+        }
+
+        // 5. 生成新的access token（不生成新的refreshToken）
         return jwtUtil.generateAccessToken(userId, username);
     }
 
     @Override
     @Transactional
-    public boolean logout(String token) {
-        // 1. 验证token
-        if (!jwtUtil.validateToken(token)) {
+    public boolean logout(String accessToken, String refreshToken) {
+        // 1. 验证accessToken是否存在
+        if (accessToken == null || accessToken.isEmpty()) {
             return false;
         }
 
-        // 2. 将token加入黑名单（使用JwtUtil的方法，它会处理jti存储）
-        jwtUtil.addToBlacklist(token);
+        // 2. 尝试从accessToken中解析userId（使用getUserIdFromTokenEvenIfExpired，即使token过期也能解析）
+        Long userId = null;
+        try {
+            userId = jwtUtil.getUserIdFromTokenEvenIfExpired(accessToken);
+        } catch (Exception e) {
+            // 如果accessToken完全无法解析（如格式错误、签名无效），尝试从refreshToken获取userId
+            System.out.println("Failed to get userId from accessToken: " + e.getMessage());
+        }
+
+        // 如果accessToken无法解析出userId，尝试从refreshToken获取
+        if (userId == null && refreshToken != null && !refreshToken.isEmpty()) {
+            try {
+                userId = jwtUtil.getUserIdFromTokenEvenIfExpired(refreshToken);
+            } catch (Exception ex) {
+                System.out.println("Failed to get userId from refreshToken: " + ex.getMessage());
+            }
+        }
+
+        // 如果两个token都无法解析出userId，则登出失败
+        if (userId == null) {
+            return false;
+        }
+
+        // 3. 将accessToken加入黑名单（即使token已过期，也能通过getClaimsEvenIfExpired获取jti）
+        jwtUtil.addToBlacklist(accessToken, 1);
+
+        // 4. 如果传入了refreshToken，也将其加入黑名单
+        if (refreshToken != null && !refreshToken.isEmpty()) {
+            jwtUtil.addToBlacklist(refreshToken, 1);
+        }
+
+        // 5. 兜底：将该用户所有token全局拉黑
+        // 这样即使有未传入的token（如客户端只传了accessToken没传refreshToken），
+        // 也会因为userId被全局拉黑而失效
+        jwtUtil.invalidateAllUserTokens(userId);
+
         return true;
     }
 
     @Override
     public boolean validateToken(String token) {
-        // 1. 验证token本身
-        if (!jwtUtil.validateToken(token)) {
-            return false;
-        }
-
-        // 2. 检查token是否在黑名单中（使用JwtUtil的方法，它会处理jti查询）
-        return !jwtUtil.isTokenBlacklisted(token);
+        // 使用JwtUtil的validateToken方法进行完整验证：
+        // 1. 检查token是否在黑名单中（按jti检查）
+        // 2. 检查token签名和过期时间
+        // 3. 检查该用户是否被全局拉黑（按userId兜底检查）
+        return jwtUtil.validateToken(token);
     }
 
     @Override

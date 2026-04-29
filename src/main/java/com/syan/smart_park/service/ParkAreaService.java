@@ -81,4 +81,11 @@ public interface ParkAreaService extends IService<ParkArea> {
      * @return 所有园区的占用统计信息列表
      */
     List<ParkAreaOccupancyStats> getAllParkAreasOccupancyStats();
+    
+    /**
+     * 搜索园区
+     * @param keyword 搜索关键词（园区名称或地址）
+     * @return 园区DTO列表
+     */
+    List<ParkAreaDTO> searchParkAreas(String keyword);
 }

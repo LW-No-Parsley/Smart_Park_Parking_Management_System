@@ -1,6 +1,6 @@
 package com.syan.smart_park.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -19,7 +19,7 @@ public class ParkingZoneDTO {
     /**
      * 园区ID
      */
-    @JsonIgnore
+    @JsonProperty("park_area_id")
     private Long parkAreaId;
     
     /**

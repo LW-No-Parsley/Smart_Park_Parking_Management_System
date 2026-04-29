@@ -11,7 +11,7 @@
  Target Server Version : 80032 (8.0.32)
  File Encoding         : 65001
 
- Date: 25/04/2026 00:14:26
+ Date: 30/04/2026 00:19:29
 */
 
 SET NAMES utf8mb4;
@@ -46,7 +46,7 @@ CREATE TABLE `access_log`  (
   CONSTRAINT `fk_access_handled_by_sys_user` FOREIGN KEY (`handled_by`) REFERENCES `sys_user` (`id`) ON DELETE SET NULL ON UPDATE RESTRICT,
   CONSTRAINT `fk_access_park_area` FOREIGN KEY (`park_area_id`) REFERENCES `park_area` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
   CONSTRAINT `fk_access_vehicle` FOREIGN KEY (`vehicle_id`) REFERENCES `vehicle` (`id`) ON DELETE SET NULL ON UPDATE RESTRICT
-) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '进出记录表' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 4 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '进出记录表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Table structure for blacklist
@@ -75,7 +75,7 @@ CREATE TABLE `blacklist`  (
   CONSTRAINT `fk_blacklist_area` FOREIGN KEY (`park_area_id`) REFERENCES `park_area` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT,
   CONSTRAINT `fk_blacklist_created_by` FOREIGN KEY (`created_by`) REFERENCES `sys_user` (`id`) ON DELETE SET NULL ON UPDATE RESTRICT,
   CONSTRAINT `fk_blacklist_updated_by` FOREIGN KEY (`updated_by`) REFERENCES `sys_user` (`id`) ON DELETE SET NULL ON UPDATE RESTRICT
-) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '黑名单表' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '黑名单表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Table structure for exception_report
@@ -103,7 +103,7 @@ CREATE TABLE `exception_report`  (
   CONSTRAINT `fk_exception_handled_by_sys_user` FOREIGN KEY (`handled_by`) REFERENCES `sys_user` (`id`) ON DELETE SET NULL ON UPDATE RESTRICT,
   CONSTRAINT `fk_exception_space` FOREIGN KEY (`space_id`) REFERENCES `parking_space` (`id`) ON DELETE SET NULL ON UPDATE RESTRICT,
   CONSTRAINT `fk_exception_user` FOREIGN KEY (`user_id`) REFERENCES `park_user` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT
-) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '异常上报表' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '异常上报表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Table structure for gate_device
@@ -125,7 +125,7 @@ CREATE TABLE `gate_device`  (
   UNIQUE INDEX `uk_device_sn`(`device_sn` ASC) USING BTREE,
   INDEX `idx_park_area`(`park_area_id` ASC) USING BTREE,
   CONSTRAINT `fk_gate_park_area` FOREIGN KEY (`park_area_id`) REFERENCES `park_area` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT
-) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '道闸设备表' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '道闸设备表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Table structure for operation_log
@@ -133,7 +133,7 @@ CREATE TABLE `gate_device`  (
 DROP TABLE IF EXISTS `operation_log`;
 CREATE TABLE `operation_log`  (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT '日志ID',
-  `user_id` bigint NOT NULL COMMENT '操作用户ID（park_user.id）',
+  `user_id` bigint NOT NULL COMMENT '操作用户ID（sys_user.id）',
   `module` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '模块名称',
   `action` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '操作动作',
   `detail` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL COMMENT '操作详情（JSON格式）',
@@ -144,9 +144,8 @@ CREATE TABLE `operation_log`  (
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_user`(`user_id` ASC) USING BTREE,
   INDEX `idx_module`(`module` ASC) USING BTREE,
-  INDEX `idx_create_time`(`create_time` ASC) USING BTREE,
-  CONSTRAINT `fk_log_user` FOREIGN KEY (`user_id`) REFERENCES `park_user` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
-) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '操作日志表（业务操作）' ROW_FORMAT = DYNAMIC;
+  INDEX `idx_create_time`(`create_time` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 34 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '操作日志表（业务操作）' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Table structure for park_area
@@ -169,7 +168,7 @@ CREATE TABLE `park_area`  (
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_primary_admin_user`(`primary_admin_user_id` ASC) USING BTREE,
   CONSTRAINT `fk_park_area_primary_admin` FOREIGN KEY (`primary_admin_user_id`) REFERENCES `sys_user` (`id`) ON DELETE SET NULL ON UPDATE RESTRICT
-) ENGINE = InnoDB AUTO_INCREMENT = 6 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '园区表' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 7 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '园区表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Table structure for park_user
@@ -210,6 +209,7 @@ CREATE TABLE `parking_fee_rule`  (
   `max_charge_hours` int NULL DEFAULT NULL COMMENT '最大计费小时数（超过后不再计费）',
   `time_periods` json NULL COMMENT '时段定价，如：[{\"start\":\"08:00\",\"end\":\"20:00\",\"unitPrice\":4},{\"start\":\"20:00\",\"end\":\"08:00\",\"unitPrice\":2}]',
   `tiered_pricing` json NULL COMMENT '阶梯定价，如：[{\"fromHour\":0,\"toHour\":2,\"price\":10},{\"fromHour\":2,\"toHour\":4,\"price\":15}]',
+  `fixed_price` decimal(10, 2) NULL DEFAULT NULL COMMENT '鎸夋?璁¤垂鐨勫浐瀹氫环鏍',
   `status` int NULL DEFAULT 1 COMMENT '状态：0-禁用，1-启用',
   `sort_order` int NULL DEFAULT 0 COMMENT '排序（优先级，数字越小优先级越高）',
   `remark` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '备注说明',
@@ -218,7 +218,7 @@ CREATE TABLE `parking_fee_rule`  (
   `create_by` bigint NULL DEFAULT NULL,
   `update_by` bigint NULL DEFAULT NULL,
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '停车计费规则表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '停车计费规则表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for parking_space
@@ -247,7 +247,7 @@ CREATE TABLE `parking_space`  (
   CONSTRAINT `fk_space_bind_user` FOREIGN KEY (`bind_user_id`) REFERENCES `park_user` (`id`) ON DELETE SET NULL ON UPDATE RESTRICT,
   CONSTRAINT `fk_space_park_area` FOREIGN KEY (`park_area_id`) REFERENCES `park_area` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT,
   CONSTRAINT `fk_space_zone` FOREIGN KEY (`zone_id`) REFERENCES `parking_zone` (`id`) ON DELETE SET NULL ON UPDATE RESTRICT
-) ENGINE = InnoDB AUTO_INCREMENT = 19 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '车位表' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 20 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '车位表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Table structure for parking_zone
@@ -267,7 +267,7 @@ CREATE TABLE `parking_zone`  (
   UNIQUE INDEX `uk_area_zone`(`park_area_id` ASC, `zone_name` ASC) USING BTREE,
   INDEX `idx_park_area_id`(`park_area_id` ASC) USING BTREE,
   CONSTRAINT `fk_zone_park_area` FOREIGN KEY (`park_area_id`) REFERENCES `park_area` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT
-) ENGINE = InnoDB AUTO_INCREMENT = 6 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '车位分区表（单层分区）' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 7 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '车位分区表（单层分区）' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Table structure for payment_record
@@ -291,7 +291,7 @@ CREATE TABLE `payment_record`  (
   INDEX `idx_payment_time`(`payment_time` ASC) USING BTREE,
   CONSTRAINT `fk_payment_reservation` FOREIGN KEY (`reservation_id`) REFERENCES `reservation` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
   CONSTRAINT `fk_payment_user` FOREIGN KEY (`user_id`) REFERENCES `park_user` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT
-) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '支付记录表' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 4 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '支付记录表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Table structure for refund_record
@@ -313,7 +313,7 @@ CREATE TABLE `refund_record`  (
   INDEX `idx_reservation`(`reservation_id` ASC) USING BTREE,
   CONSTRAINT `fk_refund_payment` FOREIGN KEY (`payment_id`) REFERENCES `payment_record` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
   CONSTRAINT `fk_refund_reservation` FOREIGN KEY (`reservation_id`) REFERENCES `reservation` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
-) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '退款记录表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '退款记录表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for reservation
@@ -397,7 +397,7 @@ CREATE TABLE `sys_captcha`  (
   UNIQUE INDEX `uk_captcha_id`(`captcha_id` ASC) USING BTREE,
   INDEX `idx_expiration_time`(`expiration_time` ASC) USING BTREE,
   INDEX `idx_used`(`used` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 166 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '验证码表' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 210 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '验证码表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Table structure for sys_login_log
@@ -421,7 +421,7 @@ CREATE TABLE `sys_login_log`  (
   INDEX `idx_user_id`(`user_id` ASC) USING BTREE,
   INDEX `idx_login_time`(`login_time` ASC) USING BTREE,
   INDEX `idx_login_status`(`status` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 65 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '登录日志表' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 91 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '登录日志表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Table structure for sys_permission
@@ -503,7 +503,7 @@ CREATE TABLE `sys_token_jti_blacklist`  (
   INDEX `idx_expiration_time`(`expiration_time` ASC) USING BTREE,
   INDEX `idx_user_id`(`user_id` ASC) USING BTREE,
   CONSTRAINT `fk_jti_user` FOREIGN KEY (`user_id`) REFERENCES `sys_user` (`id`) ON DELETE SET NULL ON UPDATE RESTRICT
-) ENGINE = InnoDB AUTO_INCREMENT = 8 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = 'JWT jti黑名单表' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 58 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = 'JWT jti黑名单表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Table structure for sys_user
@@ -525,7 +525,7 @@ CREATE TABLE `sys_user`  (
   INDEX `idx_email`(`email` ASC) USING BTREE,
   INDEX `idx_status`(`status` ASC) USING BTREE,
   INDEX `idx_create_time`(`create_time` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 7 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '系统用户表（后台管理员）' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 8 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '系统用户表（后台管理员）' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Table structure for sys_user_park_area
@@ -544,7 +544,7 @@ CREATE TABLE `sys_user_park_area`  (
   INDEX `idx_park_area_id`(`park_area_id` ASC) USING BTREE,
   CONSTRAINT `fk_user_park_area` FOREIGN KEY (`park_area_id`) REFERENCES `park_area` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT,
   CONSTRAINT `fk_user_park_user` FOREIGN KEY (`user_id`) REFERENCES `sys_user` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT
-) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '后台用户-园区授权范围表' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '后台用户-园区授权范围表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Table structure for sys_user_role
@@ -601,6 +601,6 @@ CREATE TABLE `vehicle`  (
   UNIQUE INDEX `uk_plate_deleted`(`plate_number` ASC, `deleted` ASC) USING BTREE,
   INDEX `idx_user_id`(`user_id` ASC) USING BTREE,
   CONSTRAINT `fk_vehicle_user` FOREIGN KEY (`user_id`) REFERENCES `park_user` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT
-) ENGINE = InnoDB AUTO_INCREMENT = 5 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '车辆表' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 6 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '车辆表' ROW_FORMAT = DYNAMIC;
 
 SET FOREIGN_KEY_CHECKS = 1;

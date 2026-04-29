@@ -29,6 +29,8 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper, Reser
     private final ParkingSpaceMapper parkingSpaceMapper;
     private final FeeRuleService feeRuleService;
     private final ParkingSpaceService parkingSpaceService;
+    private final PaymentRecordService paymentRecordService;
+    private final OperationLogService operationLogService;
 
     @Override
     public List<ReservationDTO> getAllReservations() {
@@ -271,11 +273,23 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper, Reser
         updateReservation.setVersion(originalVersion);
         
         // 使用update方法并指定版本号条件
-        return this.update(updateReservation, 
+        boolean approved = this.update(updateReservation, 
             new LambdaQueryWrapper<Reservation>()
                 .eq(Reservation::getId, id)
                 .eq(Reservation::getVersion, originalVersion)
         );
+
+        if (approved) {
+            // 记录操作日志
+            OperationLogDTO logDTO = new OperationLogDTO();
+            logDTO.setUserId(approvedBy);
+            logDTO.setModule("预约管理");
+            logDTO.setAction("审批通过");
+            logDTO.setDetail("预约ID:" + id + "，审批通过");
+            operationLogService.createOperationLog(logDTO);
+        }
+
+        return approved;
     }
     
     @Override
@@ -300,11 +314,23 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper, Reser
         updateReservation.setVersion(originalVersion);
         
         // 使用update方法并指定版本号条件
-        return this.update(updateReservation, 
+        boolean rejected = this.update(updateReservation, 
             new LambdaQueryWrapper<Reservation>()
                 .eq(Reservation::getId, id)
                 .eq(Reservation::getVersion, originalVersion)
         );
+
+        if (rejected) {
+            // 记录操作日志
+            OperationLogDTO logDTO = new OperationLogDTO();
+            logDTO.setUserId(approvedBy);
+            logDTO.setModule("预约管理");
+            logDTO.setAction("审批拒绝");
+            logDTO.setDetail("预约ID:" + id + "，拒绝原因:" + rejectReason);
+            operationLogService.createOperationLog(logDTO);
+        }
+
+        return rejected;
     }
     
     @Override
@@ -326,11 +352,28 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper, Reser
         updateReservation.setVersion(originalVersion);
         
         // 使用update方法并指定版本号条件
-        return this.update(updateReservation, 
+        boolean statusUpdated = this.update(updateReservation, 
             new LambdaQueryWrapper<Reservation>()
                 .eq(Reservation::getId, id)
                 .eq(Reservation::getVersion, originalVersion)
         );
+
+        if (statusUpdated) {
+            String statusText = switch (status) {
+                case 0 -> "已取消";
+                case 1 -> "已预约";
+                case 2 -> "已使用";
+                case 3 -> "已完成";
+                default -> "未知";
+            };
+            OperationLogDTO logDTO = new OperationLogDTO();
+            logDTO.setModule("预约管理");
+            logDTO.setAction("更新状态");
+            logDTO.setDetail("预约ID:" + id + "，状态更新为:" + statusText);
+            operationLogService.createOperationLog(logDTO);
+        }
+
+        return statusUpdated;
     }
     
     @Override
@@ -383,11 +426,22 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper, Reser
         updateReservation.setVersion(originalVersion);
         
         // 使用update方法并指定版本号条件
-        return this.update(updateReservation, 
+        boolean arrived = this.update(updateReservation, 
             new LambdaQueryWrapper<Reservation>()
                 .eq(Reservation::getId, id)
                 .eq(Reservation::getVersion, originalVersion)
         );
+
+        if (arrived) {
+            OperationLogDTO logDTO = new OperationLogDTO();
+            logDTO.setUserId(reservation.getUserId());
+            logDTO.setModule("预约管理");
+            logDTO.setAction("车辆到达");
+            logDTO.setDetail("预约ID:" + id + "，到达时间:" + arriveTime);
+            operationLogService.createOperationLog(logDTO);
+        }
+
+        return arrived;
     }
     
     @Override
@@ -411,11 +465,34 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper, Reser
         updateReservation.setVersion(originalVersion);
         
         // 使用update方法并指定版本号条件
-        return this.update(updateReservation, 
+        boolean updated = this.update(updateReservation, 
             new LambdaQueryWrapper<Reservation>()
                 .eq(Reservation::getId, id)
                 .eq(Reservation::getVersion, originalVersion)
         );
+
+        if (!updated) {
+            return false;
+        }
+
+        // 自动生成支付记录（未支付状态）
+        PaymentRecordDTO paymentRecordDTO = new PaymentRecordDTO();
+        paymentRecordDTO.setReservationId(id);
+        paymentRecordDTO.setUserId(reservation.getUserId());
+        paymentRecordDTO.setAmount(totalFee);
+        paymentRecordDTO.setPaymentMethod(0); // 未指定支付方式
+        paymentRecordDTO.setPaymentStatus(0); // 未支付
+        paymentRecordService.createPaymentRecord(paymentRecordDTO);
+
+        // 记录操作日志
+        OperationLogDTO logDTO = new OperationLogDTO();
+        logDTO.setUserId(reservation.getUserId());
+        logDTO.setModule("预约管理");
+        logDTO.setAction("车辆离开");
+        logDTO.setDetail("预约ID:" + id + "，离开时间:" + leaveTime + "，费用:" + totalFee + "元，已自动生成支付记录");
+        operationLogService.createOperationLog(logDTO);
+
+        return true;
     }
 
     @Override
@@ -475,6 +552,25 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper, Reser
         if (!updated) {
             throw new RuntimeException("更新失败，可能已被其他用户修改");
         }
+
+        // 自动生成支付记录（未支付状态）
+        PaymentRecordDTO paymentRecordDTO = new PaymentRecordDTO();
+        paymentRecordDTO.setReservationId(id);
+        paymentRecordDTO.setUserId(reservation.getUserId());
+        paymentRecordDTO.setAmount(feeResult.getTotalFee());
+        paymentRecordDTO.setPaymentMethod(0); // 未指定支付方式
+        paymentRecordDTO.setPaymentStatus(0); // 未支付
+        paymentRecordService.createPaymentRecord(paymentRecordDTO);
+
+        // 记录操作日志
+        OperationLogDTO logDTO = new OperationLogDTO();
+        logDTO.setUserId(reservation.getUserId());
+        logDTO.setModule("预约管理");
+        logDTO.setAction("车辆离开（自动计费）");
+        logDTO.setDetail("预约ID:" + id + "，到达时间:" + arriveTime + "，离开时间:" + leaveTime + 
+            "，停车时长:" + feeResult.getTotalMinutes() + "分钟，费用:" + feeResult.getTotalFee() + 
+            "元，已自动生成支付记录");
+        operationLogService.createOperationLog(logDTO);
 
         return feeResult;
     }

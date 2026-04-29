@@ -3,7 +3,7 @@ target/
 
 !**/src/main/**/target/
 !**/src/test/**/target/
-API使用说明.md
+API使用说明/
 ### STS ###
 .apt_generated
 .classpath

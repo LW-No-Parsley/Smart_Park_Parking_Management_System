@@ -43,7 +43,6 @@ public class AuthController {
         CaptchaService.CaptchaInfo captchaInfo = captchaService.generateCaptcha();
         Map<String, Object> captchaData = new HashMap<>();
         captchaData.put("captchaId", captchaInfo.getCaptchaId());
-        captchaData.put("captchaCode", captchaInfo.getCaptchaCode());
         captchaData.put("captchaImage", captchaInfo.getCaptchaImageBase64());
         return R.success(captchaData);
     }
@@ -105,33 +104,36 @@ public class AuthController {
     }
 
     /**
-     * 刷新token（双token机制）
+     * 刷新token
+     * <p>
+     * 安全设计：refreshToken仅在登录时获取一次，刷新接口只返回新的accessToken，
+     * 不返回新的refreshToken。同时会将旧的accessToken加入黑名单，防止其继续使用。
+     * 这样即使refreshToken泄露，攻击者也只能获取短期有效的accessToken，无法无限续期。
+     * 当refreshToken过期后，用户必须重新登录。
      *
-     * @param refreshToken 刷新token
-     * @return 新的access token和refresh token
+     * @param refreshToken 刷新token（通过Authorization头传递）
+     * @param oldAccessToken 当前即将过期的accessToken（通过X-Access-Token头传递，用于加入黑名单）
+     * @return 新的access token（不返回新的refreshToken）
      */
     @PostMapping("/refresh")
-    public R<Map<String, Object>> refreshToken(@RequestHeader("Authorization") String refreshToken) {
+    public R<Map<String, Object>> refreshToken(
+            @RequestHeader("Authorization") String refreshToken,
+            @RequestHeader("X-Access-Token") String oldAccessToken) {
         // 移除Bearer前缀
         if (refreshToken != null && refreshToken.startsWith("Bearer ")) {
             refreshToken = refreshToken.substring(7);
         }
+        if (oldAccessToken != null && oldAccessToken.startsWith("Bearer ")) {
+            oldAccessToken = oldAccessToken.substring(7);
+        }
         
         try {
-            // 使用AuthService刷新token（AuthService内部会验证token）
-            String newAccessToken = authService.refreshToken(refreshToken);
+            // 使用AuthService刷新token，同时将旧的accessToken加入黑名单
+            String newAccessToken = authService.refreshToken(refreshToken, oldAccessToken);
             
             if (newAccessToken != null) {
-                // 从refresh token中获取用户信息
-                Long userId = jwtUtil.getUserIdFromToken(refreshToken);
-                String username = jwtUtil.getUsernameFromToken(refreshToken);
-                
-                // 生成新的refresh token（refresh token轮换）
-                String newRefreshToken = jwtUtil.generateRefreshToken(userId, username);
-                
                 Map<String, Object> result = new HashMap<>();
                 result.put("accessToken", newAccessToken);
-                result.put("refreshToken", newRefreshToken);
                 result.put("tokenType", "Bearer");
                 result.put("expiresIn", jwtUtil.getAccessTokenExpiration());
                 return R.success(result);
@@ -150,20 +152,29 @@ public class AuthController {
     }
 
     /**
-     * 用户登出
+     * 用户登出（安全版）
+     * <p>
+     * 同时将accessToken和refreshToken加入黑名单，并兜底拉黑该用户所有token。
+     * 确保用户登出后，所有已签发的token都立即失效。
      *
-     * @param token token
+     * @param accessToken 访问token（通过Authorization头传递）
+     * @param refreshToken 刷新token（通过X-Refresh-Token头传递，可选）
      * @return 登出结果
      */
     @PostMapping("/logout")
-    public R logout(@RequestHeader("Authorization") String token) {
+    public R logout(
+            @RequestHeader("Authorization") String accessToken,
+            @RequestHeader(value = "X-Refresh-Token", required = false) String refreshToken) {
         // 移除Bearer前缀
-        if (token != null && token.startsWith("Bearer ")) {
-            token = token.substring(7);
+        if (accessToken != null && accessToken.startsWith("Bearer ")) {
+            accessToken = accessToken.substring(7);
+        }
+        if (refreshToken != null && refreshToken.startsWith("Bearer ")) {
+            refreshToken = refreshToken.substring(7);
         }
         
-        // 使用AuthService登出
-        boolean success = authService.logout(token);
+        // 使用AuthService登出（同时拉黑accessToken和refreshToken）
+        boolean success = authService.logout(accessToken, refreshToken);
         
         if (success) {
             return R.success("登出成功");

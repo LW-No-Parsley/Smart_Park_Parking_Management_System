@@ -112,9 +112,7 @@ public class ParkAreaController {
      */
     @GetMapping("/search")
     public R<List<ParkAreaDTO>> searchParkAreas(@RequestParam String keyword) {
-        // 这里需要实现搜索逻辑，暂时返回所有园区
-        // 实际项目中应该实现具体的搜索逻辑
-        List<ParkAreaDTO> parkAreas = parkAreaService.getAllParkAreas();
+        List<ParkAreaDTO> parkAreas = parkAreaService.searchParkAreas(keyword);
         return R.success(parkAreas);
     }
 

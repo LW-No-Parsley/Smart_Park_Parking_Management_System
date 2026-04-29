@@ -124,10 +124,12 @@ public class ParkingSpaceController {
     
     /**
      * 获取空闲车位列表
+     * @param time 指定时间（可选，默认为当前时间），格式：yyyy-MM-dd HH:mm:ss
      */
     @GetMapping("/available")
-    public R<List<ParkingSpaceDTO>> getAvailableParkingSpaces() {
-        List<ParkingSpaceDTO> parkingSpaces = parkingSpaceService.getAvailableParkingSpaces();
+    public R<List<ParkingSpaceDTO>> getAvailableParkingSpaces(
+            @RequestParam(required = false) String time) {
+        List<ParkingSpaceDTO> parkingSpaces = parkingSpaceService.getAvailableParkingSpaces(time);
         return R.success(parkingSpaces);
     }
     

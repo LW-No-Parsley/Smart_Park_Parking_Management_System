@@ -38,9 +38,24 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         // 提取token
         final String jwt = authHeader.substring(7);
         
+        // 获取请求URI，用于判断是否为刷新接口
+        String requestUri = request.getRequestURI();
+        
         try {
             // 验证token
             if (jwtUtil.validateToken(jwt)) {
+                // 检查token类型：refreshToken只能用于刷新接口，不能用于普通API请求
+                if (jwtUtil.isRefreshToken(jwt)) {
+                    // 只有刷新接口允许使用refreshToken
+                    if (!requestUri.endsWith("/refresh")) {
+                        // refreshToken用于普通请求，拒绝访问
+                        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                        response.setContentType("application/json;charset=UTF-8");
+                        response.getWriter().write("{\"code\":401,\"status\":false,\"message\":\"未授权\",\"timestamp\":" + System.currentTimeMillis() + "}");
+                        return;
+                    }
+                }
+                
                 // 从token中获取用户名
                 String username = jwtUtil.getUsernameFromToken(jwt);
                 Long userId = jwtUtil.getUserIdFromToken(jwt);

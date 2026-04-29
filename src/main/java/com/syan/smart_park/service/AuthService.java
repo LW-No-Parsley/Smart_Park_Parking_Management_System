@@ -38,20 +38,38 @@ public interface AuthService {
     boolean register(User user);
     
     /**
-     * 刷新token
+     * 刷新token（旧版，仅刷新accessToken）
      *
      * @param refreshToken 刷新token
-     * @return 新的访问token
+     * @return 新的accessToken
      */
     String refreshToken(String refreshToken);
+
+    /**
+     * 刷新token（安全版，同时将旧accessToken加入黑名单）
+     * <p>
+     * 安全设计：refreshToken仅在登录时获取一次，刷新接口只返回新的accessToken，
+     * 不返回新的refreshToken。同时会将旧的accessToken加入黑名单，防止其继续使用。
+     * 这样即使refreshToken泄露，攻击者也只能获取短期有效的accessToken，无法无限续期。
+     * 当refreshToken过期后，用户必须重新登录。
+     *
+     * @param refreshToken 刷新token（仅在登录时获取）
+     * @param oldAccessToken 当前即将过期的accessToken（将被加入黑名单）
+     * @return 新的accessToken
+     */
+    String refreshToken(String refreshToken, String oldAccessToken);
     
     /**
-     * 登出
+     * 登出（安全版）
+     * <p>
+     * 同时将accessToken和refreshToken加入黑名单，并兜底拉黑该用户所有token。
+     * 确保用户登出后，所有已签发的token都立即失效。
      *
-     * @param token 访问token
+     * @param accessToken 访问token（通过Authorization头传递）
+     * @param refreshToken 刷新token（通过X-Refresh-Token头传递，可为null）
      * @return 是否成功
      */
-    boolean logout(String token);
+    boolean logout(String accessToken, String refreshToken);
     
     /**
      * 验证token是否有效

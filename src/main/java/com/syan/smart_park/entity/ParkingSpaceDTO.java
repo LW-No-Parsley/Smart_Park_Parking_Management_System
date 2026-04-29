@@ -67,6 +67,11 @@ public class ParkingSpaceDTO {
     private LocalDateTime updateTime;
     
     /**
+     * 绑定用户名称（从 park_user 表关联查询，不写入数据库）
+     */
+    private String bindUsername;
+    
+    /**
      * 当前占用状态：0-未占用，1-占用中（不写入数据库，动态计算）
      */
     private Integer currentOccupiedStatus;

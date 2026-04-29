@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.syan.smart_park.dao.ParkingSpaceMapper;
 import com.syan.smart_park.dao.ParkingZoneMapper;
+import com.syan.smart_park.dao.ParkUserMapper;
+import com.syan.smart_park.dao.ReservationMapper;
 import com.syan.smart_park.dao.SpaceOccupyMapper;
 import com.syan.smart_park.entity.*;
 import com.syan.smart_park.entity.ParkingSpace;
@@ -30,8 +32,10 @@ public class ParkingSpaceServiceImpl extends ServiceImpl<ParkingSpaceMapper, Par
     private final ParkingSpaceMapper parkingSpaceMapper;
     private final ParkingZoneMapper parkingZoneMapper;
     private final SpaceOccupyMapper spaceOccupyMapper;
+    private final ReservationMapper reservationMapper;
     private final ParkAreaService parkAreaService;
     private final OperationLogService operationLogService;
+    private final ParkUserMapper parkUserMapper;
 
 //     @Override
 //     public List<ParkingSpaceDTO> getAllParkingSpaces() {
@@ -205,20 +209,60 @@ public class ParkingSpaceServiceImpl extends ServiceImpl<ParkingSpaceMapper, Par
         queryWrapper.eq(ParkingSpace::getBindUserId, bindUserId);
         List<ParkingSpace> parkingSpaces = this.list(queryWrapper);
         
+        // 查询绑定用户名称
+        ParkUser parkUser = parkUserMapper.selectById(bindUserId);
+        String bindUsername = (parkUser != null) ? parkUser.getUsername() : null;
+        
         return parkingSpaces.stream()
-                .map(ParkingSpaceDTO::fromParkingSpace)
+                .map(space -> {
+                    ParkingSpaceDTO dto = ParkingSpaceDTO.fromParkingSpace(space);
+                    dto.setBindUsername(bindUsername);
+                    return dto;
+                })
                 .collect(Collectors.toList());
     }
 
     @Override
-    public List<ParkingSpaceDTO> getAvailableParkingSpaces() {
+    public List<ParkingSpaceDTO> getAvailableParkingSpaces(String time) {
+        // 解析时间参数
+        final LocalDateTime checkTime = parseTime(time);
+        
+        // 获取所有正常状态的车位
         LambdaQueryWrapper<ParkingSpace> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(ParkingSpace::getStatus, 1); // 1表示空闲状态
+        queryWrapper.eq(ParkingSpace::getStatus, 1); // 1表示正常状态
         List<ParkingSpace> parkingSpaces = this.list(queryWrapper);
         
-        return parkingSpaces.stream()
-                .map(ParkingSpaceDTO::fromParkingSpace)
+        // 过滤掉在指定时间被占用的车位（同时检查space_occupy和reservation），并设置占用状态
+        List<ParkingSpaceDTO> availableSpaces = parkingSpaces.stream()
+                .filter(space -> !isSpaceOccupiedAtTime(space.getId(), checkTime))
+                .map(space -> {
+                    ParkingSpaceDTO dto = ParkingSpaceDTO.fromParkingSpace(space);
+                    dto.setCurrentOccupiedStatus(0);
+                    return dto;
+                })
                 .collect(Collectors.toList());
+        
+        return availableSpaces;
+    }
+    
+    /**
+     * 解析时间参数
+     */
+    private LocalDateTime parseTime(String time) {
+        if (time == null || time.trim().isEmpty()) {
+            return LocalDateTime.now();
+        }
+        try {
+            // 尝试解析 ISO 格式 (2026-04-29T21:00:00)
+            return LocalDateTime.parse(time);
+        } catch (Exception e) {
+            try {
+                // 尝试解析空格分隔格式 (2026-04-29 21:00:00)
+                return LocalDateTime.parse(time.replace(" ", "T"));
+            } catch (Exception ex) {
+                return LocalDateTime.now();
+            }
+        }
     }
 
     @Override
@@ -242,9 +286,26 @@ public class ParkingSpaceServiceImpl extends ServiceImpl<ParkingSpaceMapper, Par
 
     @Override
     public boolean isSpaceOccupied(Long spaceId) {
-        LocalDateTime currentTime = LocalDateTime.now();
-        Long count = spaceOccupyMapper.countOccupiedBySpaceIdAndTime(spaceId, currentTime);
-        return count != null && count > 0;
+        return isSpaceOccupiedAtTime(spaceId, LocalDateTime.now());
+    }
+
+    /**
+     * 检查指定车位在指定时间是否被占用
+     * 同时检查 space_occupy 表（实际占用）和 reservation 表（有效预约占用）
+     *
+     * @param spaceId 车位ID
+     * @param checkTime 检查时间
+     * @return true-占用中，false-未占用
+     */
+    private boolean isSpaceOccupiedAtTime(Long spaceId, LocalDateTime checkTime) {
+        // 检查实际占用记录（车辆正在场内）
+        Long occupyCount = spaceOccupyMapper.countOccupiedBySpaceIdAndTime(spaceId, checkTime);
+        if (occupyCount != null && occupyCount > 0) {
+            return true;
+        }
+        // 检查有效预约占用（已审批通过、未取消、在预约时间段内）
+        Long reserveCount = reservationMapper.countReservedBySpaceIdAndTime(spaceId, checkTime);
+        return reserveCount != null && reserveCount > 0;
     }
 
     @Override
@@ -268,12 +329,9 @@ public class ParkingSpaceServiceImpl extends ServiceImpl<ParkingSpaceMapper, Par
         return parkingSpaces.stream()
                 .map(space -> {
                     ParkingSpaceDTO dto = ParkingSpaceDTO.fromParkingSpace(space);
-                    // 查询每个车位的占用状态
                     try {
-                        Long count = spaceOccupyMapper.countOccupiedBySpaceIdAndTime(space.getId(), currentTime);
-                        dto.setCurrentOccupiedStatus((count != null && count > 0) ? 1 : 0);
+                        dto.setCurrentOccupiedStatus(isSpaceOccupiedAtTime(space.getId(), currentTime) ? 1 : 0);
                     } catch (Exception e) {
-                        // 如果查询出错，默认为未占用
                         dto.setCurrentOccupiedStatus(0);
                     }
                     return dto;
@@ -292,9 +350,7 @@ public class ParkingSpaceServiceImpl extends ServiceImpl<ParkingSpaceMapper, Par
         return parkingSpaces.stream()
                 .map(space -> {
                     ParkingSpaceDTO dto = ParkingSpaceDTO.fromParkingSpace(space);
-                    // 查询每个车位的占用状态
-                    Long count = spaceOccupyMapper.countOccupiedBySpaceIdAndTime(space.getId(), currentTime);
-                    dto.setCurrentOccupiedStatus(count != null && count > 0 ? 1 : 0);
+                    dto.setCurrentOccupiedStatus(isSpaceOccupiedAtTime(space.getId(), currentTime) ? 1 : 0);
                     return dto;
                 })
                 .collect(Collectors.toList());

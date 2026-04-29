@@ -233,4 +233,22 @@ public class ParkAreaServiceImpl extends ServiceImpl<ParkAreaMapper, ParkArea> i
                 })
                 .collect(Collectors.toList());
     }
+
+    @Override
+    public List<ParkAreaDTO> searchParkAreas(String keyword) {
+        if (keyword == null || keyword.trim().isEmpty()) {
+            return getAllParkAreas();
+        }
+        
+        LambdaQueryWrapper<ParkArea> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(ParkArea::getDeleted, 0)
+                   .and(w -> w.like(ParkArea::getName, keyword)
+                              .or()
+                              .like(ParkArea::getAddress, keyword));
+        
+        List<ParkArea> parkAreas = parkAreaMapper.selectList(queryWrapper);
+        return parkAreas.stream()
+                       .map(ParkAreaDTO::fromParkArea)
+                       .collect(Collectors.toList());
+    }
 }

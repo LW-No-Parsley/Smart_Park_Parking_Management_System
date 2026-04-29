@@ -66,8 +66,9 @@ public interface ParkingSpaceService extends IService<ParkingSpace> {
     
     /**
      * 获取空闲车位列表
+     * @param time 指定时间（可选，默认为当前时间），格式：yyyy-MM-dd HH:mm:ss
      */
-    List<ParkingSpaceDTO> getAvailableParkingSpaces();
+    List<ParkingSpaceDTO> getAvailableParkingSpaces(String time);
     
     /**
      * 批量更新车位状态
