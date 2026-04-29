@@ -2,15 +2,22 @@ package com.syan.smart_park.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.syan.smart_park.common.utils.IpUtil;
 import com.syan.smart_park.dao.OperationLogMapper;
 import com.syan.smart_park.entity.OperationLog;
 import com.syan.smart_park.entity.OperationLogDTO;
 import com.syan.smart_park.service.OperationLogService;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -43,6 +50,24 @@ public class OperationLogServiceImpl extends ServiceImpl<OperationLogMapper, Ope
     
     @Override
     public OperationLogDTO createOperationLog(OperationLogDTO operationLogDTO) {
+        // 如果未设置userId，则从SecurityContextHolder获取当前登录用户ID
+        if (operationLogDTO.getUserId() == null) {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication != null && authentication.getPrincipal() instanceof Long) {
+                operationLogDTO.setUserId((Long) authentication.getPrincipal());
+            }
+        }
+        
+        // 如果未设置IP，则从当前请求中获取
+        if (operationLogDTO.getIp() == null || operationLogDTO.getIp().isEmpty()) {
+            ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            if (attributes != null) {
+                HttpServletRequest request = attributes.getRequest();
+                String ip = IpUtil.getIpAddress(request);
+                operationLogDTO.setIp(ip);
+            }
+        }
+        
         OperationLog operationLog = operationLogDTO.toOperationLog();
         this.save(operationLog);
         return OperationLogDTO.fromOperationLog(operationLog);

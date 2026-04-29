@@ -3,9 +3,11 @@ package com.syan.smart_park.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.syan.smart_park.dao.GateDeviceMapper;
+import com.syan.smart_park.entity.*;
 import com.syan.smart_park.entity.GateDevice;
 import com.syan.smart_park.entity.GateDeviceDTO;
 import com.syan.smart_park.service.GateDeviceService;
+import com.syan.smart_park.service.OperationLogService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -21,6 +23,7 @@ import java.util.stream.Collectors;
 public class GateDeviceServiceImpl extends ServiceImpl<GateDeviceMapper, GateDevice> implements GateDeviceService {
 
     private final GateDeviceMapper gateDeviceMapper;
+    private final OperationLogService operationLogService;
 
     @Override
     public List<GateDeviceDTO> getAllGateDevices() {
@@ -50,6 +53,13 @@ public class GateDeviceServiceImpl extends ServiceImpl<GateDeviceMapper, GateDev
         
         int result = gateDeviceMapper.insert(gateDevice);
         if (result > 0) {
+            // 记录操作日志
+            OperationLogDTO logDTO = new OperationLogDTO();
+            logDTO.setModule("道闸设备管理");
+            logDTO.setAction("创建设备");
+            logDTO.setDetail("设备ID:" + gateDevice.getId() + "，名称:" + gateDevice.getGateName() + "，设备编号:" + gateDevice.getDeviceSn());
+            operationLogService.createOperationLog(logDTO);
+            
             return getGateDeviceById(gateDevice.getId());
         }
         return null;
@@ -68,6 +78,13 @@ public class GateDeviceServiceImpl extends ServiceImpl<GateDeviceMapper, GateDev
         
         int result = gateDeviceMapper.updateById(gateDevice);
         if (result > 0) {
+            // 记录操作日志
+            OperationLogDTO logDTO = new OperationLogDTO();
+            logDTO.setModule("道闸设备管理");
+            logDTO.setAction("更新设备");
+            logDTO.setDetail("设备ID:" + id + "，名称:" + gateDevice.getGateName() + "，设备编号:" + gateDevice.getDeviceSn());
+            operationLogService.createOperationLog(logDTO);
+            
             return getGateDeviceById(id);
         }
         return null;
@@ -82,6 +99,16 @@ public class GateDeviceServiceImpl extends ServiceImpl<GateDeviceMapper, GateDev
         
         gateDevice.setDeleted(1);
         int result = gateDeviceMapper.updateById(gateDevice);
+        
+        if (result > 0) {
+            // 记录操作日志
+            OperationLogDTO logDTO = new OperationLogDTO();
+            logDTO.setModule("道闸设备管理");
+            logDTO.setAction("删除设备");
+            logDTO.setDetail("设备ID:" + id + "，名称:" + gateDevice.getGateName() + "，设备编号:" + gateDevice.getDeviceSn());
+            operationLogService.createOperationLog(logDTO);
+        }
+        
         return result > 0;
     }
 

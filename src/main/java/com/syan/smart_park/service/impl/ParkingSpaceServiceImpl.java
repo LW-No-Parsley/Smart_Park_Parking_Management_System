@@ -5,9 +5,11 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.syan.smart_park.dao.ParkingSpaceMapper;
 import com.syan.smart_park.dao.ParkingZoneMapper;
 import com.syan.smart_park.dao.SpaceOccupyMapper;
+import com.syan.smart_park.entity.*;
 import com.syan.smart_park.entity.ParkingSpace;
 import com.syan.smart_park.entity.ParkingSpaceDTO;
 import com.syan.smart_park.entity.ParkingZone;
+import com.syan.smart_park.service.OperationLogService;
 import com.syan.smart_park.service.ParkAreaService;
 import com.syan.smart_park.service.ParkingSpaceService;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +31,7 @@ public class ParkingSpaceServiceImpl extends ServiceImpl<ParkingSpaceMapper, Par
     private final ParkingZoneMapper parkingZoneMapper;
     private final SpaceOccupyMapper spaceOccupyMapper;
     private final ParkAreaService parkAreaService;
+    private final OperationLogService operationLogService;
 
 //     @Override
 //     public List<ParkingSpaceDTO> getAllParkingSpaces() {
@@ -71,6 +74,13 @@ public class ParkingSpaceServiceImpl extends ServiceImpl<ParkingSpaceMapper, Par
             parkAreaService.updateTotalSpaces(parkingSpace.getParkAreaId());
         }
         
+        // 记录操作日志
+        OperationLogDTO logDTO = new OperationLogDTO();
+        logDTO.setModule("车位管理");
+        logDTO.setAction("创建车位");
+        logDTO.setDetail("车位ID:" + parkingSpace.getId() + "，编号:" + parkingSpace.getSpaceNumber() + "，园区ID:" + parkingSpace.getParkAreaId());
+        operationLogService.createOperationLog(logDTO);
+        
         return ParkingSpaceDTO.fromParkingSpace(parkingSpace);
     }
 
@@ -106,6 +116,13 @@ public class ParkingSpaceServiceImpl extends ServiceImpl<ParkingSpaceMapper, Par
             );
         }
         
+        // 记录操作日志
+        OperationLogDTO logDTO = new OperationLogDTO();
+        logDTO.setModule("车位管理");
+        logDTO.setAction("更新车位");
+        logDTO.setDetail("车位ID:" + id + "，编号:" + existingParkingSpace.getSpaceNumber() + "，状态:" + existingParkingSpace.getStatus());
+        operationLogService.createOperationLog(logDTO);
+        
         return ParkingSpaceDTO.fromParkingSpace(existingParkingSpace);
     }
 
@@ -124,6 +141,15 @@ public class ParkingSpaceServiceImpl extends ServiceImpl<ParkingSpaceMapper, Par
         // 删除车位后，更新对应园区的总车位数
         if (result && parkAreaId != null) {
             parkAreaService.updateTotalSpaces(parkAreaId);
+        }
+        
+        // 记录操作日志
+        if (result) {
+            OperationLogDTO logDTO = new OperationLogDTO();
+            logDTO.setModule("车位管理");
+            logDTO.setAction("删除车位");
+            logDTO.setDetail("车位ID:" + id + "，编号:" + parkingSpace.getSpaceNumber());
+            operationLogService.createOperationLog(logDTO);
         }
         
         return result;

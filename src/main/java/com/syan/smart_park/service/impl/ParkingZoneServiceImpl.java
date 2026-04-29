@@ -4,9 +4,11 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.syan.smart_park.dao.ParkAreaMapper;
 import com.syan.smart_park.dao.ParkingZoneMapper;
+import com.syan.smart_park.entity.*;
 import com.syan.smart_park.entity.ParkArea;
 import com.syan.smart_park.entity.ParkingZone;
 import com.syan.smart_park.entity.ParkingZoneDTO;
+import com.syan.smart_park.service.OperationLogService;
 import com.syan.smart_park.service.ParkingZoneService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -24,6 +26,7 @@ public class ParkingZoneServiceImpl extends ServiceImpl<ParkingZoneMapper, Parki
 
     private final ParkingZoneMapper parkingZoneMapper;
     private final ParkAreaMapper parkAreaMapper;
+    private final OperationLogService operationLogService;
 
     @Override
     public List<ParkingZoneDTO> getAllParkingZones() {
@@ -117,6 +120,13 @@ public class ParkingZoneServiceImpl extends ServiceImpl<ParkingZoneMapper, Parki
         
         int result = parkingZoneMapper.insert(parkingZone);
         if (result > 0) {
+            // 记录操作日志
+            OperationLogDTO logDTO = new OperationLogDTO();
+            logDTO.setModule("分区管理");
+            logDTO.setAction("创建分区");
+            logDTO.setDetail("分区ID:" + parkingZone.getId() + "，名称:" + parkingZone.getZoneName() + "，园区ID:" + parkingZone.getParkAreaId());
+            operationLogService.createOperationLog(logDTO);
+            
             return getParkingZoneById(parkingZone.getId());
         }
         return null;
@@ -154,6 +164,13 @@ public class ParkingZoneServiceImpl extends ServiceImpl<ParkingZoneMapper, Parki
         
         int result = parkingZoneMapper.updateById(parkingZone);
         if (result > 0) {
+            // 记录操作日志
+            OperationLogDTO logDTO = new OperationLogDTO();
+            logDTO.setModule("分区管理");
+            logDTO.setAction("更新分区");
+            logDTO.setDetail("分区ID:" + id + "，名称:" + parkingZone.getZoneName() + "，园区ID:" + parkingZone.getParkAreaId());
+            operationLogService.createOperationLog(logDTO);
+            
             return getParkingZoneById(id);
         }
         return null;
@@ -167,7 +184,18 @@ public class ParkingZoneServiceImpl extends ServiceImpl<ParkingZoneMapper, Parki
         }
         
         // 使用MyBatis-Plus的removeById方法，它会自动处理逻辑删除（因为有@TableLogic注解）
-        return this.removeById(id);
+        boolean result = this.removeById(id);
+        
+        if (result) {
+            // 记录操作日志
+            OperationLogDTO logDTO = new OperationLogDTO();
+            logDTO.setModule("分区管理");
+            logDTO.setAction("删除分区");
+            logDTO.setDetail("分区ID:" + id + "，名称:" + parkingZone.getZoneName());
+            operationLogService.createOperationLog(logDTO);
+        }
+        
+        return result;
     }
 
     @Override

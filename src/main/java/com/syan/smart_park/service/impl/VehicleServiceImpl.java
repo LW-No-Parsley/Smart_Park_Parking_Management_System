@@ -4,9 +4,11 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.syan.smart_park.dao.ParkUserMapper;
 import com.syan.smart_park.dao.VehicleMapper;
+import com.syan.smart_park.entity.*;
 import com.syan.smart_park.entity.ParkUser;
 import com.syan.smart_park.entity.Vehicle;
 import com.syan.smart_park.entity.VehicleDTO;
+import com.syan.smart_park.service.OperationLogService;
 import com.syan.smart_park.service.VehicleService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -25,6 +27,7 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
 
     private final VehicleMapper vehicleMapper;
     private final ParkUserMapper parkUserMapper;
+    private final OperationLogService operationLogService;
 
     /**
      * 填充车辆DTO中的用户名
@@ -103,6 +106,14 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
         this.save(vehicle);
         VehicleDTO dto = VehicleDTO.fromVehicle(vehicle);
         fillUsername(dto);
+        
+        // 记录操作日志
+        OperationLogDTO logDTO = new OperationLogDTO();
+        logDTO.setModule("车辆管理");
+        logDTO.setAction("创建车辆");
+        logDTO.setDetail("车辆ID:" + vehicle.getId() + "，车牌号:" + vehicle.getPlateNumber() + "，用户ID:" + vehicle.getUserId());
+        operationLogService.createOperationLog(logDTO);
+        
         return dto;
     }
 
@@ -135,13 +146,37 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
         this.updateById(vehicle);
         VehicleDTO dto = VehicleDTO.fromVehicle(vehicle);
         fillUsername(dto);
+        
+        // 记录操作日志
+        OperationLogDTO logDTO = new OperationLogDTO();
+        logDTO.setModule("车辆管理");
+        logDTO.setAction("更新车辆");
+        logDTO.setDetail("车辆ID:" + id + "，车牌号:" + vehicle.getPlateNumber());
+        operationLogService.createOperationLog(logDTO);
+        
         return dto;
     }
 
     @Override
     @Transactional
     public boolean deleteVehicle(Long id) {
-        return this.removeById(id);
+        Vehicle existingVehicle = this.getById(id);
+        if (existingVehicle == null) {
+            return false;
+        }
+        
+        boolean result = this.removeById(id);
+        
+        if (result) {
+            // 记录操作日志
+            OperationLogDTO logDTO = new OperationLogDTO();
+            logDTO.setModule("车辆管理");
+            logDTO.setAction("删除车辆");
+            logDTO.setDetail("车辆ID:" + id + "，车牌号:" + existingVehicle.getPlateNumber());
+            operationLogService.createOperationLog(logDTO);
+        }
+        
+        return result;
     }
 
     @Override
