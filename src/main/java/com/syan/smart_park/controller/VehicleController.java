@@ -143,7 +143,7 @@ public class VehicleController {
     /**
      * 批量更新车辆状态
      */
-    @PutMapping("/batch-update-status")
+    @PutMapping("/batch/update-status")
     public R<Boolean> batchUpdateVehicleStatus(@RequestParam List<Long> ids, @RequestParam Integer status) {
         boolean result = vehicleService.batchUpdateVehicleStatus(ids, status);
         if (!result) {

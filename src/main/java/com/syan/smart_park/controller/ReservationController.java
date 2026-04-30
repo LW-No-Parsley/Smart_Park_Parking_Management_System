@@ -247,7 +247,7 @@ public class ReservationController {
     /**
      * 批量更新预约状态
      */
-    @PutMapping("/batch-update-status")
+    @PutMapping("/batch/update-status")
     public R<Boolean> batchUpdateReservationStatus(@RequestParam List<Long> ids, @RequestParam Integer status) {
         boolean result = reservationService.batchUpdateReservationStatus(ids, status);
         if (!result) {

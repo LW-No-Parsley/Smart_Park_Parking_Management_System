@@ -136,7 +136,7 @@ public class ParkingSpaceController {
     /**
      * 批量更新车位状态
      */
-    @PutMapping("/batch-update-status")
+    @PutMapping("/batch/update-status")
     public R<Boolean> batchUpdateParkingSpaceStatus(@RequestParam List<Long> ids, @RequestParam Integer status) {
         boolean result = parkingSpaceService.batchUpdateParkingSpaceStatus(ids, status);
         if (!result) {
