@@ -68,18 +68,6 @@ public class PaymentRecordController {
     }
     
     /**
-     * 删除支付记录
-     */
-    @DeleteMapping("/{id}")
-    public R<Boolean> deletePaymentRecord(@PathVariable Long id) {
-        boolean result = paymentRecordService.deletePaymentRecord(id);
-        if (!result) {
-            return R.error(ReturnCode.RC1300); // 数据不存在或删除失败
-        }
-        return R.success(true);
-    }
-    
-    /**
      * 根据预约ID获取支付记录列表
      */
     @GetMapping("/reservation/{reservationId}")

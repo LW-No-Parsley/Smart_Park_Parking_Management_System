@@ -80,28 +80,6 @@ public class PaymentRecordServiceImpl extends ServiceImpl<PaymentRecordMapper, P
     }
     
     @Override
-    @Transactional
-    public boolean deletePaymentRecord(Long id) {
-        PaymentRecord existingPaymentRecord = getById(id);
-        if (existingPaymentRecord == null) {
-            return false;
-        }
-        
-        boolean result = removeById(id);
-        
-        if (result) {
-            // 记录操作日志
-            OperationLogDTO logDTO = new OperationLogDTO();
-            logDTO.setModule("支付记录管理");
-            logDTO.setAction("删除支付记录");
-            logDTO.setDetail("支付记录ID:" + id + "，金额:" + existingPaymentRecord.getAmount());
-            operationLogService.createOperationLog(logDTO);
-        }
-        
-        return result;
-    }
-    
-    @Override
     public List<PaymentRecordDTO> getPaymentRecordsByReservationId(Long reservationId) {
         LambdaQueryWrapper<PaymentRecord> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(PaymentRecord::getReservationId, reservationId);

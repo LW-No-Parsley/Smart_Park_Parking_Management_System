@@ -67,12 +67,6 @@ public class AccessLogServiceImpl extends ServiceImpl<AccessLogMapper, AccessLog
     }
 
     @Override
-    @Transactional
-    public boolean deleteAccessLog(Long id) {
-        return this.removeById(id);
-    }
-
-    @Override
     public List<AccessLogDTO> getAccessLogsByParkAreaId(Long parkAreaId) {
         LambdaQueryWrapper<AccessLog> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(AccessLog::getParkAreaId, parkAreaId);
@@ -245,16 +239,6 @@ public class AccessLogServiceImpl extends ServiceImpl<AccessLogMapper, AccessLog
                 .collect(Collectors.toList());
         
         return this.updateBatchById(accessLogs);
-    }
-
-    @Override
-    @Transactional
-    public boolean batchDeleteAccessLogs(List<Long> ids) {
-        if (ids == null || ids.isEmpty()) {
-            return false;
-        }
-        
-        return this.removeByIds(ids);
     }
 
     @Override

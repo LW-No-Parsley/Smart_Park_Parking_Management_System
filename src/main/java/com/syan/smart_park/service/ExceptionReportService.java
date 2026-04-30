@@ -32,11 +32,6 @@ public interface ExceptionReportService extends IService<ExceptionReport> {
     ExceptionReportDTO updateExceptionReport(Long id, ExceptionReportDTO exceptionReportDTO);
     
     /**
-     * 删除异常上报记录（逻辑删除）
-     */
-    boolean deleteExceptionReport(Long id);
-    
-    /**
      * 根据用户ID获取异常上报记录
      */
     List<ExceptionReportDTO> getExceptionReportsByUserId(Long userId);

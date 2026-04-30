@@ -67,18 +67,6 @@ public class AccessLogController {
     }
     
     /**
-     * 删除进出记录
-     */
-    @DeleteMapping("/{id}")
-    public R<Boolean> deleteAccessLog(@PathVariable Long id) {
-        boolean result = accessLogService.deleteAccessLog(id);
-        if (!result) {
-            return R.error(ReturnCode.RC1300); // 数据不存在或删除失败
-        }
-        return R.success(true);
-    }
-    
-    /**
      * 根据园区ID获取进出记录列表
      */
     @GetMapping("/park-area/{parkAreaId}")
@@ -193,18 +181,6 @@ public class AccessLogController {
         boolean result = accessLogService.batchUpdateAccessLogs(accessLogDTOs);
         if (!result) {
             return R.error(ReturnCode.RC500); // 批量更新失败
-        }
-        return R.success(true);
-    }
-    
-    /**
-     * 批量删除进出记录
-     */
-    @DeleteMapping("/batch")
-    public R<Boolean> batchDeleteAccessLogs(@RequestParam List<Long> ids) {
-        boolean result = accessLogService.batchDeleteAccessLogs(ids);
-        if (!result) {
-            return R.error(ReturnCode.RC500); // 批量删除失败
         }
         return R.success(true);
     }

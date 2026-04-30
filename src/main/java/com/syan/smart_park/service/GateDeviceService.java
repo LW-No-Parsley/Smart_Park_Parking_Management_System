@@ -40,13 +40,6 @@ public interface GateDeviceService extends IService<GateDevice> {
     GateDeviceDTO updateGateDevice(Long id, GateDeviceDTO gateDeviceDTO);
 
     /**
-     * 删除道闸设备
-     * @param id 设备ID
-     * @return 是否删除成功
-     */
-    boolean deleteGateDevice(Long id);
-
-    /**
      * 根据园区ID获取道闸设备列表
      * @param parkAreaId 园区ID
      * @return 道闸设备DTO列表

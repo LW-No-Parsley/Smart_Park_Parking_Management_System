@@ -33,11 +33,6 @@ public interface AccessLogService extends IService<AccessLog> {
     AccessLogDTO updateAccessLog(Long id, AccessLogDTO accessLogDTO);
     
     /**
-     * 删除进出记录
-     */
-    boolean deleteAccessLog(Long id);
-    
-    /**
      * 根据园区ID获取进出记录列表
      */
     List<AccessLogDTO> getAccessLogsByParkAreaId(Long parkAreaId);
@@ -96,11 +91,6 @@ public interface AccessLogService extends IService<AccessLog> {
      * 批量更新进出记录
      */
     boolean batchUpdateAccessLogs(List<AccessLogDTO> accessLogDTOs);
-    
-    /**
-     * 批量删除进出记录
-     */
-    boolean batchDeleteAccessLogs(List<Long> ids);
     
     /**
      * 根据车牌号和时间范围查询进出记录

@@ -34,11 +34,6 @@ public interface PaymentRecordService extends IService<PaymentRecord> {
     PaymentRecordDTO updatePaymentRecord(Long id, PaymentRecordDTO paymentRecordDTO);
     
     /**
-     * 删除支付记录
-     */
-    boolean deletePaymentRecord(Long id);
-    
-    /**
      * 根据预约ID获取支付记录列表
      */
     List<PaymentRecordDTO> getPaymentRecordsByReservationId(Long reservationId);

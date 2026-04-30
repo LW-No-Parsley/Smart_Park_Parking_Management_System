@@ -27,11 +27,6 @@ public interface OperationLogService extends IService<OperationLog> {
     OperationLogDTO createOperationLog(OperationLogDTO operationLogDTO);
     
     /**
-     * 删除操作日志记录（逻辑删除）
-     */
-    boolean deleteOperationLog(Long id);
-    
-    /**
      * 根据用户ID获取操作日志记录
      */
     List<OperationLogDTO> getOperationLogsByUserId(Long userId);

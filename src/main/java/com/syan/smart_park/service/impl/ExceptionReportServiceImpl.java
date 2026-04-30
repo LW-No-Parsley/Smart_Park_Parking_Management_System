@@ -66,17 +66,6 @@ public class ExceptionReportServiceImpl extends ServiceImpl<ExceptionReportMappe
     }
     
     @Override
-    public boolean deleteExceptionReport(Long id) {
-        ExceptionReport exceptionReport = this.getById(id);
-        if (exceptionReport == null || exceptionReport.getDeleted() == 1) {
-            return false;
-        }
-        
-        exceptionReport.setDeleted(1);
-        return this.updateById(exceptionReport);
-    }
-    
-    @Override
     public List<ExceptionReportDTO> getExceptionReportsByUserId(Long userId) {
         LambdaQueryWrapper<ExceptionReport> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(ExceptionReport::getUserId, userId)

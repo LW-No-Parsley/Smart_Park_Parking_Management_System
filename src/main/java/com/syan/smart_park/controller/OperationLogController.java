@@ -51,18 +51,6 @@ public class OperationLogController {
     }
     
     /**
-     * 删除操作日志记录
-     */
-    @DeleteMapping("/{id}")
-    public R<Void> deleteOperationLog(@PathVariable Long id) {
-        boolean success = operationLogService.deleteOperationLog(id);
-        if (!success) {
-            return R.error(ReturnCode.RC1300);
-        }
-        return R.success();
-    }
-    
-    /**
      * 根据用户ID获取操作日志记录
      */
     @GetMapping("/user/{userId}")

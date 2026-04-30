@@ -64,18 +64,6 @@ public class ExceptionReportController {
     }
     
     /**
-     * 删除异常上报记录
-     */
-    @DeleteMapping("/{id}")
-    public R<Void> deleteExceptionReport(@PathVariable Long id) {
-        boolean success = exceptionReportService.deleteExceptionReport(id);
-        if (!success) {
-            return R.error(ReturnCode.RC1300);
-        }
-        return R.success();
-    }
-    
-    /**
      * 根据用户ID获取异常上报记录
      */
     @GetMapping("/user/{userId}")

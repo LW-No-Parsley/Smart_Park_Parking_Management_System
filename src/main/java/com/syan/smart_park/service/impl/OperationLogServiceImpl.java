@@ -74,17 +74,6 @@ public class OperationLogServiceImpl extends ServiceImpl<OperationLogMapper, Ope
     }
     
     @Override
-    public boolean deleteOperationLog(Long id) {
-        OperationLog operationLog = this.getById(id);
-        if (operationLog == null || operationLog.getDeleted() == 1) {
-            return false;
-        }
-        
-        operationLog.setDeleted(1);
-        return this.updateById(operationLog);
-    }
-    
-    @Override
     public List<OperationLogDTO> getOperationLogsByUserId(Long userId) {
         LambdaQueryWrapper<OperationLog> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(OperationLog::getUserId, userId)
