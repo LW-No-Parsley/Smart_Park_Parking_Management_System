@@ -1,7 +1,10 @@
 package com.syan.smart_park.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.syan.smart_park.common.PageResult;
 import com.syan.smart_park.dao.ExceptionReportMapper;
 import com.syan.smart_park.entity.ExceptionReport;
 import com.syan.smart_park.entity.ExceptionReportDTO;
@@ -17,16 +20,41 @@ import java.util.stream.Collectors;
  */
 @Service
 public class ExceptionReportServiceImpl extends ServiceImpl<ExceptionReportMapper, ExceptionReport> implements ExceptionReportService {
-    
+
     @Override
-    public List<ExceptionReportDTO> getAllExceptionReports() {
+    public PageResult<ExceptionReportDTO> pageExceptionReports(long current, long size,
+                                                               Long userId, Long spaceId,
+                                                               Integer reportType, Integer status,
+                                                               Long handledBy, String keyword) {
         LambdaQueryWrapper<ExceptionReport> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(ExceptionReport::getDeleted, 0)
-                   .orderByDesc(ExceptionReport::getCreateTime);
-        List<ExceptionReport> exceptionReports = this.list(queryWrapper);
-        return exceptionReports.stream()
+
+        // 动态条件：仅传入非 null 值时生效
+        queryWrapper.eq(userId != null, ExceptionReport::getUserId, userId);
+        queryWrapper.eq(spaceId != null, ExceptionReport::getSpaceId, spaceId);
+        queryWrapper.eq(reportType != null, ExceptionReport::getReportType, reportType);
+        // status: null=不过滤, 0=未处理, -1=已处理所有(ne 0), 其余精确匹配
+        if (status != null) {
+            if (status == -1) {
+                queryWrapper.ne(ExceptionReport::getStatus, 0);
+            } else {
+                queryWrapper.eq(ExceptionReport::getStatus, status);
+            }
+        }
+        queryWrapper.eq(handledBy != null, ExceptionReport::getHandledBy, handledBy);
+
+        // 关键词模糊搜索描述
+        if (keyword != null && !keyword.isEmpty()) {
+            queryWrapper.like(ExceptionReport::getDescription, keyword);
+        }
+
+        queryWrapper.orderByDesc(ExceptionReport::getCreateTime);
+
+        IPage<ExceptionReport> page = this.page(new Page<>(current, size), queryWrapper);
+        List<ExceptionReportDTO> dtoList = page.getRecords().stream()
                 .map(ExceptionReportDTO::fromExceptionReport)
                 .collect(Collectors.toList());
+
+        return PageResult.of(dtoList, page.getTotal(), page.getCurrent(), page.getSize());
     }
     
     @Override
@@ -66,54 +94,6 @@ public class ExceptionReportServiceImpl extends ServiceImpl<ExceptionReportMappe
     }
     
     @Override
-    public List<ExceptionReportDTO> getExceptionReportsByUserId(Long userId) {
-        LambdaQueryWrapper<ExceptionReport> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(ExceptionReport::getUserId, userId)
-                   .eq(ExceptionReport::getDeleted, 0)
-                   .orderByDesc(ExceptionReport::getCreateTime);
-        List<ExceptionReport> exceptionReports = this.list(queryWrapper);
-        return exceptionReports.stream()
-                .map(ExceptionReportDTO::fromExceptionReport)
-                .collect(Collectors.toList());
-    }
-    
-    @Override
-    public List<ExceptionReportDTO> getExceptionReportsBySpaceId(Long spaceId) {
-        LambdaQueryWrapper<ExceptionReport> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(ExceptionReport::getSpaceId, spaceId)
-                   .eq(ExceptionReport::getDeleted, 0)
-                   .orderByDesc(ExceptionReport::getCreateTime);
-        List<ExceptionReport> exceptionReports = this.list(queryWrapper);
-        return exceptionReports.stream()
-                .map(ExceptionReportDTO::fromExceptionReport)
-                .collect(Collectors.toList());
-    }
-    
-    @Override
-    public List<ExceptionReportDTO> getExceptionReportsByType(Integer reportType) {
-        LambdaQueryWrapper<ExceptionReport> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(ExceptionReport::getReportType, reportType)
-                   .eq(ExceptionReport::getDeleted, 0)
-                   .orderByDesc(ExceptionReport::getCreateTime);
-        List<ExceptionReport> exceptionReports = this.list(queryWrapper);
-        return exceptionReports.stream()
-                .map(ExceptionReportDTO::fromExceptionReport)
-                .collect(Collectors.toList());
-    }
-    
-    @Override
-    public List<ExceptionReportDTO> getExceptionReportsByStatus(Integer status) {
-        LambdaQueryWrapper<ExceptionReport> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(ExceptionReport::getStatus, status)
-                   .eq(ExceptionReport::getDeleted, 0)
-                   .orderByDesc(ExceptionReport::getCreateTime);
-        List<ExceptionReport> exceptionReports = this.list(queryWrapper);
-        return exceptionReports.stream()
-                .map(ExceptionReportDTO::fromExceptionReport)
-                .collect(Collectors.toList());
-    }
-    
-    @Override
     public ExceptionReportDTO handleExceptionReport(Long id, Long handledBy, String handleResult) {
         ExceptionReport exceptionReport = this.getById(id);
         if (exceptionReport == null || exceptionReport.getDeleted() == 1) {
@@ -128,53 +108,5 @@ public class ExceptionReportServiceImpl extends ServiceImpl<ExceptionReportMappe
         
         this.updateById(exceptionReport);
         return ExceptionReportDTO.fromExceptionReport(exceptionReport);
-    }
-    
-    @Override
-    public List<ExceptionReportDTO> getUnhandledExceptionReports() {
-        LambdaQueryWrapper<ExceptionReport> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(ExceptionReport::getStatus, 0) // 未处理
-                   .eq(ExceptionReport::getDeleted, 0)
-                   .orderByDesc(ExceptionReport::getCreateTime);
-        List<ExceptionReport> exceptionReports = this.list(queryWrapper);
-        return exceptionReports.stream()
-                .map(ExceptionReportDTO::fromExceptionReport)
-                .collect(Collectors.toList());
-    }
-    
-    @Override
-    public List<ExceptionReportDTO> getHandledExceptionReports() {
-        LambdaQueryWrapper<ExceptionReport> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.in(ExceptionReport::getStatus, 1, 2, 3) // 已受理、已处理、已关闭
-                   .eq(ExceptionReport::getDeleted, 0)
-                   .orderByDesc(ExceptionReport::getCreateTime);
-        List<ExceptionReport> exceptionReports = this.list(queryWrapper);
-        return exceptionReports.stream()
-                .map(ExceptionReportDTO::fromExceptionReport)
-                .collect(Collectors.toList());
-    }
-    
-    @Override
-    public List<ExceptionReportDTO> getExceptionReportsByHandler(Long handledBy) {
-        LambdaQueryWrapper<ExceptionReport> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(ExceptionReport::getHandledBy, handledBy)
-                   .eq(ExceptionReport::getDeleted, 0)
-                   .orderByDesc(ExceptionReport::getHandleTime);
-        List<ExceptionReport> exceptionReports = this.list(queryWrapper);
-        return exceptionReports.stream()
-                .map(ExceptionReportDTO::fromExceptionReport)
-                .collect(Collectors.toList());
-    }
-    
-    @Override
-    public List<ExceptionReportDTO> searchExceptionReports(String keyword) {
-        LambdaQueryWrapper<ExceptionReport> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.like(ExceptionReport::getDescription, keyword)
-                   .eq(ExceptionReport::getDeleted, 0)
-                   .orderByDesc(ExceptionReport::getCreateTime);
-        List<ExceptionReport> exceptionReports = this.list(queryWrapper);
-        return exceptionReports.stream()
-                .map(ExceptionReportDTO::fromExceptionReport)
-                .collect(Collectors.toList());
     }
 }

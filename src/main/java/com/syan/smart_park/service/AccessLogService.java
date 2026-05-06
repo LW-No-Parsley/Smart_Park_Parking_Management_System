@@ -1,6 +1,8 @@
 package com.syan.smart_park.service;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.syan.smart_park.common.PageResult;
 import com.syan.smart_park.entity.AccessLog;
 import com.syan.smart_park.entity.AccessLogDTO;
 
@@ -11,66 +13,46 @@ import java.util.List;
  * 进出记录服务接口
  */
 public interface AccessLogService extends IService<AccessLog> {
-    
+
     /**
-     * 获取所有进出记录
+     * 统一分页查询进出记录（支持多条件组合筛选）
+     *
+     * @param current          当前页码
+     * @param size             每页大小
+     * @param parkAreaId       园区ID（可选）
+     * @param gateId           道闸ID（可选）
+     * @param plateNumber      车牌号（可选，模糊匹配）
+     * @param vehicleId        车辆ID（可选）
+     * @param accessType       进出类型：1-入场 2-出场（可选）
+     * @param recognitionResult 识别结果：0-失败 1-成功 2-黑名单（可选）
+     * @param handledBy        处理人员ID（可选）
+     * @param startTime        通行开始时间（可选）
+     * @param endTime          通行结束时间（可选）
+     * @param exceptionOnly    是否仅查异常记录（可选）
+     * @return 分页结果
      */
-    List<AccessLogDTO> getAllAccessLogs();
-    
+    PageResult<AccessLogDTO> pageAccessLogs(long current, long size,
+                                            Long parkAreaId, Long gateId,
+                                            String plateNumber, Long vehicleId,
+                                            Integer accessType, Integer recognitionResult,
+                                            Long handledBy,
+                                            LocalDateTime startTime, LocalDateTime endTime,
+                                            Boolean exceptionOnly);
+
     /**
      * 根据ID获取进出记录
      */
     AccessLogDTO getAccessLogById(Long id);
-    
+
     /**
      * 创建进出记录
      */
     AccessLogDTO createAccessLog(AccessLogDTO accessLogDTO);
-    
+
     /**
      * 更新进出记录
      */
     AccessLogDTO updateAccessLog(Long id, AccessLogDTO accessLogDTO);
-    
-    /**
-     * 根据园区ID获取进出记录列表
-     */
-    List<AccessLogDTO> getAccessLogsByParkAreaId(Long parkAreaId);
-    
-    /**
-     * 根据道闸ID获取进出记录列表
-     */
-    List<AccessLogDTO> getAccessLogsByGateId(Long gateId);
-    
-    /**
-     * 根据车牌号获取进出记录列表
-     */
-    List<AccessLogDTO> getAccessLogsByPlateNumber(String plateNumber);
-    
-    /**
-     * 根据车辆ID获取进出记录列表
-     */
-    List<AccessLogDTO> getAccessLogsByVehicleId(Long vehicleId);
-    
-    /**
-     * 根据进出类型获取进出记录列表
-     */
-    List<AccessLogDTO> getAccessLogsByAccessType(Integer accessType);
-    
-    /**
-     * 根据识别结果获取进出记录列表
-     */
-    List<AccessLogDTO> getAccessLogsByRecognitionResult(Integer recognitionResult);
-    
-    /**
-     * 根据处理人员ID获取进出记录列表
-     */
-    List<AccessLogDTO> getAccessLogsByHandledBy(Long handledBy);
-    
-    /**
-     * 获取指定时间范围内的进出记录列表
-     */
-    List<AccessLogDTO> getAccessLogsByTimeRange(LocalDateTime startTime, LocalDateTime endTime);
     
     /**
      * 获取今日进出记录统计

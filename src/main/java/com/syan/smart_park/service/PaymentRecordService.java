@@ -1,6 +1,7 @@
 package com.syan.smart_park.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.syan.smart_park.common.PageResult;
 import com.syan.smart_park.entity.PaymentRecord;
 import com.syan.smart_park.entity.PaymentRecordDTO;
 
@@ -12,11 +13,24 @@ import java.util.List;
  * 支付记录服务接口
  */
 public interface PaymentRecordService extends IService<PaymentRecord> {
-    
+
     /**
-     * 获取所有支付记录
+     * 统一分页查询支付记录（支持多条件组合筛选）
+     *
+     * @param current        当前页码
+     * @param size           每页大小
+     * @param reservationId  预约ID（可选）
+     * @param userId         用户ID（可选）
+     * @param paymentMethod  支付方式（可选）
+     * @param paymentStatus  支付状态：0-未支付 1-成功 2-失败 3-已退款（可选）
+     * @param startTime      支付开始时间（可选）
+     * @param endTime        支付结束时间（可选）
+     * @return 分页结果
      */
-    List<PaymentRecordDTO> getAllPaymentRecords();
+    PageResult<PaymentRecordDTO> pagePaymentRecords(long current, long size,
+                                                    Long reservationId, Long userId,
+                                                    Integer paymentMethod, Integer paymentStatus,
+                                                    LocalDateTime startTime, LocalDateTime endTime);
     
     /**
      * 根据ID获取支付记录
@@ -32,31 +46,6 @@ public interface PaymentRecordService extends IService<PaymentRecord> {
      * 更新支付记录
      */
     PaymentRecordDTO updatePaymentRecord(Long id, PaymentRecordDTO paymentRecordDTO);
-    
-    /**
-     * 根据预约ID获取支付记录列表
-     */
-    List<PaymentRecordDTO> getPaymentRecordsByReservationId(Long reservationId);
-    
-    /**
-     * 根据用户ID获取支付记录列表
-     */
-    List<PaymentRecordDTO> getPaymentRecordsByUserId(Long userId);
-    
-    /**
-     * 根据支付方式获取支付记录列表
-     */
-    List<PaymentRecordDTO> getPaymentRecordsByPaymentMethod(Integer paymentMethod);
-    
-    /**
-     * 根据支付状态获取支付记录列表
-     */
-    List<PaymentRecordDTO> getPaymentRecordsByPaymentStatus(Integer paymentStatus);
-    
-    /**
-     * 根据时间范围获取支付记录列表
-     */
-    List<PaymentRecordDTO> getPaymentRecordsByTimeRange(LocalDateTime startTime, LocalDateTime endTime);
     
     /**
      * 获取指定时间范围内的支付总额

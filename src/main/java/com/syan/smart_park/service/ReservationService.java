@@ -142,4 +142,12 @@ public interface ReservationService extends IService<Reservation> {
      * 检查车位在指定时间是否可用
      */
     boolean isSpaceAvailable(Long spaceId, LocalDateTime startTime, LocalDateTime endTime, Long excludeReservationId);
+
+    /**
+     * 批量将已过期的预约标记为"已过期"
+     * 条件：end_time < NOW() 且 (待审批 或 已预约未使用)
+     *
+     * @return 过期的预约ID列表
+     */
+    List<Long> expireOverdueReservations();
 }

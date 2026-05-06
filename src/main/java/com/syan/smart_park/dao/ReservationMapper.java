@@ -7,6 +7,7 @@ import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 预约数据访问层
@@ -34,4 +35,32 @@ public interface ReservationMapper extends BaseMapper<Reservation> {
             "AND approval_status = 1 AND status != 0 AND deleted = 0")
     Long countReservedBySpaceIdAndTime(@Param("spaceId") Long spaceId,
                                        @Param("currentTime") LocalDateTime currentTime);
+
+    /**
+     * 查询已过期的预约ID列表
+     * 条件：end_time < NOW() 且 (approval_status=0 待审批 或 status=1 已预约未使用)
+     *       且 deleted=0, status != 3
+     *
+     * @param now 当前时间
+     * @return 过期的预约ID列表
+     */
+    @Select("SELECT id FROM reservation WHERE end_time < #{now} AND deleted = 0 " +
+            "AND (approval_status = 0 OR status = 1) AND status != 3")
+    List<Long> selectOverdueReservationIds(@Param("now") LocalDateTime now);
+
+    /**
+     * 批量将已过期的预约标记为"已过期"(status=3)
+     * 条件：end_time < NOW() 且 (approval_status=0 待审批 或 status=1 已预约未使用)
+     *       且 deleted=0
+     *
+     * @param now 当前时间
+     * @return 更新的记录数
+     */
+    @org.apache.ibatis.annotations.Update(
+        "UPDATE reservation SET status = 3, update_time = NOW() " +
+        "WHERE end_time < #{now} AND deleted = 0 " +
+        "AND (approval_status = 0 OR status = 1) " +
+        "AND status != 3"
+    )
+    int batchExpireOverdueReservations(@Param("now") LocalDateTime now);
 }

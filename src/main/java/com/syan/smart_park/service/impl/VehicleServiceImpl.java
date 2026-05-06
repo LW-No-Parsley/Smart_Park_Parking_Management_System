@@ -4,13 +4,21 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.syan.smart_park.dao.ParkUserMapper;
 import com.syan.smart_park.dao.VehicleMapper;
+import com.syan.smart_park.dao.ParkingSpaceMapper;
+import com.syan.smart_park.dao.SpaceOccupyMapper;
 import com.syan.smart_park.entity.*;
 import com.syan.smart_park.entity.ParkUser;
 import com.syan.smart_park.entity.Vehicle;
 import com.syan.smart_park.entity.VehicleDTO;
+import com.syan.smart_park.entity.ParkingSpace;
+import com.syan.smart_park.entity.SpaceOccupy;
 import com.syan.smart_park.service.OperationLogService;
 import com.syan.smart_park.service.VehicleService;
 import lombok.RequiredArgsConstructor;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,6 +35,8 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
 
     private final VehicleMapper vehicleMapper;
     private final ParkUserMapper parkUserMapper;
+    private final ParkingSpaceMapper parkingSpaceMapper;
+    private final SpaceOccupyMapper spaceOccupyMapper;
     private final OperationLogService operationLogService;
 
     /**
@@ -113,7 +123,48 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
         logDTO.setAction("创建车辆");
         logDTO.setDetail("车辆ID:" + vehicle.getId() + "，车牌号:" + vehicle.getPlateNumber() + "，用户ID:" + vehicle.getUserId());
         operationLogService.createOperationLog(logDTO);
-        
+
+        // 车位绑定：如果传了spaceId则使用指定车位，否则业主自动查找绑定车位
+        ParkingSpace targetSpace = null;
+
+        if (vehicleDTO.getSpaceId() != null) {
+            // 手动指定车位
+            targetSpace = parkingSpaceMapper.selectById(vehicleDTO.getSpaceId());
+            if (targetSpace == null) {
+                throw new com.syan.smart_park.common.exception.BusinessException(
+                    com.syan.smart_park.common.exception.ReturnCode.RC1404, "指定的车位不存在");
+            }
+        } else {
+            // 业主自动绑定其固定车位（向后兼容）
+            ParkUser parkUser = parkUserMapper.selectById(vehicleDTO.getUserId());
+            if (parkUser != null && parkUser.getUserType() != null && parkUser.getUserType() == 1) {
+                LambdaQueryWrapper<ParkingSpace> spaceWrapper = new LambdaQueryWrapper<>();
+                spaceWrapper.eq(ParkingSpace::getBindUserId, vehicleDTO.getUserId());
+                List<ParkingSpace> boundSpaces = parkingSpaceMapper.selectList(spaceWrapper);
+                if (!boundSpaces.isEmpty()) {
+                    targetSpace = boundSpaces.get(0);
+                }
+            }
+        }
+
+        if (targetSpace != null) {
+            SpaceOccupy occupy = new SpaceOccupy();
+            occupy.setSpaceId(targetSpace.getId());
+            occupy.setStartTime(LocalDateTime.now());
+            occupy.setEndTime(LocalDateTime.of(2999, 12, 31, 23, 59, 59));
+            spaceOccupyMapper.insert(occupy);
+
+            OperationLogDTO occupyLog = new OperationLogDTO();
+            occupyLog.setModule("车辆管理");
+            occupyLog.setAction("业主车位绑定");
+            occupyLog.setDetail("车辆ID:" + vehicle.getId()
+                    + "，用户ID:" + vehicleDTO.getUserId()
+                    + "，车位:" + targetSpace.getSpaceNumber()
+                    + (vehicleDTO.getSpaceId() != null ? "（手动选择）" : "（自动绑定）")
+                    + "，占用至2999年");
+            operationLogService.createOperationLog(occupyLog);
+        }
+
         return dto;
     }
 

@@ -1,5 +1,6 @@
 package com.syan.smart_park.controller;
 
+import com.syan.smart_park.common.PageResult;
 import com.syan.smart_park.common.R;
 import com.syan.smart_park.common.exception.ReturnCode;
 import com.syan.smart_park.entity.AccessLogDTO;
@@ -20,14 +21,31 @@ import java.util.List;
 public class AccessLogController {
     
     private final AccessLogService accessLogService;
-    
+
     /**
-     * 获取所有进出记录列表
+     * 统一分页查询进出记录列表（支持多条件组合筛选）
+     * 合并了原 /park-area/* /gate/* /plate-number/* /vehicle/* /access-type/*
+     *       /recognition-result/* /handled-by/* /time-range /exception /recent 等路由
      */
     @GetMapping("/list")
-    public R<List<AccessLogDTO>> getAllAccessLogs() {
-        List<AccessLogDTO> accessLogs = accessLogService.getAllAccessLogs();
-        return R.success(accessLogs);
+    public R<PageResult<AccessLogDTO>> getAccessLogList(
+            @RequestParam(defaultValue = "1") int current,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) Long parkAreaId,
+            @RequestParam(required = false) Long gateId,
+            @RequestParam(required = false) String plateNumber,
+            @RequestParam(required = false) Long vehicleId,
+            @RequestParam(required = false) Integer accessType,
+            @RequestParam(required = false) Integer recognitionResult,
+            @RequestParam(required = false) Long handledBy,
+            @RequestParam(required = false) LocalDateTime startTime,
+            @RequestParam(required = false) LocalDateTime endTime,
+            @RequestParam(required = false) Boolean exceptionOnly) {
+        PageResult<AccessLogDTO> result = accessLogService.pageAccessLogs(
+                current, size, parkAreaId, gateId, plateNumber, vehicleId,
+                accessType, recognitionResult, handledBy,
+                startTime, endTime, exceptionOnly);
+        return R.success(result);
     }
     
     /**
@@ -64,80 +82,6 @@ public class AccessLogController {
             return R.error(ReturnCode.RC1300); // 数据不存在
         }
         return R.success(updatedAccessLog);
-    }
-    
-    /**
-     * 根据园区ID获取进出记录列表
-     */
-    @GetMapping("/park-area/{parkAreaId}")
-    public R<List<AccessLogDTO>> getAccessLogsByParkAreaId(@PathVariable Long parkAreaId) {
-        List<AccessLogDTO> accessLogs = accessLogService.getAccessLogsByParkAreaId(parkAreaId);
-        return R.success(accessLogs);
-    }
-    
-    /**
-     * 根据道闸ID获取进出记录列表
-     */
-    @GetMapping("/gate/{gateId}")
-    public R<List<AccessLogDTO>> getAccessLogsByGateId(@PathVariable Long gateId) {
-        List<AccessLogDTO> accessLogs = accessLogService.getAccessLogsByGateId(gateId);
-        return R.success(accessLogs);
-    }
-    
-    /**
-     * 根据车牌号获取进出记录列表
-     */
-    @GetMapping("/plate-number/{plateNumber}")
-    public R<List<AccessLogDTO>> getAccessLogsByPlateNumber(@PathVariable String plateNumber) {
-        List<AccessLogDTO> accessLogs = accessLogService.getAccessLogsByPlateNumber(plateNumber);
-        return R.success(accessLogs);
-    }
-    
-    /**
-     * 根据车辆ID获取进出记录列表
-     */
-    @GetMapping("/vehicle/{vehicleId}")
-    public R<List<AccessLogDTO>> getAccessLogsByVehicleId(@PathVariable Long vehicleId) {
-        List<AccessLogDTO> accessLogs = accessLogService.getAccessLogsByVehicleId(vehicleId);
-        return R.success(accessLogs);
-    }
-    
-    /**
-     * 根据进出类型获取进出记录列表
-     */
-    @GetMapping("/access-type/{accessType}")
-    public R<List<AccessLogDTO>> getAccessLogsByAccessType(@PathVariable Integer accessType) {
-        List<AccessLogDTO> accessLogs = accessLogService.getAccessLogsByAccessType(accessType);
-        return R.success(accessLogs);
-    }
-    
-    /**
-     * 根据识别结果获取进出记录列表
-     */
-    @GetMapping("/recognition-result/{recognitionResult}")
-    public R<List<AccessLogDTO>> getAccessLogsByRecognitionResult(@PathVariable Integer recognitionResult) {
-        List<AccessLogDTO> accessLogs = accessLogService.getAccessLogsByRecognitionResult(recognitionResult);
-        return R.success(accessLogs);
-    }
-    
-    /**
-     * 根据处理人员ID获取进出记录列表
-     */
-    @GetMapping("/handled-by/{handledBy}")
-    public R<List<AccessLogDTO>> getAccessLogsByHandledBy(@PathVariable Long handledBy) {
-        List<AccessLogDTO> accessLogs = accessLogService.getAccessLogsByHandledBy(handledBy);
-        return R.success(accessLogs);
-    }
-    
-    /**
-     * 获取指定时间范围内的进出记录列表
-     */
-    @GetMapping("/time-range")
-    public R<List<AccessLogDTO>> getAccessLogsByTimeRange(
-            @RequestParam LocalDateTime startTime,
-            @RequestParam LocalDateTime endTime) {
-        List<AccessLogDTO> accessLogs = accessLogService.getAccessLogsByTimeRange(startTime, endTime);
-        return R.success(accessLogs);
     }
     
     /**

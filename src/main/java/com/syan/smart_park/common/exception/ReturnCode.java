@@ -83,7 +83,8 @@ public enum ReturnCode {
     RC1400(1400, "系统配置错误"),
     RC1401(1401, "功能维护中"),
     RC1402(1402, "版本过低，请升级"),
-    RC1403(1403, "API调用次数超限");
+    RC1403(1403, "API调用次数超限"),
+    RC1404(1404, "资源不存在");
 
     private final int code;
     private final String message;

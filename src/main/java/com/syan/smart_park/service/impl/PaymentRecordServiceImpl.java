@@ -1,7 +1,10 @@
 package com.syan.smart_park.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.syan.smart_park.common.PageResult;
 import com.syan.smart_park.dao.PaymentRecordMapper;
 import com.syan.smart_park.entity.*;
 import com.syan.smart_park.entity.PaymentRecord;
@@ -26,13 +29,29 @@ public class PaymentRecordServiceImpl extends ServiceImpl<PaymentRecordMapper, P
     
     private final PaymentRecordMapper paymentRecordMapper;
     private final OperationLogService operationLogService;
-    
+
     @Override
-    public List<PaymentRecordDTO> getAllPaymentRecords() {
-        List<PaymentRecord> paymentRecords = list();
-        return paymentRecords.stream()
+    public PageResult<PaymentRecordDTO> pagePaymentRecords(long current, long size,
+                                                           Long reservationId, Long userId,
+                                                           Integer paymentMethod, Integer paymentStatus,
+                                                           LocalDateTime startTime, LocalDateTime endTime) {
+        LambdaQueryWrapper<PaymentRecord> queryWrapper = new LambdaQueryWrapper<>();
+
+        queryWrapper.eq(reservationId != null, PaymentRecord::getReservationId, reservationId);
+        queryWrapper.eq(userId != null, PaymentRecord::getUserId, userId);
+        queryWrapper.eq(paymentMethod != null, PaymentRecord::getPaymentMethod, paymentMethod);
+        queryWrapper.eq(paymentStatus != null, PaymentRecord::getPaymentStatus, paymentStatus);
+        queryWrapper.ge(startTime != null, PaymentRecord::getCreateTime, startTime);
+        queryWrapper.le(endTime != null, PaymentRecord::getCreateTime, endTime);
+
+        queryWrapper.orderByDesc(PaymentRecord::getCreateTime);
+
+        IPage<PaymentRecord> page = this.page(new Page<>(current, size), queryWrapper);
+        List<PaymentRecordDTO> dtoList = page.getRecords().stream()
                 .map(PaymentRecordDTO::fromPaymentRecord)
                 .collect(Collectors.toList());
+
+        return PageResult.of(dtoList, page.getTotal(), page.getCurrent(), page.getSize());
     }
     
     @Override
@@ -77,62 +96,6 @@ public class PaymentRecordServiceImpl extends ServiceImpl<PaymentRecordMapper, P
         operationLogService.createOperationLog(logDTO);
         
         return PaymentRecordDTO.fromPaymentRecord(paymentRecord);
-    }
-    
-    @Override
-    public List<PaymentRecordDTO> getPaymentRecordsByReservationId(Long reservationId) {
-        LambdaQueryWrapper<PaymentRecord> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(PaymentRecord::getReservationId, reservationId);
-        List<PaymentRecord> paymentRecords = list(queryWrapper);
-        
-        return paymentRecords.stream()
-                .map(PaymentRecordDTO::fromPaymentRecord)
-                .collect(Collectors.toList());
-    }
-    
-    @Override
-    public List<PaymentRecordDTO> getPaymentRecordsByUserId(Long userId) {
-        LambdaQueryWrapper<PaymentRecord> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(PaymentRecord::getUserId, userId);
-        List<PaymentRecord> paymentRecords = list(queryWrapper);
-        
-        return paymentRecords.stream()
-                .map(PaymentRecordDTO::fromPaymentRecord)
-                .collect(Collectors.toList());
-    }
-    
-    @Override
-    public List<PaymentRecordDTO> getPaymentRecordsByPaymentMethod(Integer paymentMethod) {
-        LambdaQueryWrapper<PaymentRecord> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(PaymentRecord::getPaymentMethod, paymentMethod);
-        List<PaymentRecord> paymentRecords = list(queryWrapper);
-        
-        return paymentRecords.stream()
-                .map(PaymentRecordDTO::fromPaymentRecord)
-                .collect(Collectors.toList());
-    }
-    
-    @Override
-    public List<PaymentRecordDTO> getPaymentRecordsByPaymentStatus(Integer paymentStatus) {
-        LambdaQueryWrapper<PaymentRecord> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(PaymentRecord::getPaymentStatus, paymentStatus);
-        List<PaymentRecord> paymentRecords = list(queryWrapper);
-        
-        return paymentRecords.stream()
-                .map(PaymentRecordDTO::fromPaymentRecord)
-                .collect(Collectors.toList());
-    }
-    
-    @Override
-    public List<PaymentRecordDTO> getPaymentRecordsByTimeRange(LocalDateTime startTime, LocalDateTime endTime) {
-        LambdaQueryWrapper<PaymentRecord> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.ge(PaymentRecord::getCreateTime, startTime)
-                   .le(PaymentRecord::getCreateTime, endTime);
-        List<PaymentRecord> paymentRecords = list(queryWrapper);
-        
-        return paymentRecords.stream()
-                .map(PaymentRecordDTO::fromPaymentRecord)
-                .collect(Collectors.toList());
     }
     
     @Override

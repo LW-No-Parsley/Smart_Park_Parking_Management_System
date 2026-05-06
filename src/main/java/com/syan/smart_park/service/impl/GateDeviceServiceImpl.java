@@ -1,7 +1,10 @@
 package com.syan.smart_park.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.syan.smart_park.common.PageResult;
 import com.syan.smart_park.dao.GateDeviceMapper;
 import com.syan.smart_park.entity.*;
 import com.syan.smart_park.entity.GateDevice;
@@ -26,15 +29,22 @@ public class GateDeviceServiceImpl extends ServiceImpl<GateDeviceMapper, GateDev
     private final OperationLogService operationLogService;
 
     @Override
-    public List<GateDeviceDTO> getAllGateDevices() {
+    public PageResult<GateDeviceDTO> pageGateDevices(long current, long size,
+                                                     Long parkAreaId, Integer deviceType,
+                                                     Integer status, String deviceSn) {
         LambdaQueryWrapper<GateDevice> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(GateDevice::getDeleted, 0)
-                   .orderByDesc(GateDevice::getCreateTime);
-        
-        List<GateDevice> gateDevices = gateDeviceMapper.selectList(queryWrapper);
-        return gateDevices.stream()
-                         .map(GateDeviceDTO::fromGateDevice)
-                         .collect(Collectors.toList());
+        queryWrapper.eq(parkAreaId != null, GateDevice::getParkAreaId, parkAreaId);
+        queryWrapper.eq(deviceType != null, GateDevice::getDeviceType, deviceType);
+        queryWrapper.eq(status != null, GateDevice::getStatus, status);
+        queryWrapper.eq(deviceSn != null && !deviceSn.isEmpty(), GateDevice::getDeviceSn, deviceSn);
+        queryWrapper.orderByDesc(GateDevice::getCreateTime);
+
+        IPage<GateDevice> page = this.page(new Page<>(current, size), queryWrapper);
+        List<GateDeviceDTO> dtoList = page.getRecords().stream()
+                .map(GateDeviceDTO::fromGateDevice)
+                .collect(Collectors.toList());
+
+        return PageResult.of(dtoList, page.getTotal(), page.getCurrent(), page.getSize());
     }
 
     @Override
@@ -91,67 +101,6 @@ public class GateDeviceServiceImpl extends ServiceImpl<GateDeviceMapper, GateDev
     }
 
     @Override
-    public boolean deleteGateDevice(Long id) {
-        GateDevice gateDevice = gateDeviceMapper.selectById(id);
-        if (gateDevice == null || gateDevice.getDeleted() == 1) {
-            return false;
-        }
-        
-        gateDevice.setDeleted(1);
-        int result = gateDeviceMapper.updateById(gateDevice);
-        
-        if (result > 0) {
-            // 记录操作日志
-            OperationLogDTO logDTO = new OperationLogDTO();
-            logDTO.setModule("道闸设备管理");
-            logDTO.setAction("删除设备");
-            logDTO.setDetail("设备ID:" + id + "，名称:" + gateDevice.getGateName() + "，设备编号:" + gateDevice.getDeviceSn());
-            operationLogService.createOperationLog(logDTO);
-        }
-        
-        return result > 0;
-    }
-
-    @Override
-    public List<GateDeviceDTO> getGateDevicesByParkAreaId(Long parkAreaId) {
-        LambdaQueryWrapper<GateDevice> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(GateDevice::getDeleted, 0)
-                   .eq(GateDevice::getParkAreaId, parkAreaId)
-                   .orderByDesc(GateDevice::getCreateTime);
-        
-        List<GateDevice> gateDevices = gateDeviceMapper.selectList(queryWrapper);
-        return gateDevices.stream()
-                         .map(GateDeviceDTO::fromGateDevice)
-                         .collect(Collectors.toList());
-    }
-
-    @Override
-    public List<GateDeviceDTO> getGateDevicesByDeviceType(Integer deviceType) {
-        LambdaQueryWrapper<GateDevice> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(GateDevice::getDeleted, 0)
-                   .eq(GateDevice::getDeviceType, deviceType)
-                   .orderByDesc(GateDevice::getCreateTime);
-        
-        List<GateDevice> gateDevices = gateDeviceMapper.selectList(queryWrapper);
-        return gateDevices.stream()
-                         .map(GateDeviceDTO::fromGateDevice)
-                         .collect(Collectors.toList());
-    }
-
-    @Override
-    public List<GateDeviceDTO> getGateDevicesByStatus(Integer status) {
-        LambdaQueryWrapper<GateDevice> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(GateDevice::getDeleted, 0)
-                   .eq(GateDevice::getStatus, status)
-                   .orderByDesc(GateDevice::getCreateTime);
-        
-        List<GateDevice> gateDevices = gateDeviceMapper.selectList(queryWrapper);
-        return gateDevices.stream()
-                         .map(GateDeviceDTO::fromGateDevice)
-                         .collect(Collectors.toList());
-    }
-
-    @Override
     public boolean updateHeartbeat(Long id, LocalDateTime lastHeartbeat) {
         GateDevice gateDevice = gateDeviceMapper.selectById(id);
         if (gateDevice == null || gateDevice.getDeleted() == 1) {
@@ -184,56 +133,5 @@ public class GateDeviceServiceImpl extends ServiceImpl<GateDeviceMapper, GateDev
         }
         
         return true;
-    }
-
-    @Override
-    public GateDeviceDTO getGateDeviceByDeviceSn(String deviceSn) {
-        LambdaQueryWrapper<GateDevice> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(GateDevice::getDeleted, 0)
-                   .eq(GateDevice::getDeviceSn, deviceSn);
-        
-        GateDevice gateDevice = gateDeviceMapper.selectOne(queryWrapper);
-        if (gateDevice == null) {
-            return null;
-        }
-        return GateDeviceDTO.fromGateDevice(gateDevice);
-    }
-
-    @Override
-    public List<GateDeviceDTO> getEntranceGateDevices(Long parkAreaId) {
-        LambdaQueryWrapper<GateDevice> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(GateDevice::getDeleted, 0)
-                   .eq(GateDevice::getDeviceType, 1) // 入口道闸
-                   .eq(parkAreaId != null, GateDevice::getParkAreaId, parkAreaId)
-                   .orderByDesc(GateDevice::getCreateTime);
-        
-        List<GateDevice> gateDevices = gateDeviceMapper.selectList(queryWrapper);
-        return gateDevices.stream()
-                         .map(GateDeviceDTO::fromGateDevice)
-                         .collect(Collectors.toList());
-    }
-
-    @Override
-    public List<GateDeviceDTO> getExitGateDevices(Long parkAreaId) {
-        LambdaQueryWrapper<GateDevice> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(GateDevice::getDeleted, 0)
-                   .eq(GateDevice::getDeviceType, 2) // 出口道闸
-                   .eq(parkAreaId != null, GateDevice::getParkAreaId, parkAreaId)
-                   .orderByDesc(GateDevice::getCreateTime);
-        
-        List<GateDevice> gateDevices = gateDeviceMapper.selectList(queryWrapper);
-        return gateDevices.stream()
-                         .map(GateDeviceDTO::fromGateDevice)
-                         .collect(Collectors.toList());
-    }
-
-    @Override
-    public List<GateDeviceDTO> getOnlineGateDevices() {
-        return getGateDevicesByStatus(1); // 在线状态
-    }
-
-    @Override
-    public List<GateDeviceDTO> getFaultyGateDevices() {
-        return getGateDevicesByStatus(2); // 故障状态
     }
 }

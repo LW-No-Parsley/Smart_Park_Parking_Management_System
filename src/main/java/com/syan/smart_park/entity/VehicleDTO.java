@@ -54,6 +54,11 @@ public class VehicleDTO {
      * 车辆状态：0-禁用，1-正常
      */
     private Integer status;
+
+    /**
+     * 绑定的固定车位ID（创建车辆时指定，不传则自动查找业主绑定的车位）
+     */
+    private Long spaceId;
     
     /**
      * 创建时间

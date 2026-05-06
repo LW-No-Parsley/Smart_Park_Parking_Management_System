@@ -1,5 +1,6 @@
 package com.syan.smart_park.controller;
 
+import com.syan.smart_park.common.PageResult;
 import com.syan.smart_park.common.R;
 import com.syan.smart_park.common.exception.ReturnCode;
 import com.syan.smart_park.entity.PaymentRecordDTO;
@@ -21,14 +22,25 @@ import java.util.List;
 public class PaymentRecordController {
     
     private final PaymentRecordService paymentRecordService;
-    
+
     /**
-     * 获取所有支付记录列表
+     * 统一分页查询支付记录列表（支持多条件组合筛选）
+     * 合并了原 /reservation/* /user/* /payment-method/* /payment-status/* /time-range 等路由
      */
     @GetMapping("/list")
-    public R<List<PaymentRecordDTO>> getAllPaymentRecords() {
-        List<PaymentRecordDTO> paymentRecords = paymentRecordService.getAllPaymentRecords();
-        return R.success(paymentRecords);
+    public R<PageResult<PaymentRecordDTO>> getPaymentRecordList(
+            @RequestParam(defaultValue = "1") int current,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) Long reservationId,
+            @RequestParam(required = false) Long userId,
+            @RequestParam(required = false) Integer paymentMethod,
+            @RequestParam(required = false) Integer paymentStatus,
+            @RequestParam(required = false) LocalDateTime startTime,
+            @RequestParam(required = false) LocalDateTime endTime) {
+        PageResult<PaymentRecordDTO> result = paymentRecordService.pagePaymentRecords(
+                current, size, reservationId, userId, paymentMethod, paymentStatus,
+                startTime, endTime);
+        return R.success(result);
     }
     
     /**
@@ -65,53 +77,6 @@ public class PaymentRecordController {
             return R.error(ReturnCode.RC1300); // 数据不存在
         }
         return R.success(updatedPaymentRecord);
-    }
-    
-    /**
-     * 根据预约ID获取支付记录列表
-     */
-    @GetMapping("/reservation/{reservationId}")
-    public R<List<PaymentRecordDTO>> getPaymentRecordsByReservationId(@PathVariable Long reservationId) {
-        List<PaymentRecordDTO> paymentRecords = paymentRecordService.getPaymentRecordsByReservationId(reservationId);
-        return R.success(paymentRecords);
-    }
-    
-    /**
-     * 根据用户ID获取支付记录列表
-     */
-    @GetMapping("/user/{userId}")
-    public R<List<PaymentRecordDTO>> getPaymentRecordsByUserId(@PathVariable Long userId) {
-        List<PaymentRecordDTO> paymentRecords = paymentRecordService.getPaymentRecordsByUserId(userId);
-        return R.success(paymentRecords);
-    }
-    
-    /**
-     * 根据支付方式获取支付记录列表
-     */
-    @GetMapping("/payment-method/{paymentMethod}")
-    public R<List<PaymentRecordDTO>> getPaymentRecordsByPaymentMethod(@PathVariable Integer paymentMethod) {
-        List<PaymentRecordDTO> paymentRecords = paymentRecordService.getPaymentRecordsByPaymentMethod(paymentMethod);
-        return R.success(paymentRecords);
-    }
-    
-    /**
-     * 根据支付状态获取支付记录列表
-     */
-    @GetMapping("/payment-status/{paymentStatus}")
-    public R<List<PaymentRecordDTO>> getPaymentRecordsByPaymentStatus(@PathVariable Integer paymentStatus) {
-        List<PaymentRecordDTO> paymentRecords = paymentRecordService.getPaymentRecordsByPaymentStatus(paymentStatus);
-        return R.success(paymentRecords);
-    }
-    
-    /**
-     * 根据时间范围获取支付记录列表
-     */
-    @GetMapping("/time-range")
-    public R<List<PaymentRecordDTO>> getPaymentRecordsByTimeRange(
-            @RequestParam LocalDateTime startTime,
-            @RequestParam LocalDateTime endTime) {
-        List<PaymentRecordDTO> paymentRecords = paymentRecordService.getPaymentRecordsByTimeRange(startTime, endTime);
-        return R.success(paymentRecords);
     }
     
     /**

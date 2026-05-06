@@ -1,32 +1,41 @@
 package com.syan.smart_park.controller;
 
+import com.syan.smart_park.common.PageResult;
 import com.syan.smart_park.common.R;
 import com.syan.smart_park.common.exception.ReturnCode;
 import com.syan.smart_park.entity.ExceptionReportDTO;
 import com.syan.smart_park.service.ExceptionReportService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 /**
  * 异常上报控制器
  */
 @RestController
 @RequestMapping("/api/exception-report")
+@RequiredArgsConstructor
 public class ExceptionReportController {
     
-    @Autowired
-    private ExceptionReportService exceptionReportService;
-    
+    private final ExceptionReportService exceptionReportService;
+
     /**
-     * 获取所有异常上报记录
+     * 统一分页查询异常上报记录（支持多条件组合筛选）
+     * 合并了原 /user/* /space/* /type/* /status/* /unhandled /handled /handler/* /search 等路由
      */
     @GetMapping("/list")
-    public R<List<ExceptionReportDTO>> getAllExceptionReports() {
-        List<ExceptionReportDTO> exceptionReports = exceptionReportService.getAllExceptionReports();
-        return R.success(exceptionReports);
+    public R<PageResult<ExceptionReportDTO>> getExceptionReportList(
+            @RequestParam(defaultValue = "1") int current,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) Long userId,
+            @RequestParam(required = false) Long spaceId,
+            @RequestParam(required = false) Integer reportType,
+            @RequestParam(required = false) Integer status,
+            @RequestParam(required = false) Long handledBy,
+            @RequestParam(required = false) String keyword) {
+        PageResult<ExceptionReportDTO> result = exceptionReportService.pageExceptionReports(
+                current, size, userId, spaceId, reportType, status, handledBy, keyword);
+        return R.success(result);
     }
     
     /**
@@ -64,42 +73,6 @@ public class ExceptionReportController {
     }
     
     /**
-     * 根据用户ID获取异常上报记录
-     */
-    @GetMapping("/user/{userId}")
-    public R<List<ExceptionReportDTO>> getExceptionReportsByUserId(@PathVariable Long userId) {
-        List<ExceptionReportDTO> exceptionReports = exceptionReportService.getExceptionReportsByUserId(userId);
-        return R.success(exceptionReports);
-    }
-    
-    /**
-     * 根据车位ID获取异常上报记录
-     */
-    @GetMapping("/space/{spaceId}")
-    public R<List<ExceptionReportDTO>> getExceptionReportsBySpaceId(@PathVariable Long spaceId) {
-        List<ExceptionReportDTO> exceptionReports = exceptionReportService.getExceptionReportsBySpaceId(spaceId);
-        return R.success(exceptionReports);
-    }
-    
-    /**
-     * 根据异常类型获取异常上报记录
-     */
-    @GetMapping("/type/{reportType}")
-    public R<List<ExceptionReportDTO>> getExceptionReportsByType(@PathVariable Integer reportType) {
-        List<ExceptionReportDTO> exceptionReports = exceptionReportService.getExceptionReportsByType(reportType);
-        return R.success(exceptionReports);
-    }
-    
-    /**
-     * 根据处理状态获取异常上报记录
-     */
-    @GetMapping("/status/{status}")
-    public R<List<ExceptionReportDTO>> getExceptionReportsByStatus(@PathVariable Integer status) {
-        List<ExceptionReportDTO> exceptionReports = exceptionReportService.getExceptionReportsByStatus(status);
-        return R.success(exceptionReports);
-    }
-    
-    /**
      * 处理异常上报
      */
     @PutMapping("/{id}/handle")
@@ -111,41 +84,5 @@ public class ExceptionReportController {
             return R.error(ReturnCode.RC1300);
         }
         return R.success(handledReport);
-    }
-    
-    /**
-     * 获取未处理的异常上报记录
-     */
-    @GetMapping("/unhandled")
-    public R<List<ExceptionReportDTO>> getUnhandledExceptionReports() {
-        List<ExceptionReportDTO> exceptionReports = exceptionReportService.getUnhandledExceptionReports();
-        return R.success(exceptionReports);
-    }
-    
-    /**
-     * 获取已处理的异常上报记录
-     */
-    @GetMapping("/handled")
-    public R<List<ExceptionReportDTO>> getHandledExceptionReports() {
-        List<ExceptionReportDTO> exceptionReports = exceptionReportService.getHandledExceptionReports();
-        return R.success(exceptionReports);
-    }
-    
-    /**
-     * 根据处理人员ID获取异常上报记录
-     */
-    @GetMapping("/handler/{handledBy}")
-    public R<List<ExceptionReportDTO>> getExceptionReportsByHandler(@PathVariable Long handledBy) {
-        List<ExceptionReportDTO> exceptionReports = exceptionReportService.getExceptionReportsByHandler(handledBy);
-        return R.success(exceptionReports);
-    }
-    
-    /**
-     * 搜索异常上报记录
-     */
-    @GetMapping("/search")
-    public R<List<ExceptionReportDTO>> searchExceptionReports(@RequestParam String keyword) {
-        List<ExceptionReportDTO> exceptionReports = exceptionReportService.searchExceptionReports(keyword);
-        return R.success(exceptionReports);
     }
 }

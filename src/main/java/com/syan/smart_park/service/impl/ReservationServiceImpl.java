@@ -6,7 +6,8 @@ import com.syan.smart_park.dao.*;
 import com.syan.smart_park.entity.*;
 import com.syan.smart_park.service.*;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +23,8 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class ReservationServiceImpl extends ServiceImpl<ReservationMapper, Reservation> implements ReservationService {
+
+    private static final Logger log = LoggerFactory.getLogger(ReservationServiceImpl.class);
 
     private final ReservationMapper reservationMapper;
     private final ParkUserMapper parkUserMapper;
@@ -253,7 +256,16 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper, Reser
         if (reservation == null) {
             return false;
         }
-        
+
+        // 审批前检查：该预约的时间段是否与已有已通过预约冲突
+        if (!isSpaceAvailable(reservation.getSpaceId(), reservation.getStartTime(),
+                reservation.getEndTime(), id)) {
+            throw new com.syan.smart_park.common.exception.BusinessException(
+                com.syan.smart_park.common.exception.ReturnCode.RC1300,
+                "该时间段车位已被占用，无法审批通过"
+            );
+        }
+
         // 检查审批人是否存在（如果提供了审批人ID）
         if (approvedBy != null) {
             // 这里应该检查用户是否存在，但为了简化，我们暂时不检查
@@ -637,5 +649,34 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper, Reser
         
         long count = this.count(queryWrapper);
         return count == 0;
+    }
+
+    @Override
+    public List<Long> expireOverdueReservations() {
+        LocalDateTime now = LocalDateTime.now();
+
+        // 1. 查询所有过期的预约ID（用于日志记录）
+        List<Long> expiredIds = reservationMapper.selectOverdueReservationIds(now);
+
+        if (expiredIds.isEmpty()) {
+            log.debug("没有需要过期的预约");
+            return List.of();
+        }
+
+        // 2. 批量更新：将 status 设为 3（已过期）
+        int updatedRows = reservationMapper.batchExpireOverdueReservations(now);
+        log.info("预约自动过期处理完成：共处理 " + updatedRows + " 条过期预约，IDs=" + expiredIds);
+
+        // 3. 批量记录操作日志（系统操作，userId 设为 0）
+        for (Long id : expiredIds) {
+            OperationLogDTO logDTO = new OperationLogDTO();
+            logDTO.setUserId(0L);
+            logDTO.setModule("预约管理");
+            logDTO.setAction("自动过期");
+            logDTO.setDetail("预约ID:" + id + "，预约结束时间已过，系统自动标记为已过期");
+            operationLogService.createOperationLog(logDTO);
+        }
+
+        return expiredIds;
     }
 }

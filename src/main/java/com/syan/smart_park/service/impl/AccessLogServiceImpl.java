@@ -1,7 +1,10 @@
 package com.syan.smart_park.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.syan.smart_park.common.PageResult;
 import com.syan.smart_park.dao.AccessLogMapper;
 import com.syan.smart_park.entity.AccessLog;
 import com.syan.smart_park.entity.AccessLogDTO;
@@ -27,11 +30,39 @@ public class AccessLogServiceImpl extends ServiceImpl<AccessLogMapper, AccessLog
     private final AccessLogMapper accessLogMapper;
 
     @Override
-    public List<AccessLogDTO> getAllAccessLogs() {
-        List<AccessLog> accessLogs = this.list();
-        return accessLogs.stream()
+    public PageResult<AccessLogDTO> pageAccessLogs(long current, long size,
+                                                   Long parkAreaId, Long gateId,
+                                                   String plateNumber, Long vehicleId,
+                                                   Integer accessType, Integer recognitionResult,
+                                                   Long handledBy,
+                                                   LocalDateTime startTime, LocalDateTime endTime,
+                                                   Boolean exceptionOnly) {
+        LambdaQueryWrapper<AccessLog> queryWrapper = new LambdaQueryWrapper<>();
+
+        // 动态条件：仅传入非 null 值时生效
+        queryWrapper.eq(parkAreaId != null, AccessLog::getParkAreaId, parkAreaId);
+        queryWrapper.eq(gateId != null, AccessLog::getGateId, gateId);
+        queryWrapper.like(plateNumber != null && !plateNumber.isEmpty(), AccessLog::getPlateNumber, plateNumber);
+        queryWrapper.eq(vehicleId != null, AccessLog::getVehicleId, vehicleId);
+        queryWrapper.eq(accessType != null, AccessLog::getAccessType, accessType);
+        queryWrapper.eq(recognitionResult != null, AccessLog::getRecognitionResult, recognitionResult);
+        queryWrapper.eq(handledBy != null, AccessLog::getHandledBy, handledBy);
+        queryWrapper.ge(startTime != null, AccessLog::getAccessTime, startTime);
+        queryWrapper.le(endTime != null, AccessLog::getAccessTime, endTime);
+
+        // 仅查异常
+        if (exceptionOnly != null && exceptionOnly) {
+            queryWrapper.in(AccessLog::getRecognitionResult, 0, 2);
+        }
+
+        queryWrapper.orderByDesc(AccessLog::getAccessTime);
+
+        IPage<AccessLog> page = this.page(new Page<>(current, size), queryWrapper);
+        List<AccessLogDTO> dtoList = page.getRecords().stream()
                 .map(AccessLogDTO::fromAccessLog)
                 .collect(Collectors.toList());
+
+        return PageResult.of(dtoList, page.getTotal(), page.getCurrent(), page.getSize());
     }
 
     @Override
@@ -64,95 +95,6 @@ public class AccessLogServiceImpl extends ServiceImpl<AccessLogMapper, AccessLog
         this.updateById(accessLog);
         
         return AccessLogDTO.fromAccessLog(accessLog);
-    }
-
-    @Override
-    public List<AccessLogDTO> getAccessLogsByParkAreaId(Long parkAreaId) {
-        LambdaQueryWrapper<AccessLog> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(AccessLog::getParkAreaId, parkAreaId);
-        List<AccessLog> accessLogs = this.list(queryWrapper);
-        
-        return accessLogs.stream()
-                .map(AccessLogDTO::fromAccessLog)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public List<AccessLogDTO> getAccessLogsByGateId(Long gateId) {
-        LambdaQueryWrapper<AccessLog> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(AccessLog::getGateId, gateId);
-        List<AccessLog> accessLogs = this.list(queryWrapper);
-        
-        return accessLogs.stream()
-                .map(AccessLogDTO::fromAccessLog)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public List<AccessLogDTO> getAccessLogsByPlateNumber(String plateNumber) {
-        LambdaQueryWrapper<AccessLog> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(AccessLog::getPlateNumber, plateNumber);
-        List<AccessLog> accessLogs = this.list(queryWrapper);
-        
-        return accessLogs.stream()
-                .map(AccessLogDTO::fromAccessLog)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public List<AccessLogDTO> getAccessLogsByVehicleId(Long vehicleId) {
-        LambdaQueryWrapper<AccessLog> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(AccessLog::getVehicleId, vehicleId);
-        List<AccessLog> accessLogs = this.list(queryWrapper);
-        
-        return accessLogs.stream()
-                .map(AccessLogDTO::fromAccessLog)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public List<AccessLogDTO> getAccessLogsByAccessType(Integer accessType) {
-        LambdaQueryWrapper<AccessLog> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(AccessLog::getAccessType, accessType);
-        List<AccessLog> accessLogs = this.list(queryWrapper);
-        
-        return accessLogs.stream()
-                .map(AccessLogDTO::fromAccessLog)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public List<AccessLogDTO> getAccessLogsByRecognitionResult(Integer recognitionResult) {
-        LambdaQueryWrapper<AccessLog> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(AccessLog::getRecognitionResult, recognitionResult);
-        List<AccessLog> accessLogs = this.list(queryWrapper);
-        
-        return accessLogs.stream()
-                .map(AccessLogDTO::fromAccessLog)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public List<AccessLogDTO> getAccessLogsByHandledBy(Long handledBy) {
-        LambdaQueryWrapper<AccessLog> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(AccessLog::getHandledBy, handledBy);
-        List<AccessLog> accessLogs = this.list(queryWrapper);
-        
-        return accessLogs.stream()
-                .map(AccessLogDTO::fromAccessLog)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public List<AccessLogDTO> getAccessLogsByTimeRange(LocalDateTime startTime, LocalDateTime endTime) {
-        LambdaQueryWrapper<AccessLog> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.ge(AccessLog::getAccessTime, startTime)
-                   .le(AccessLog::getAccessTime, endTime);
-        List<AccessLog> accessLogs = this.list(queryWrapper);
-        
-        return accessLogs.stream()
-                .map(AccessLogDTO::fromAccessLog)
-                .collect(Collectors.toList());
     }
 
     @Override

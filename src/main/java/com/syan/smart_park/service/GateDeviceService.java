@@ -1,6 +1,7 @@
 package com.syan.smart_park.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.syan.smart_park.common.PageResult;
 import com.syan.smart_park.entity.GateDevice;
 import com.syan.smart_park.entity.GateDeviceDTO;
 
@@ -12,10 +13,19 @@ import java.util.List;
 public interface GateDeviceService extends IService<GateDevice> {
 
     /**
-     * 获取所有道闸设备列表
-     * @return 道闸设备DTO列表
+     * 统一分页查询道闸设备（支持多条件组合筛选）
+     *
+     * @param current      当前页码
+     * @param size         每页大小
+     * @param parkAreaId   园区ID（可选）
+     * @param deviceType   设备类型：1-入口道闸 2-出口道闸（可选）
+     * @param status       设备状态：0-离线 1-在线 2-故障（可选）
+     * @param deviceSn     设备序列号（可选）
+     * @return 分页结果
      */
-    List<GateDeviceDTO> getAllGateDevices();
+    PageResult<GateDeviceDTO> pageGateDevices(long current, long size,
+                                              Long parkAreaId, Integer deviceType,
+                                              Integer status, String deviceSn);
 
     /**
      * 根据ID获取道闸设备详情
@@ -40,27 +50,6 @@ public interface GateDeviceService extends IService<GateDevice> {
     GateDeviceDTO updateGateDevice(Long id, GateDeviceDTO gateDeviceDTO);
 
     /**
-     * 根据园区ID获取道闸设备列表
-     * @param parkAreaId 园区ID
-     * @return 道闸设备DTO列表
-     */
-    List<GateDeviceDTO> getGateDevicesByParkAreaId(Long parkAreaId);
-
-    /**
-     * 根据设备类型获取道闸设备列表
-     * @param deviceType 设备类型：1-入口道闸，2-出口道闸
-     * @return 道闸设备DTO列表
-     */
-    List<GateDeviceDTO> getGateDevicesByDeviceType(Integer deviceType);
-
-    /**
-     * 根据设备状态获取道闸设备列表
-     * @param status 设备状态：0-离线，1-在线，2-故障
-     * @return 道闸设备DTO列表
-     */
-    List<GateDeviceDTO> getGateDevicesByStatus(Integer status);
-
-    /**
      * 更新设备心跳时间
      * @param id 设备ID
      * @param lastHeartbeat 最后心跳时间
@@ -75,37 +64,4 @@ public interface GateDeviceService extends IService<GateDevice> {
      * @return 是否更新成功
      */
     boolean batchUpdateStatus(List<Long> ids, Integer status);
-
-    /**
-     * 根据设备序列号获取道闸设备
-     * @param deviceSn 设备序列号
-     * @return 道闸设备DTO
-     */
-    GateDeviceDTO getGateDeviceByDeviceSn(String deviceSn);
-
-    /**
-     * 获取园区入口道闸设备列表
-     * @param parkAreaId 园区ID
-     * @return 入口道闸设备DTO列表
-     */
-    List<GateDeviceDTO> getEntranceGateDevices(Long parkAreaId);
-
-    /**
-     * 获取园区出口道闸设备列表
-     * @param parkAreaId 园区ID
-     * @return 出口道闸设备DTO列表
-     */
-    List<GateDeviceDTO> getExitGateDevices(Long parkAreaId);
-
-    /**
-     * 获取在线道闸设备列表
-     * @return 在线道闸设备DTO列表
-     */
-    List<GateDeviceDTO> getOnlineGateDevices();
-
-    /**
-     * 获取故障道闸设备列表
-     * @return 故障道闸设备DTO列表
-     */
-    List<GateDeviceDTO> getFaultyGateDevices();
 }
