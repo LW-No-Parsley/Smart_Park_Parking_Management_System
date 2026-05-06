@@ -3,6 +3,7 @@ package com.syan.smart_park.entity;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 权限数据传输对象
@@ -60,7 +61,12 @@ public class PermissionDTO {
      * 创建时间
      */
     private LocalDateTime createTime;
-    
+
+    /**
+     * 子权限列表（仅树形结构时使用）
+     */
+    private List<PermissionDTO> children;
+
     /**
      * 从Permission实体转换为PermissionDTO
      */

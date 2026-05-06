@@ -31,6 +31,11 @@ public class SpaceOccupy {
     private Long reservationId;
 
     /**
+     * 车辆ID（关联 vehicle.id，标记该占用由哪辆车产生）
+     */
+    private Long vehicleId;
+
+    /**
      * 占用开始时间
      */
     private LocalDateTime startTime;

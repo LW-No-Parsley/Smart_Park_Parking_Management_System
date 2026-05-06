@@ -64,18 +64,64 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
                 .map(VehicleDTO::getUserId)
                 .distinct()
                 .collect(Collectors.toList());
-        
+
         if (userIds.isEmpty()) {
             return;
         }
-        
+
         // 批量查询用户信息
         Map<Long, String> userMap = parkUserMapper.selectBatchIds(userIds).stream()
                 .collect(Collectors.toMap(ParkUser::getId, ParkUser::getUsername));
-        
+
         // 填充用户名
         for (VehicleDTO dto : dtos) {
             dto.setUsername(userMap.get(dto.getUserId()));
+        }
+    }
+
+    /**
+     * 填充单个车辆的绑定车位ID
+     */
+    private void fillSpaceId(VehicleDTO dto) {
+        if (dto == null || dto.getId() == null) {
+            return;
+        }
+        LambdaQueryWrapper<SpaceOccupy> query = new LambdaQueryWrapper<>();
+        query.eq(SpaceOccupy::getVehicleId, dto.getId()).last("LIMIT 1");
+        SpaceOccupy occupy = spaceOccupyMapper.selectOne(query);
+        if (occupy != null) {
+            dto.setSpaceId(occupy.getSpaceId());
+        }
+    }
+
+    /**
+     * 批量填充车辆DTO列表中的绑定车位ID
+     */
+    private void fillSpaceIds(List<VehicleDTO> dtos) {
+        if (dtos == null || dtos.isEmpty()) {
+            return;
+        }
+        List<Long> vehicleIds = dtos.stream()
+                .map(VehicleDTO::getId)
+                .filter(java.util.Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
+        if (vehicleIds.isEmpty()) {
+            return;
+        }
+        LambdaQueryWrapper<SpaceOccupy> query = new LambdaQueryWrapper<>();
+        query.in(SpaceOccupy::getVehicleId, vehicleIds);
+        List<SpaceOccupy> occupys = spaceOccupyMapper.selectList(query);
+
+        Map<Long, Long> spaceIdMap = occupys.stream()
+                .filter(o -> o.getVehicleId() != null)
+                .collect(Collectors.toMap(SpaceOccupy::getVehicleId, SpaceOccupy::getSpaceId, (a, b) -> a));
+
+        for (VehicleDTO dto : dtos) {
+            Long spaceId = spaceIdMap.get(dto.getId());
+            if (spaceId != null) {
+                dto.setSpaceId(spaceId);
+            }
         }
     }
 
@@ -86,6 +132,7 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
                 .map(VehicleDTO::fromVehicle)
                 .collect(Collectors.toList());
         fillUsernames(dtos);
+        fillSpaceIds(dtos);
         return dtos;
     }
 
@@ -94,6 +141,7 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
         Vehicle vehicle = this.getById(id);
         VehicleDTO dto = VehicleDTO.fromVehicle(vehicle);
         fillUsername(dto);
+        fillSpaceId(dto);
         return dto;
     }
 
@@ -150,6 +198,8 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
         if (targetSpace != null) {
             SpaceOccupy occupy = new SpaceOccupy();
             occupy.setSpaceId(targetSpace.getId());
+            occupy.setVehicleId(vehicle.getId());
+            occupy.setReservationId(0L);
             occupy.setStartTime(LocalDateTime.now());
             occupy.setEndTime(LocalDateTime.of(2999, 12, 31, 23, 59, 59));
             spaceOccupyMapper.insert(occupy);
@@ -163,6 +213,7 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
                     + (vehicleDTO.getSpaceId() != null ? "（手动选择）" : "（自动绑定）")
                     + "，占用至2999年");
             operationLogService.createOperationLog(occupyLog);
+            dto.setSpaceId(targetSpace.getId());
         }
 
         return dto;
@@ -175,36 +226,99 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
         if (existingVehicle == null) {
             return null;
         }
-        
+
         // 如果车牌号有变化，需要检查是否会导致重复
         if (!existingVehicle.getPlateNumber().equals(vehicleDTO.getPlateNumber())) {
-            // 检查是否已存在相同车牌号的记录（排除当前记录）
             LambdaQueryWrapper<Vehicle> queryWrapper = new LambdaQueryWrapper<>();
             queryWrapper.eq(Vehicle::getPlateNumber, vehicleDTO.getPlateNumber())
-                       .ne(Vehicle::getId, id); // 排除当前记录
+                       .ne(Vehicle::getId, id);
             Long count = this.count(queryWrapper);
-            
+
             if (count > 0) {
                 throw new com.syan.smart_park.common.exception.BusinessException(
-                    com.syan.smart_park.common.exception.ReturnCode.RC1301, 
+                    com.syan.smart_park.common.exception.ReturnCode.RC1301,
                     "该车牌号已存在"
                 );
             }
         }
-        
+
+        // 处理 isDefault：如果设为默认，先取消该用户其他默认车辆
+        if (vehicleDTO.getIsDefault() != null && vehicleDTO.getIsDefault() == 1) {
+            LambdaQueryWrapper<Vehicle> defaultWrapper = new LambdaQueryWrapper<>();
+            defaultWrapper.eq(Vehicle::getUserId, existingVehicle.getUserId())
+                         .eq(Vehicle::getIsDefault, 1)
+                         .ne(Vehicle::getId, id);
+            List<Vehicle> defaultVehicles = this.list(defaultWrapper);
+            for (Vehicle v : defaultVehicles) {
+                v.setIsDefault(0);
+                this.updateById(v);
+            }
+        }
+
+        // 处理 spaceId：更新车位绑定
+        Long oldSpaceId = null;
+        // 查找当前已有长期占用的 spaceId（通过 vehicleId 精确匹配）
+        LambdaQueryWrapper<SpaceOccupy> occupyQuery = new LambdaQueryWrapper<>();
+        occupyQuery.eq(SpaceOccupy::getVehicleId, id)
+                   .isNull(SpaceOccupy::getReservationId);
+        SpaceOccupy existingOccupy = spaceOccupyMapper.selectOne(occupyQuery);
+
+        if (vehicleDTO.getSpaceId() != null) {
+            // 用户指定了新车位
+            if (existingOccupy != null && existingOccupy.getSpaceId().equals(vehicleDTO.getSpaceId())) {
+                // 同一个车位，不做变化
+            } else {
+                // 删除旧占用
+                if (existingOccupy != null) {
+                    spaceOccupyMapper.deleteById(existingOccupy.getId());
+                }
+                // 创建新占用
+                ParkingSpace newSpace = parkingSpaceMapper.selectById(vehicleDTO.getSpaceId());
+                if (newSpace == null) {
+                    throw new com.syan.smart_park.common.exception.BusinessException(
+                        com.syan.smart_park.common.exception.ReturnCode.RC1404, "指定的车位不存在");
+                }
+                SpaceOccupy newOccupy = new SpaceOccupy();
+                newOccupy.setSpaceId(newSpace.getId());
+                newOccupy.setVehicleId(id);
+                newOccupy.setReservationId(0L);
+                newOccupy.setStartTime(LocalDateTime.now());
+                newOccupy.setEndTime(LocalDateTime.of(2999, 12, 31, 23, 59, 59));
+                spaceOccupyMapper.insert(newOccupy);
+
+                OperationLogDTO occupyLog = new OperationLogDTO();
+                occupyLog.setModule("车辆管理");
+                occupyLog.setAction("业主车位变更");
+                occupyLog.setDetail("车辆ID:" + id + "，新车位:" + newSpace.getSpaceNumber());
+                operationLogService.createOperationLog(occupyLog);
+            }
+        } else {
+            // 没传 spaceId → 解除原有绑定
+            if (existingOccupy != null) {
+                spaceOccupyMapper.deleteById(existingOccupy.getId());
+
+                OperationLogDTO occupyLog = new OperationLogDTO();
+                occupyLog.setModule("车辆管理");
+                occupyLog.setAction("业主车位解绑");
+                occupyLog.setDetail("车辆ID:" + id + "，车位占用已释放");
+                operationLogService.createOperationLog(occupyLog);
+            }
+        }
+
         Vehicle vehicle = vehicleDTO.toVehicle();
         vehicle.setId(id);
         this.updateById(vehicle);
         VehicleDTO dto = VehicleDTO.fromVehicle(vehicle);
         fillUsername(dto);
-        
+
         // 记录操作日志
         OperationLogDTO logDTO = new OperationLogDTO();
         logDTO.setModule("车辆管理");
         logDTO.setAction("更新车辆");
         logDTO.setDetail("车辆ID:" + id + "，车牌号:" + vehicle.getPlateNumber());
         operationLogService.createOperationLog(logDTO);
-        
+
+        fillSpaceId(dto);
         return dto;
     }
 
@@ -215,9 +329,14 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
         if (existingVehicle == null) {
             return false;
         }
-        
+
+        // 删除关联的长期占用记录（vehicleId 精确匹配）
+        LambdaQueryWrapper<SpaceOccupy> occupyQuery = new LambdaQueryWrapper<>();
+        occupyQuery.eq(SpaceOccupy::getVehicleId, id);
+        spaceOccupyMapper.delete(occupyQuery);
+
         boolean result = this.removeById(id);
-        
+
         if (result) {
             // 记录操作日志
             OperationLogDTO logDTO = new OperationLogDTO();
@@ -226,7 +345,7 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
             logDTO.setDetail("车辆ID:" + id + "，车牌号:" + existingVehicle.getPlateNumber());
             operationLogService.createOperationLog(logDTO);
         }
-        
+
         return result;
     }
 
@@ -239,6 +358,7 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
                 .map(VehicleDTO::fromVehicle)
                 .collect(Collectors.toList());
         fillUsernames(dtos);
+        fillSpaceIds(dtos);
         return dtos;
     }
 
@@ -249,6 +369,7 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
         Vehicle vehicle = this.getOne(queryWrapper);
         VehicleDTO dto = VehicleDTO.fromVehicle(vehicle);
         fillUsername(dto);
+        fillSpaceId(dto);
         return dto;
     }
 
@@ -261,6 +382,7 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
                 .map(VehicleDTO::fromVehicle)
                 .collect(Collectors.toList());
         fillUsernames(dtos);
+        fillSpaceIds(dtos);
         return dtos;
     }
 
@@ -273,6 +395,7 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
                 .map(VehicleDTO::fromVehicle)
                 .collect(Collectors.toList());
         fillUsernames(dtos);
+        fillSpaceIds(dtos);
         return dtos;
     }
 
@@ -284,6 +407,7 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
         Vehicle vehicle = this.getOne(queryWrapper);
         VehicleDTO dto = VehicleDTO.fromVehicle(vehicle);
         fillUsername(dto);
+        fillSpaceId(dto);
         return dto;
     }
 

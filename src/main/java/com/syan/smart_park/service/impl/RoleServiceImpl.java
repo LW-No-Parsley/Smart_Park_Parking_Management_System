@@ -5,8 +5,6 @@ import com.syan.smart_park.common.exception.BusinessException;
 import com.syan.smart_park.common.exception.ReturnCode;
 import com.syan.smart_park.dao.*;
 import com.syan.smart_park.entity.*;
-import com.syan.smart_park.dao.*;
-import com.syan.smart_park.entity.*;
 import com.syan.smart_park.service.RoleService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -42,7 +40,7 @@ public class RoleServiceImpl implements RoleService {
     public Role getRoleById(Long roleId) {
         Role role = roleMapper.selectById(roleId);
         if (role == null || role.getDeleted() == 1) {
-            throw new BusinessException(ReturnCode.RC606); // 角色不存在
+            throw new BusinessException(ReturnCode.RC610); // 角色不存在
         }
         return role;
     }
@@ -56,7 +54,7 @@ public class RoleServiceImpl implements RoleService {
                    .eq("deleted", 0);
         Role existingRole = roleMapper.selectOne(queryWrapper);
         if (existingRole != null) {
-            throw new BusinessException(ReturnCode.RC607); // 角色编码已存在
+            throw new BusinessException(ReturnCode.RC611); // 角色编码已存在
         }
 
         // 设置默认值
@@ -75,7 +73,7 @@ public class RoleServiceImpl implements RoleService {
         // 检查角色是否存在
         Role existingRole = getRoleById(role.getId());
         if (existingRole == null) {
-            throw new BusinessException(ReturnCode.RC606); // 角色不存在
+            throw new BusinessException(ReturnCode.RC610); // 角色不存在
         }
 
         // 检查角色编码是否与其他角色冲突
@@ -85,7 +83,7 @@ public class RoleServiceImpl implements RoleService {
                    .eq("deleted", 0);
         Role conflictRole = roleMapper.selectOne(queryWrapper);
         if (conflictRole != null) {
-            throw new BusinessException(ReturnCode.RC607); // 角色编码已存在
+            throw new BusinessException(ReturnCode.RC611); // 角色编码已存在
         }
 
         // 更新角色
@@ -105,7 +103,7 @@ public class RoleServiceImpl implements RoleService {
         userRoleQuery.eq("role_id", roleId);
         long userCount = userRoleMapper.selectCount(userRoleQuery);
         if (userCount > 0) {
-            throw new BusinessException(ReturnCode.RC608); // 角色正在使用中，无法删除
+            throw new BusinessException(ReturnCode.RC612); // 角色正在使用中，无法删除
         }
 
         // 软删除角色
@@ -139,7 +137,7 @@ public class RoleServiceImpl implements RoleService {
                    .eq("role_id", roleId);
         UserRole existingUserRole = userRoleMapper.selectOne(queryWrapper);
         if (existingUserRole != null) {
-            throw new BusinessException(ReturnCode.RC609); // 用户已拥有该角色
+            throw new BusinessException(ReturnCode.RC613); // 用户已拥有该角色
         }
 
         // 分配角色
@@ -189,6 +187,49 @@ public class RoleServiceImpl implements RoleService {
     }
 
     @Override
+    public List<Role> getRolesByStatus(Integer status) {
+        QueryWrapper<Role> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("deleted", 0)
+                   .eq("status", status)
+                   .orderByAsc("create_time");
+        return roleMapper.selectList(queryWrapper);
+    }
+
+    @Override
+    public List<Long> getRolePermissionIds(Long roleId) {
+        QueryWrapper<RolePermission> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("role_id", roleId);
+        List<RolePermission> rolePermissions = rolePermissionMapper.selectList(queryWrapper);
+        return rolePermissions.stream()
+                .map(RolePermission::getPermissionId)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public void assignPermissionsToRole(Long roleId, List<Long> permissionIds) {
+        // 检查角色是否存在
+        getRoleById(roleId);
+
+        // 删除原有权限关联
+        QueryWrapper<RolePermission> deleteWrapper = new QueryWrapper<>();
+        deleteWrapper.eq("role_id", roleId);
+        rolePermissionMapper.delete(deleteWrapper);
+
+        // 批量插入新权限关联
+        if (permissionIds != null && !permissionIds.isEmpty()) {
+            for (Long permId : permissionIds) {
+                if (permId == null) continue;
+                RolePermission rp = new RolePermission();
+                rp.setRoleId(roleId);
+                rp.setPermissionId(permId);
+                rp.setCreateTime(LocalDateTime.now());
+                rolePermissionMapper.insert(rp);
+            }
+        }
+    }
+
+    @Override
     public List<Permission> getAllPermissions() {
         QueryWrapper<Permission> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("deleted", 0)
@@ -205,7 +246,7 @@ public class RoleServiceImpl implements RoleService {
         // 检查权限是否存在
         Permission permission = permissionMapper.selectById(permissionId);
         if (permission == null || permission.getDeleted() == 1) {
-            throw new BusinessException(ReturnCode.RC610); // 权限不存在
+            throw new BusinessException(ReturnCode.RC614); // 权限不存在
         }
 
         // 检查是否已分配该权限
@@ -214,7 +255,7 @@ public class RoleServiceImpl implements RoleService {
                    .eq("permission_id", permissionId);
         RolePermission existingRolePermission = rolePermissionMapper.selectOne(queryWrapper);
         if (existingRolePermission != null) {
-            throw new BusinessException(ReturnCode.RC611); // 角色已拥有该权限
+            throw new BusinessException(ReturnCode.RC615); // 角色已拥有该权限
         }
 
         // 分配权限

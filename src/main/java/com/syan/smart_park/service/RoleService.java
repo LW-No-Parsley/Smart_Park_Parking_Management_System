@@ -83,6 +83,30 @@ public interface RoleService {
     List<Permission> getAllPermissions();
     
     /**
+     * 根据状态获取角色列表
+     *
+     * @param status 角色状态：0-禁用，1-启用
+     * @return 角色列表
+     */
+    List<Role> getRolesByStatus(Integer status);
+
+    /**
+     * 获取角色的权限ID列表
+     *
+     * @param roleId 角色ID
+     * @return 权限ID列表
+     */
+    List<Long> getRolePermissionIds(Long roleId);
+
+    /**
+     * 批量设置角色的权限（全量覆盖）
+     *
+     * @param roleId        角色ID
+     * @param permissionIds 权限ID列表
+     */
+    void assignPermissionsToRole(Long roleId, List<Long> permissionIds);
+
+    /**
      * 为角色分配权限
      *
      * @param roleId 角色ID

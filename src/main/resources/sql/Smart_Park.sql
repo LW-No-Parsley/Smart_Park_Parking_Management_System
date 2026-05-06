@@ -370,7 +370,8 @@ DROP TABLE IF EXISTS `space_occupy`;
 CREATE TABLE `space_occupy`  (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `space_id` bigint NOT NULL COMMENT 'ID',
-  `reservation_id` bigint NOT NULL COMMENT '预订ID',
+  `reservation_id` bigint NULL DEFAULT NULL COMMENT '预订ID（NULL表示非预约产生的占用，如业主长期绑定）',
+  `vehicle_id` bigint NULL DEFAULT NULL COMMENT '车辆ID（关联vehicle.id，标记占用由哪辆车产生）',
   `start_time` datetime(6) NOT NULL COMMENT '开始时间',
   `end_time` datetime(6) NOT NULL COMMENT '结束时间',
   `create_time` datetime(6) NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',

@@ -9,8 +9,10 @@ import com.syan.smart_park.entity.User;
 import com.syan.smart_park.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 用户服务实现类
@@ -108,5 +110,96 @@ public class UserServiceImpl implements UserService {
         // 保存用户
         int result = userMapper.insert(user);
         return result > 0;
+    }
+
+    // ====== 管理员用户管理 ======
+
+    @Override
+    public List<User> getAllUsers() {
+        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("deleted", 0)
+                   .orderByAsc("create_time");
+        return userMapper.selectList(queryWrapper);
+    }
+
+    @Override
+    public User getUserById(Long id) {
+        User user = userMapper.selectById(id);
+        if (user == null || user.getDeleted() == 1) {
+            throw new BusinessException(ReturnCode.RC600); // 用户不存在
+        }
+        return user;
+    }
+
+    @Override
+    @Transactional
+    public User createUser(User user) {
+        // 检查用户名是否已存在
+        if (findByUsername(user.getUsername()) != null) {
+            throw new BusinessException(ReturnCode.RC603); // 用户已存在
+        }
+
+        // 检查密码强度
+        if (!isPasswordStrong(user.getPassword())) {
+            throw new BusinessException(ReturnCode.RC604); // 密码强度不足
+        }
+
+        user.setPassword(DigestUtil.md5Hex(user.getPassword()));
+        user.setStatus(user.getStatus() != null ? user.getStatus() : 1);
+        user.setCreateTime(LocalDateTime.now());
+        user.setUpdateTime(LocalDateTime.now());
+        user.setDeleted(0);
+        userMapper.insert(user);
+        return user;
+    }
+
+    @Override
+    @Transactional
+    public User updateUser(Long id, User user) {
+        User existing = getUserById(id);
+
+        // 如果修改了用户名，检查唯一性
+        if (user.getUsername() != null && !user.getUsername().equals(existing.getUsername())) {
+            QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+            queryWrapper.eq("username", user.getUsername())
+                       .ne("id", id)
+                       .eq("deleted", 0);
+            if (userMapper.selectCount(queryWrapper) > 0) {
+                throw new BusinessException(ReturnCode.RC603); // 用户已存在
+            }
+        }
+
+        // 如果传了密码，重新加密
+        if (user.getPassword() != null && !user.getPassword().isEmpty()) {
+            if (!isPasswordStrong(user.getPassword())) {
+                throw new BusinessException(ReturnCode.RC604); // 密码强度不足
+            }
+            user.setPassword(DigestUtil.md5Hex(user.getPassword()));
+        } else {
+            user.setPassword(null); // 不更新密码
+        }
+
+        user.setId(id);
+        user.setUpdateTime(LocalDateTime.now());
+        userMapper.updateById(user);
+        return userMapper.selectById(id);
+    }
+
+    @Override
+    @Transactional
+    public void deleteUser(Long id) {
+        User user = getUserById(id);
+        user.setDeleted(1);
+        user.setUpdateTime(LocalDateTime.now());
+        userMapper.updateById(user);
+    }
+
+    @Override
+    public List<User> getUsersByStatus(Integer status) {
+        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("deleted", 0)
+                   .eq("status", status)
+                   .orderByAsc("create_time");
+        return userMapper.selectList(queryWrapper);
     }
 }
