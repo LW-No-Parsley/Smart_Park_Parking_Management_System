@@ -2,6 +2,7 @@ package com.syan.smart_park.controller;
 
 import com.syan.smart_park.common.PageResult;
 import com.syan.smart_park.common.R;
+import com.syan.smart_park.common.annotation.RequirePermission;
 import com.syan.smart_park.common.exception.ReturnCode;
 import com.syan.smart_park.entity.ExceptionReportDTO;
 import com.syan.smart_park.service.ExceptionReportService;
@@ -24,6 +25,7 @@ public class ExceptionReportController {
      * 合并了原 /user/* /space/* /type/* /status/* /unhandled /handled /handler/* /search 等路由
      */
     @GetMapping("/list")
+    @RequirePermission("exception:list")
     public R<PageResult<ExceptionReportDTO>> getExceptionReportList(
             @RequestParam(defaultValue = "1") int current,
             @RequestParam(defaultValue = "10") int size,
@@ -42,6 +44,7 @@ public class ExceptionReportController {
      * 根据ID获取异常上报记录
      */
     @GetMapping("/{id}")
+    @RequirePermission("exception:list")
     public R<ExceptionReportDTO> getExceptionReportById(@PathVariable Long id) {
         ExceptionReportDTO exceptionReport = exceptionReportService.getExceptionReportById(id);
         if (exceptionReport == null) {
@@ -54,6 +57,7 @@ public class ExceptionReportController {
      * 创建异常上报记录
      */
     @PostMapping
+    @RequirePermission("exception:list")
     public R<ExceptionReportDTO> createExceptionReport(@Valid @RequestBody ExceptionReportDTO exceptionReportDTO) {
         ExceptionReportDTO createdReport = exceptionReportService.createExceptionReport(exceptionReportDTO);
         return R.success(createdReport);
@@ -63,7 +67,8 @@ public class ExceptionReportController {
      * 更新异常上报记录
      */
     @PutMapping("/{id}")
-    public R<ExceptionReportDTO> updateExceptionReport(@PathVariable Long id, 
+    @RequirePermission("exception:list")
+    public R<ExceptionReportDTO> updateExceptionReport(@PathVariable Long id,
                                                       @Valid @RequestBody ExceptionReportDTO exceptionReportDTO) {
         ExceptionReportDTO updatedReport = exceptionReportService.updateExceptionReport(id, exceptionReportDTO);
         if (updatedReport == null) {
@@ -76,6 +81,7 @@ public class ExceptionReportController {
      * 处理异常上报
      */
     @PutMapping("/{id}/handle")
+    @RequirePermission("exception:handle")
     public R<ExceptionReportDTO> handleExceptionReport(@PathVariable Long id,
                                                       @RequestParam Long handledBy,
                                                       @RequestParam String handleResult) {

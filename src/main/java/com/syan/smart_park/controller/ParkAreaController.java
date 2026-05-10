@@ -1,6 +1,7 @@
 package com.syan.smart_park.controller;
 
 import com.syan.smart_park.common.R;
+import com.syan.smart_park.common.annotation.RequirePermission;
 import com.syan.smart_park.common.exception.ReturnCode;
 import com.syan.smart_park.entity.ParkAreaDTO;
 import com.syan.smart_park.service.ParkAreaService;
@@ -26,6 +27,7 @@ public class ParkAreaController {
      * @return 园区列表
      */
     @GetMapping("/list")
+    @RequirePermission("park:area:list")
     public R<List<ParkAreaDTO>> getAllParkAreas() {
         List<ParkAreaDTO> parkAreas = parkAreaService.getAllParkAreas();
         return R.success(parkAreas);
@@ -38,6 +40,7 @@ public class ParkAreaController {
      * @return 园区详情
      */
     @GetMapping("/{id}")
+    @RequirePermission("park:area:list")
     public R<ParkAreaDTO> getParkAreaById(@PathVariable Long id) {
         ParkAreaDTO parkAreaDTO = parkAreaService.getParkAreaById(id);
         if (parkAreaDTO == null) {
@@ -53,6 +56,7 @@ public class ParkAreaController {
      * @return 创建的园区
      */
     @PostMapping
+    @RequirePermission("park:area:create")
     public R<ParkAreaDTO> createParkArea(@Valid @RequestBody ParkAreaDTO parkAreaDTO) {
         ParkAreaDTO createdParkArea = parkAreaService.createParkArea(parkAreaDTO);
         if (createdParkArea == null) {
@@ -69,6 +73,7 @@ public class ParkAreaController {
      * @return 更新后的园区
      */
     @PutMapping("/{id}")
+    @RequirePermission("park:area:update")
     public R<ParkAreaDTO> updateParkArea(@PathVariable Long id, @Valid @RequestBody ParkAreaDTO parkAreaDTO) {
         ParkAreaDTO updatedParkArea = parkAreaService.updateParkArea(id, parkAreaDTO);
         if (updatedParkArea == null) {
@@ -84,6 +89,7 @@ public class ParkAreaController {
      * @return 删除结果
      */
     @DeleteMapping("/{id}")
+    @RequirePermission("park:area:delete")
     public R<Boolean> deleteParkArea(@PathVariable Long id) {
         boolean success = parkAreaService.deleteParkArea(id);
         if (!success) {
@@ -99,6 +105,7 @@ public class ParkAreaController {
      * @return 园区列表
      */
     @GetMapping("/status/{status}")
+    @RequirePermission("park:area:list")
     public R<List<ParkAreaDTO>> getParkAreasByStatus(@PathVariable Integer status) {
         List<ParkAreaDTO> parkAreas = parkAreaService.getParkAreasByStatus(status);
         return R.success(parkAreas);
@@ -111,6 +118,7 @@ public class ParkAreaController {
      * @return 园区列表
      */
     @GetMapping("/search")
+    @RequirePermission("park:area:list")
     public R<List<ParkAreaDTO>> searchParkAreas(@RequestParam String keyword) {
         List<ParkAreaDTO> parkAreas = parkAreaService.searchParkAreas(keyword);
         return R.success(parkAreas);
@@ -122,6 +130,7 @@ public class ParkAreaController {
      * @return 更新的园区数量
      */
     @PostMapping("/update-all-total-spaces")
+    @RequirePermission("park:area:update")
     public R<Integer> updateAllTotalSpaces() {
         int updatedCount = parkAreaService.updateAllTotalSpaces();
         return R.success(updatedCount);
@@ -134,6 +143,7 @@ public class ParkAreaController {
      * @return 更新结果
      */
     @PostMapping("/{id}/update-total-spaces")
+    @RequirePermission("park:area:update")
     public R<Boolean> updateTotalSpaces(@PathVariable Long id) {
         boolean success = parkAreaService.updateTotalSpaces(id);
         if (!success) {
@@ -149,6 +159,7 @@ public class ParkAreaController {
      * @return 占用统计信息
      */
     @GetMapping("/{id}/occupancy-stats")
+    @RequirePermission("park:area:list")
     public R<com.syan.smart_park.entity.ParkAreaOccupancyStats> getParkAreaOccupancyStats(@PathVariable Long id) {
         com.syan.smart_park.entity.ParkAreaOccupancyStats stats = parkAreaService.getParkAreaOccupancyStats(id);
         if (stats == null) {
@@ -163,6 +174,7 @@ public class ParkAreaController {
      * @return 所有园区的占用统计信息列表
      */
     @GetMapping("/occupancy-stats/all")
+    @RequirePermission("park:area:list")
     public R<List<com.syan.smart_park.entity.ParkAreaOccupancyStats>> getAllParkAreasOccupancyStats() {
         List<com.syan.smart_park.entity.ParkAreaOccupancyStats> statsList = parkAreaService.getAllParkAreasOccupancyStats();
         return R.success(statsList);

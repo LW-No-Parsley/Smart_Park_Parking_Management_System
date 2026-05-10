@@ -1,6 +1,7 @@
 package com.syan.smart_park.controller;
 
 import com.syan.smart_park.common.R;
+import com.syan.smart_park.common.annotation.RequirePermission;
 import com.syan.smart_park.common.exception.ReturnCode;
 import com.syan.smart_park.entity.FeeCalculationResult;
 import com.syan.smart_park.entity.FeeRuleDTO;
@@ -26,6 +27,7 @@ public class FeeRuleController {
      * 获取所有计费规则列表
      */
     @GetMapping("/list")
+    @RequirePermission("fee:list")
     public R<List<FeeRuleDTO>> getAllFeeRules() {
         List<FeeRuleDTO> feeRules = feeRuleService.getAllFeeRules();
         return R.success(feeRules);
@@ -35,6 +37,7 @@ public class FeeRuleController {
      * 根据ID获取计费规则详情
      */
     @GetMapping("/{id}")
+    @RequirePermission("fee:list")
     public R<FeeRuleDTO> getFeeRuleById(@PathVariable Long id) {
         FeeRuleDTO feeRule = feeRuleService.getFeeRuleById(id);
         if (feeRule == null) {
@@ -47,6 +50,7 @@ public class FeeRuleController {
      * 创建计费规则
      */
     @PostMapping
+    @RequirePermission("fee:create")
     public R<FeeRuleDTO> createFeeRule(@Valid @RequestBody FeeRuleDTO feeRuleDTO) {
         FeeRuleDTO created = feeRuleService.createFeeRule(feeRuleDTO);
         if (created == null) {
@@ -59,6 +63,7 @@ public class FeeRuleController {
      * 更新计费规则
      */
     @PutMapping("/{id}")
+    @RequirePermission("fee:update")
     public R<FeeRuleDTO> updateFeeRule(@PathVariable Long id, @Valid @RequestBody FeeRuleDTO feeRuleDTO) {
         FeeRuleDTO updated = feeRuleService.updateFeeRule(id, feeRuleDTO);
         if (updated == null) {
@@ -71,6 +76,7 @@ public class FeeRuleController {
      * 删除计费规则
      */
     @DeleteMapping("/{id}")
+    @RequirePermission("fee:delete")
     public R<Boolean> deleteFeeRule(@PathVariable Long id) {
         boolean result = feeRuleService.deleteFeeRule(id);
         if (!result) {
@@ -83,6 +89,7 @@ public class FeeRuleController {
      * 根据园区ID获取计费规则列表
      */
     @GetMapping("/park-area/{parkAreaId}")
+    @RequirePermission("fee:list")
     public R<List<FeeRuleDTO>> getFeeRulesByParkAreaId(@PathVariable Long parkAreaId) {
         List<FeeRuleDTO> feeRules = feeRuleService.getFeeRulesByParkAreaId(parkAreaId);
         return R.success(feeRules);
@@ -92,6 +99,7 @@ public class FeeRuleController {
      * 根据状态获取计费规则列表
      */
     @GetMapping("/status/{status}")
+    @RequirePermission("fee:list")
     public R<List<FeeRuleDTO>> getFeeRulesByStatus(@PathVariable Integer status) {
         List<FeeRuleDTO> feeRules = feeRuleService.getFeeRulesByStatus(status);
         return R.success(feeRules);
@@ -101,6 +109,7 @@ public class FeeRuleController {
      * 计算停车费用
      */
     @GetMapping("/calculate")
+    @RequirePermission("fee:list")
     public R<FeeCalculationResult> calculateFee(
             @RequestParam(required = false) Long parkAreaId,
             @RequestParam(required = false, defaultValue = "1") Integer vehicleType,

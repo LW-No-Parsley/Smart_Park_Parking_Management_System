@@ -2,6 +2,7 @@ package com.syan.smart_park.controller;
 
 import com.syan.smart_park.common.PageResult;
 import com.syan.smart_park.common.R;
+import com.syan.smart_park.common.annotation.RequirePermission;
 import com.syan.smart_park.common.exception.ReturnCode;
 import com.syan.smart_park.entity.AccessLogDTO;
 import com.syan.smart_park.service.AccessLogService;
@@ -28,6 +29,7 @@ public class AccessLogController {
      *       /recognition-result/* /handled-by/* /time-range /exception /recent 等路由
      */
     @GetMapping("/list")
+    @RequirePermission("access:list")
     public R<PageResult<AccessLogDTO>> getAccessLogList(
             @RequestParam(defaultValue = "1") int current,
             @RequestParam(defaultValue = "10") int size,
@@ -52,6 +54,7 @@ public class AccessLogController {
      * 根据ID获取进出记录详情
      */
     @GetMapping("/{id}")
+    @RequirePermission("access:list")
     public R<AccessLogDTO> getAccessLogById(@PathVariable Long id) {
         AccessLogDTO accessLog = accessLogService.getAccessLogById(id);
         if (accessLog == null) {
@@ -64,6 +67,7 @@ public class AccessLogController {
      * 创建进出记录
      */
     @PostMapping
+    @RequirePermission("access:list")
     public R<AccessLogDTO> createAccessLog(@Valid @RequestBody AccessLogDTO accessLogDTO) {
         AccessLogDTO createdAccessLog = accessLogService.createAccessLog(accessLogDTO);
         if (createdAccessLog == null) {
@@ -76,6 +80,7 @@ public class AccessLogController {
      * 更新进出记录
      */
     @PutMapping("/{id}")
+    @RequirePermission("access:list")
     public R<AccessLogDTO> updateAccessLog(@PathVariable Long id, @Valid @RequestBody AccessLogDTO accessLogDTO) {
         AccessLogDTO updatedAccessLog = accessLogService.updateAccessLog(id, accessLogDTO);
         if (updatedAccessLog == null) {
@@ -88,6 +93,7 @@ public class AccessLogController {
      * 获取今日进出记录统计
      */
     @GetMapping("/today-statistics")
+    @RequirePermission("access:list")
     public R<AccessLogService.AccessLogStatistics> getTodayAccessLogStatistics(@RequestParam(required = false) Long parkAreaId) {
         AccessLogService.AccessLogStatistics statistics = accessLogService.getTodayAccessLogStatistics(parkAreaId);
         return R.success(statistics);
@@ -97,6 +103,7 @@ public class AccessLogController {
      * 获取进出记录趋势数据
      */
     @GetMapping("/trend")
+    @RequirePermission("access:list")
     public R<List<AccessLogService.AccessLogTrend>> getAccessLogTrend(
             @RequestParam LocalDateTime startTime,
             @RequestParam LocalDateTime endTime,
@@ -109,6 +116,7 @@ public class AccessLogController {
      * 批量创建进出记录
      */
     @PostMapping("/batch")
+    @RequirePermission("access:list")
     public R<Boolean> batchCreateAccessLogs(@Valid @RequestBody List<AccessLogDTO> accessLogDTOs) {
         boolean result = accessLogService.batchCreateAccessLogs(accessLogDTOs);
         if (!result) {
@@ -121,6 +129,7 @@ public class AccessLogController {
      * 批量更新进出记录
      */
     @PutMapping("/batch")
+    @RequirePermission("access:list")
     public R<Boolean> batchUpdateAccessLogs(@Valid @RequestBody List<AccessLogDTO> accessLogDTOs) {
         boolean result = accessLogService.batchUpdateAccessLogs(accessLogDTOs);
         if (!result) {
@@ -133,6 +142,7 @@ public class AccessLogController {
      * 根据车牌号和时间范围查询进出记录
      */
     @GetMapping("/plate-number-time-range")
+    @RequirePermission("access:list")
     public R<List<AccessLogDTO>> getAccessLogsByPlateNumberAndTimeRange(
             @RequestParam String plateNumber,
             @RequestParam LocalDateTime startTime,
@@ -145,6 +155,7 @@ public class AccessLogController {
      * 获取最近N条进出记录
      */
     @GetMapping("/recent")
+    @RequirePermission("access:list")
     public R<List<AccessLogDTO>> getRecentAccessLogs(@RequestParam(defaultValue = "10") Integer limit) {
         List<AccessLogDTO> accessLogs = accessLogService.getRecentAccessLogs(limit);
         return R.success(accessLogs);
@@ -154,6 +165,7 @@ public class AccessLogController {
      * 获取异常进出记录（识别失败或黑名单）
      */
     @GetMapping("/exception")
+    @RequirePermission("access:list")
     public R<List<AccessLogDTO>> getExceptionAccessLogs() {
         List<AccessLogDTO> accessLogs = accessLogService.getExceptionAccessLogs();
         return R.success(accessLogs);
@@ -163,6 +175,7 @@ public class AccessLogController {
      * 更新识别结果
      */
     @PutMapping("/{id}/recognition-result")
+    @RequirePermission("access:list")
     public R<Boolean> updateRecognitionResult(@PathVariable Long id,
                                               @RequestParam Integer recognitionResult,
                                               @RequestParam(required = false) String remark) {
@@ -177,6 +190,7 @@ public class AccessLogController {
      * 手动处理进出记录（手动放行等）
      */
     @PutMapping("/{id}/handle-manually")
+    @RequirePermission("access:list")
     public R<Boolean> handleAccessLogManually(@PathVariable Long id,
                                               @RequestParam Long handledBy,
                                               @RequestParam(required = false) String remark) {

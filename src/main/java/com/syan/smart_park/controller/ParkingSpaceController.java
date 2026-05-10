@@ -1,6 +1,7 @@
 package com.syan.smart_park.controller;
 
 import com.syan.smart_park.common.R;
+import com.syan.smart_park.common.annotation.RequirePermission;
 import com.syan.smart_park.common.exception.ReturnCode;
 import com.syan.smart_park.entity.ParkingSpaceDTO;
 import com.syan.smart_park.service.ParkingSpaceService;
@@ -24,6 +25,7 @@ public class ParkingSpaceController {
      * 获取所有车位列表
      */
     @GetMapping("/list")
+    @RequirePermission("park:space:list")
     public R<List<ParkingSpaceDTO>> getAllParkingSpacesWithOccupiedStatus() {
         List<ParkingSpaceDTO> parkingSpaces = parkingSpaceService.getAllParkingSpacesWithOccupiedStatus();
         return R.success(parkingSpaces);
@@ -33,6 +35,7 @@ public class ParkingSpaceController {
      * 根据ID获取车位详情
      */
     @GetMapping("/{id}")
+    @RequirePermission("park:space:list")
     public R<ParkingSpaceDTO> getParkingSpaceById(@PathVariable Long id) {
         ParkingSpaceDTO parkingSpace = parkingSpaceService.getParkingSpaceById(id);
         if (parkingSpace == null) {
@@ -45,6 +48,7 @@ public class ParkingSpaceController {
      * 创建车位
      */
     @PostMapping
+    @RequirePermission("park:space:create")
     public R<ParkingSpaceDTO> createParkingSpace(@Valid @RequestBody ParkingSpaceDTO parkingSpaceDTO) {
         ParkingSpaceDTO createdParkingSpace = parkingSpaceService.createParkingSpace(parkingSpaceDTO);
         if (createdParkingSpace == null) {
@@ -57,6 +61,7 @@ public class ParkingSpaceController {
      * 更新车位
      */
     @PutMapping("/{id}")
+    @RequirePermission("park:space:update")
     public R<ParkingSpaceDTO> updateParkingSpace(@PathVariable Long id, @Valid @RequestBody ParkingSpaceDTO parkingSpaceDTO) {
         ParkingSpaceDTO updatedParkingSpace = parkingSpaceService.updateParkingSpace(id, parkingSpaceDTO);
         if (updatedParkingSpace == null) {
@@ -69,6 +74,7 @@ public class ParkingSpaceController {
      * 删除车位
      */
     @DeleteMapping("/{id}")
+    @RequirePermission("park:space:delete")
     public R<Boolean> deleteParkingSpace(@PathVariable Long id) {
         boolean result = parkingSpaceService.deleteParkingSpace(id);
         if (!result) {
@@ -81,6 +87,7 @@ public class ParkingSpaceController {
      * 根据园区ID获取车位列表
      */
     @GetMapping("/park-area/{parkAreaId}")
+    @RequirePermission("park:space:list")
     public R<List<ParkingSpaceDTO>> getParkingSpacesByParkAreaId(@PathVariable Long parkAreaId) {
         List<ParkingSpaceDTO> parkingSpaces = parkingSpaceService.getParkingSpacesByParkAreaId(parkAreaId);
         return R.success(parkingSpaces);
@@ -90,6 +97,7 @@ public class ParkingSpaceController {
      * 根据分区ID获取车位列表
      */
     @GetMapping("/zone/{zoneId}")
+    @RequirePermission("park:space:list")
     public R<List<ParkingSpaceDTO>> getParkingSpacesByZoneId(@PathVariable Long zoneId) {
         List<ParkingSpaceDTO> parkingSpaces = parkingSpaceService.getParkingSpacesByZoneId(zoneId);
         return R.success(parkingSpaces);
@@ -99,6 +107,7 @@ public class ParkingSpaceController {
      * 根据车位状态获取车位列表
      */
     @GetMapping("/status/{status}")
+    @RequirePermission("park:space:list")
     public R<List<ParkingSpaceDTO>> getParkingSpacesByStatus(@PathVariable Integer status) {
         List<ParkingSpaceDTO> parkingSpaces = parkingSpaceService.getParkingSpacesByStatus(status);
         return R.success(parkingSpaces);
@@ -108,6 +117,7 @@ public class ParkingSpaceController {
      * 根据车位类型获取车位列表
      */
     @GetMapping("/type/{spaceType}")
+    @RequirePermission("park:space:list")
     public R<List<ParkingSpaceDTO>> getParkingSpacesByType(@PathVariable Integer spaceType) {
         List<ParkingSpaceDTO> parkingSpaces = parkingSpaceService.getParkingSpacesByType(spaceType);
         return R.success(parkingSpaces);
@@ -117,6 +127,7 @@ public class ParkingSpaceController {
      * 根据绑定用户ID获取车位列表
      */
     @GetMapping("/bind-user/{bindUserId}")
+    @RequirePermission("park:space:list")
     public R<List<ParkingSpaceDTO>> getParkingSpacesByBindUserId(@PathVariable Long bindUserId) {
         List<ParkingSpaceDTO> parkingSpaces = parkingSpaceService.getParkingSpacesByBindUserId(bindUserId);
         return R.success(parkingSpaces);
@@ -127,6 +138,7 @@ public class ParkingSpaceController {
      * @param time 指定时间（可选，默认为当前时间），格式：yyyy-MM-dd HH:mm:ss
      */
     @GetMapping("/available")
+    @RequirePermission("park:space:list")
     public R<List<ParkingSpaceDTO>> getAvailableParkingSpaces(
             @RequestParam(required = false) String time) {
         List<ParkingSpaceDTO> parkingSpaces = parkingSpaceService.getAvailableParkingSpaces(time);
@@ -137,6 +149,7 @@ public class ParkingSpaceController {
      * 批量更新车位状态
      */
     @PutMapping("/batch/update-status")
+    @RequirePermission("park:space:update")
     public R<Boolean> batchUpdateParkingSpaceStatus(@RequestParam List<Long> ids, @RequestParam Integer status) {
         boolean result = parkingSpaceService.batchUpdateParkingSpaceStatus(ids, status);
         if (!result) {
@@ -149,6 +162,7 @@ public class ParkingSpaceController {
      * 获取车位详情（包含当前占用状态）
      */
     @GetMapping("/{id}/with-occupied-status")
+    @RequirePermission("park:space:list")
     public R<ParkingSpaceDTO> getParkingSpaceWithOccupiedStatus(@PathVariable Long id) {
         ParkingSpaceDTO parkingSpace = parkingSpaceService.getParkingSpaceWithOccupiedStatus(id);
         if (parkingSpace == null) {
@@ -162,6 +176,7 @@ public class ParkingSpaceController {
      * 根据园区ID获取车位列表（包含当前占用状态）
      */
     @GetMapping("/park-area/{parkAreaId}/with-occupied-status")
+    @RequirePermission("park:space:list")
     public R<List<ParkingSpaceDTO>> getParkingSpacesByParkAreaIdWithOccupiedStatus(@PathVariable Long parkAreaId) {
         List<ParkingSpaceDTO> parkingSpaces = parkingSpaceService.getParkingSpacesByParkAreaIdWithOccupiedStatus(parkAreaId);
         return R.success(parkingSpaces);
@@ -171,6 +186,7 @@ public class ParkingSpaceController {
      * 检查车位在当前时间是否被占用
      */
     @GetMapping("/{id}/is-occupied")
+    @RequirePermission("park:space:list")
     public R<Boolean> isSpaceOccupied(@PathVariable Long id) {
         boolean isOccupied = parkingSpaceService.isSpaceOccupied(id);
         return R.success(isOccupied);

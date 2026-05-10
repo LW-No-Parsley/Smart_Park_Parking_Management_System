@@ -2,14 +2,18 @@ package com.syan.smart_park.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.syan.smart_park.common.exception.ConcurrentModificationException;
 import com.syan.smart_park.dao.*;
 import com.syan.smart_park.entity.*;
 import com.syan.smart_park.service.*;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -105,6 +109,7 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper, Reser
 
     @Override
     @Transactional
+    @Retryable(retryFor = ConcurrentModificationException.class, maxAttempts = 3, backoff = @org.springframework.retry.annotation.Backoff(delay = 100))
     public ReservationDTO updateReservation(Long id, ReservationDTO reservationDTO) {
         // 使用FOR UPDATE锁定记录，防止并发冲突
         Reservation existingReservation = reservationMapper.selectForUpdate(id);
@@ -126,7 +131,7 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper, Reser
         
         Reservation reservation = reservationDTO.toReservation();
         reservation.setId(id);
-        reservation.setVersion(originalVersion);
+        reservation.setVersion(originalVersion + 1);
         
         // 使用update方法并指定版本号条件
         boolean updated = this.update(reservation, 
@@ -136,9 +141,9 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper, Reser
         );
         
         if (!updated) {
-            throw new RuntimeException("更新失败，可能已被其他用户修改");
+            throw new ConcurrentModificationException("更新失败，可能已被其他用户修改");
         }
-        
+
         return ReservationDTO.fromReservation(reservation);
     }
 
@@ -282,7 +287,7 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper, Reser
         updateReservation.setApprovedBy(approvedBy);
         updateReservation.setApprovedTime(LocalDateTime.now());
         updateReservation.setRejectReason(rejectReason);
-        updateReservation.setVersion(originalVersion);
+        updateReservation.setVersion(originalVersion + 1);
         
         // 使用update方法并指定版本号条件
         boolean approved = this.update(updateReservation, 
@@ -292,18 +297,13 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper, Reser
         );
 
         if (approved) {
-            // 记录操作日志
-            OperationLogDTO logDTO = new OperationLogDTO();
-            logDTO.setUserId(approvedBy);
-            logDTO.setModule("预约管理");
-            logDTO.setAction("审批通过");
-            logDTO.setDetail("预约ID:" + id + "，审批通过");
-            operationLogService.createOperationLog(logDTO);
+            logAfterCommit(approvedBy, "预约管理", "审批通过",
+                    "预约ID:" + id + "，审批通过");
         }
 
         return approved;
     }
-    
+
     @Override
     @Transactional
     public boolean rejectReservation(Long id, Long approvedBy, String rejectReason) {
@@ -323,7 +323,7 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper, Reser
         updateReservation.setApprovedBy(approvedBy);
         updateReservation.setApprovedTime(LocalDateTime.now());
         updateReservation.setRejectReason(rejectReason);
-        updateReservation.setVersion(originalVersion);
+        updateReservation.setVersion(originalVersion + 1);
         
         // 使用update方法并指定版本号条件
         boolean rejected = this.update(updateReservation, 
@@ -333,13 +333,8 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper, Reser
         );
 
         if (rejected) {
-            // 记录操作日志
-            OperationLogDTO logDTO = new OperationLogDTO();
-            logDTO.setUserId(approvedBy);
-            logDTO.setModule("预约管理");
-            logDTO.setAction("审批拒绝");
-            logDTO.setDetail("预约ID:" + id + "，拒绝原因:" + rejectReason);
-            operationLogService.createOperationLog(logDTO);
+            logAfterCommit(approvedBy, "预约管理", "审批拒绝",
+                    "预约ID:" + id + "，拒绝原因:" + rejectReason);
         }
 
         return rejected;
@@ -361,7 +356,7 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper, Reser
         Reservation updateReservation = new Reservation();
         updateReservation.setId(id);
         updateReservation.setStatus(status);
-        updateReservation.setVersion(originalVersion);
+        updateReservation.setVersion(originalVersion + 1);
         
         // 使用update方法并指定版本号条件
         boolean statusUpdated = this.update(updateReservation, 
@@ -378,11 +373,8 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper, Reser
                 case 3 -> "已完成";
                 default -> "未知";
             };
-            OperationLogDTO logDTO = new OperationLogDTO();
-            logDTO.setModule("预约管理");
-            logDTO.setAction("更新状态");
-            logDTO.setDetail("预约ID:" + id + "，状态更新为:" + statusText);
-            operationLogService.createOperationLog(logDTO);
+            logAfterCommit(null, "预约管理", "更新状态",
+                    "预约ID:" + id + "，状态更新为:" + statusText);
         }
 
         return statusUpdated;
@@ -408,7 +400,7 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper, Reser
         if (payStatus == 1) { // 已支付
             updateReservation.setSettlementTime(LocalDateTime.now());
         }
-        updateReservation.setVersion(originalVersion);
+        updateReservation.setVersion(originalVersion + 1);
         
         // 使用update方法并指定版本号条件
         return this.update(updateReservation, 
@@ -435,7 +427,7 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper, Reser
         updateReservation.setId(id);
         updateReservation.setArriveTime(arriveTime);
         updateReservation.setStatus(2); // 已使用
-        updateReservation.setVersion(originalVersion);
+        updateReservation.setVersion(originalVersion + 1);
         
         // 使用update方法并指定版本号条件
         boolean arrived = this.update(updateReservation, 
@@ -445,12 +437,8 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper, Reser
         );
 
         if (arrived) {
-            OperationLogDTO logDTO = new OperationLogDTO();
-            logDTO.setUserId(reservation.getUserId());
-            logDTO.setModule("预约管理");
-            logDTO.setAction("车辆到达");
-            logDTO.setDetail("预约ID:" + id + "，到达时间:" + arriveTime);
-            operationLogService.createOperationLog(logDTO);
+            logAfterCommit(reservation.getUserId(), "预约管理", "车辆到达",
+                    "预约ID:" + id + "，到达时间:" + arriveTime);
         }
 
         return arrived;
@@ -474,7 +462,7 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper, Reser
         updateReservation.setLeaveTime(leaveTime);
         updateReservation.setTotalFee(totalFee);
         updateReservation.setSettlementTime(LocalDateTime.now());
-        updateReservation.setVersion(originalVersion);
+        updateReservation.setVersion(originalVersion + 1);
         
         // 使用update方法并指定版本号条件
         boolean updated = this.update(updateReservation, 
@@ -496,19 +484,15 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper, Reser
         paymentRecordDTO.setPaymentStatus(0); // 未支付
         paymentRecordService.createPaymentRecord(paymentRecordDTO);
 
-        // 记录操作日志
-        OperationLogDTO logDTO = new OperationLogDTO();
-        logDTO.setUserId(reservation.getUserId());
-        logDTO.setModule("预约管理");
-        logDTO.setAction("车辆离开");
-        logDTO.setDetail("预约ID:" + id + "，离开时间:" + leaveTime + "，费用:" + totalFee + "元，已自动生成支付记录");
-        operationLogService.createOperationLog(logDTO);
+        logAfterCommit(reservation.getUserId(), "预约管理", "车辆离开",
+                "预约ID:" + id + "，离开时间:" + leaveTime + "，费用:" + totalFee + "元，已自动生成支付记录");
 
         return true;
     }
 
     @Override
     @Transactional
+    @Retryable(retryFor = ConcurrentModificationException.class, maxAttempts = 3, backoff = @org.springframework.retry.annotation.Backoff(delay = 100))
     public FeeCalculationResult recordDepartureWithAutoFee(Long id, LocalDateTime leaveTime) {
         // 使用FOR UPDATE锁定记录，防止并发冲突
         Reservation reservation = reservationMapper.selectForUpdate(id);
@@ -552,7 +536,7 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper, Reser
         updateReservation.setLeaveTime(leaveTime);
         updateReservation.setTotalFee(feeResult.getTotalFee());
         updateReservation.setSettlementTime(LocalDateTime.now());
-        updateReservation.setVersion(originalVersion);
+        updateReservation.setVersion(originalVersion + 1);
 
         // 使用update方法并指定版本号条件
         boolean updated = this.update(updateReservation,
@@ -562,7 +546,7 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper, Reser
         );
 
         if (!updated) {
-            throw new RuntimeException("更新失败，可能已被其他用户修改");
+            throw new ConcurrentModificationException("更新失败，可能已被其他用户修改");
         }
 
         // 自动生成支付记录（未支付状态）
@@ -574,15 +558,10 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper, Reser
         paymentRecordDTO.setPaymentStatus(0); // 未支付
         paymentRecordService.createPaymentRecord(paymentRecordDTO);
 
-        // 记录操作日志
-        OperationLogDTO logDTO = new OperationLogDTO();
-        logDTO.setUserId(reservation.getUserId());
-        logDTO.setModule("预约管理");
-        logDTO.setAction("车辆离开（自动计费）");
-        logDTO.setDetail("预约ID:" + id + "，到达时间:" + arriveTime + "，离开时间:" + leaveTime + 
-            "，停车时长:" + feeResult.getTotalMinutes() + "分钟，费用:" + feeResult.getTotalFee() + 
-            "元，已自动生成支付记录");
-        operationLogService.createOperationLog(logDTO);
+        logAfterCommit(reservation.getUserId(), "预约管理", "车辆离开（自动计费）",
+                "预约ID:" + id + "，到达时间:" + arriveTime + "，离开时间:" + leaveTime + 
+                "，停车时长:" + feeResult.getTotalMinutes() + "分钟，费用:" + feeResult.getTotalFee() + 
+                "元，已自动生成支付记录");
 
         return feeResult;
     }
@@ -678,5 +657,22 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper, Reser
         }
 
         return expiredIds;
+    }
+
+    /**
+     * 在事务提交后异步记录操作日志，避免延长数据库行锁持有时间
+     */
+    private void logAfterCommit(Long userId, String module, String action, String detail) {
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                OperationLogDTO logDTO = new OperationLogDTO();
+                logDTO.setUserId(userId);
+                logDTO.setModule(module);
+                logDTO.setAction(action);
+                logDTO.setDetail(detail);
+                operationLogService.createOperationLog(logDTO);
+            }
+        });
     }
 }

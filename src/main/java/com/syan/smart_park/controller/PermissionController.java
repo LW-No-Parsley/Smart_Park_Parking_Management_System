@@ -70,4 +70,12 @@ public class PermissionController {
         permissionService.deletePermission(id);
         return R.success();
     }
+
+    /**
+     * 获取用户的菜单树（根据角色权限过滤）
+     */
+    @GetMapping("/user-menus")
+    public R<List<PermissionDTO>> getUserMenus(@RequestParam Long userId) {
+        return R.success(permissionService.getUserMenuTree(userId));
+    }
 }

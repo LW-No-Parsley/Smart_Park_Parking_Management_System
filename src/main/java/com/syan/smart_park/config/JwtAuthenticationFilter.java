@@ -59,14 +59,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 // 从token中获取用户名
                 String username = jwtUtil.getUsernameFromToken(jwt);
                 Long userId = jwtUtil.getUserIdFromToken(jwt);
-                
+                String userType = jwtUtil.getUserTypeFromToken(jwt);
+
                 // 创建认证对象
-                UsernamePasswordAuthenticationToken authentication = 
+                UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(userId, null, null);
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                
+
                 // 设置认证信息到SecurityContext
                 SecurityContextHolder.getContext().setAuthentication(authentication);
+
+                // 存储用户类型到request属性，供PermissionAspect使用
+                request.setAttribute("userType", userType);
             } else {
                 // token无效（包括过期或被拉黑）
                 // 不设置认证信息，让JwtAuthenticationEntryPoint处理

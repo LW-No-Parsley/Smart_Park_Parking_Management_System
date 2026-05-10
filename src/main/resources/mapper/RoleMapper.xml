@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.syan.smart_park.dao.RoleMapper">
+
+    <!-- 根据用户ID查询角色列表 -->
+    <select id="selectRolesByUserId" resultType="com.syan.smart_park.entity.Role">
+        SELECT r.*
+        FROM sys_role r
+        INNER JOIN sys_user_role ur ON r.id = ur.role_id
+        WHERE ur.user_id = #{userId}
+          AND r.deleted = 0
+          AND ur.deleted = 0
+          AND r.status = 1
+    </select>
+
+    <!-- 根据角色编码查询角色 -->
+    <select id="selectByRoleCode" resultType="com.syan.smart_park.entity.Role">
+        SELECT *
+        FROM sys_role
+        WHERE role_code = #{roleCode}
+          AND deleted = 0
+    </select>
+
+</mapper>

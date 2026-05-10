@@ -2,6 +2,7 @@ package com.syan.smart_park.controller;
 
 import com.syan.smart_park.common.PageResult;
 import com.syan.smart_park.common.R;
+import com.syan.smart_park.common.annotation.RequirePermission;
 import com.syan.smart_park.common.exception.ReturnCode;
 import com.syan.smart_park.entity.OperationLogDTO;
 import com.syan.smart_park.service.OperationLogService;
@@ -26,6 +27,7 @@ public class OperationLogController {
      * 合并了原 /user/* /module/* /action/* /ip/* /time-range /search /recent 等路由
      */
     @GetMapping("/list")
+    @RequirePermission("log:list")
     public R<PageResult<OperationLogDTO>> getOperationLogList(
             @RequestParam(defaultValue = "1") int current,
             @RequestParam(defaultValue = "10") int size,
@@ -46,6 +48,7 @@ public class OperationLogController {
      * 根据ID获取操作日志记录
      */
     @GetMapping("/{id}")
+    @RequirePermission("log:list")
     public R<OperationLogDTO> getOperationLogById(@PathVariable Long id) {
         OperationLogDTO operationLog = operationLogService.getOperationLogById(id);
         if (operationLog == null) {
@@ -58,6 +61,7 @@ public class OperationLogController {
      * 创建操作日志记录
      */
     @PostMapping
+    @RequirePermission("log:list")
     public R<OperationLogDTO> createOperationLog(@Valid @RequestBody OperationLogDTO operationLogDTO) {
         OperationLogDTO createdLog = operationLogService.createOperationLog(operationLogDTO);
         return R.success(createdLog);

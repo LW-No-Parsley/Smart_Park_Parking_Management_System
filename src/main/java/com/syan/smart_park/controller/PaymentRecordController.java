@@ -2,6 +2,7 @@ package com.syan.smart_park.controller;
 
 import com.syan.smart_park.common.PageResult;
 import com.syan.smart_park.common.R;
+import com.syan.smart_park.common.annotation.RequirePermission;
 import com.syan.smart_park.common.exception.ReturnCode;
 import com.syan.smart_park.entity.PaymentRecordDTO;
 import com.syan.smart_park.service.PaymentRecordService;
@@ -28,6 +29,7 @@ public class PaymentRecordController {
      * 合并了原 /reservation/* /user/* /payment-method/* /payment-status/* /time-range 等路由
      */
     @GetMapping("/list")
+    @RequirePermission("payment:list")
     public R<PageResult<PaymentRecordDTO>> getPaymentRecordList(
             @RequestParam(defaultValue = "1") int current,
             @RequestParam(defaultValue = "10") int size,
@@ -47,6 +49,7 @@ public class PaymentRecordController {
      * 根据ID获取支付记录详情
      */
     @GetMapping("/{id}")
+    @RequirePermission("payment:list")
     public R<PaymentRecordDTO> getPaymentRecordById(@PathVariable Long id) {
         PaymentRecordDTO paymentRecord = paymentRecordService.getPaymentRecordById(id);
         if (paymentRecord == null) {
@@ -59,6 +62,7 @@ public class PaymentRecordController {
      * 创建支付记录
      */
     @PostMapping
+    @RequirePermission("payment:list")
     public R<PaymentRecordDTO> createPaymentRecord(@Valid @RequestBody PaymentRecordDTO paymentRecordDTO) {
         PaymentRecordDTO createdPaymentRecord = paymentRecordService.createPaymentRecord(paymentRecordDTO);
         if (createdPaymentRecord == null) {
@@ -71,6 +75,7 @@ public class PaymentRecordController {
      * 更新支付记录
      */
     @PutMapping("/{id}")
+    @RequirePermission("payment:list")
     public R<PaymentRecordDTO> updatePaymentRecord(@PathVariable Long id, @Valid @RequestBody PaymentRecordDTO paymentRecordDTO) {
         PaymentRecordDTO updatedPaymentRecord = paymentRecordService.updatePaymentRecord(id, paymentRecordDTO);
         if (updatedPaymentRecord == null) {
@@ -83,6 +88,7 @@ public class PaymentRecordController {
      * 获取指定时间范围内的支付总额
      */
     @GetMapping("/total-amount/time-range")
+    @RequirePermission("payment:list")
     public R<BigDecimal> getTotalPaymentAmountByTimeRange(
             @RequestParam LocalDateTime startTime,
             @RequestParam LocalDateTime endTime) {
@@ -94,6 +100,7 @@ public class PaymentRecordController {
      * 获取用户的支付总额
      */
     @GetMapping("/user/{userId}/total-amount")
+    @RequirePermission("payment:list")
     public R<BigDecimal> getUserTotalPaymentAmount(@PathVariable Long userId) {
         BigDecimal totalAmount = paymentRecordService.getUserTotalPaymentAmount(userId);
         return R.success(totalAmount);
@@ -103,6 +110,7 @@ public class PaymentRecordController {
      * 更新支付状态
      */
     @PutMapping("/{id}/payment-status")
+    @RequirePermission("payment:list")
     public R<Boolean> updatePaymentStatus(@PathVariable Long id,
                                           @RequestParam Integer paymentStatus,
                                           @RequestParam(required = false) String transactionId,
@@ -118,6 +126,7 @@ public class PaymentRecordController {
      * 处理支付成功回调
      */
     @PutMapping("/{id}/payment-success")
+    @RequirePermission("payment:list")
     public R<Boolean> handlePaymentSuccess(@PathVariable Long id,
                                            @RequestParam String transactionId,
                                            @RequestParam LocalDateTime paymentTime) {
@@ -132,6 +141,7 @@ public class PaymentRecordController {
      * 处理支付失败回调
      */
     @PutMapping("/{id}/payment-failure")
+    @RequirePermission("payment:list")
     public R<Boolean> handlePaymentFailure(@PathVariable Long id,
                                            @RequestParam String transactionId) {
         boolean result = paymentRecordService.handlePaymentFailure(id, transactionId);
@@ -145,6 +155,7 @@ public class PaymentRecordController {
      * 处理退款
      */
     @PutMapping("/{id}/refund")
+    @RequirePermission("payment:refund")
     public R<Boolean> handleRefund(@PathVariable Long id,
                                    @RequestParam String refundTransactionId) {
         boolean result = paymentRecordService.handleRefund(id, refundTransactionId);
@@ -158,6 +169,7 @@ public class PaymentRecordController {
      * 获取待处理的支付记录
      */
     @GetMapping("/pending")
+    @RequirePermission("payment:list")
     public R<List<PaymentRecordDTO>> getPendingPaymentRecords() {
         List<PaymentRecordDTO> paymentRecords = paymentRecordService.getPendingPaymentRecords();
         return R.success(paymentRecords);
@@ -167,6 +179,7 @@ public class PaymentRecordController {
      * 批量更新支付状态
      */
     @PutMapping("/batch-update-payment-status")
+    @RequirePermission("payment:list")
     public R<Boolean> batchUpdatePaymentStatus(@RequestParam List<Long> ids,
                                                @RequestParam Integer paymentStatus) {
         boolean result = paymentRecordService.batchUpdatePaymentStatus(ids, paymentStatus);

@@ -1,6 +1,7 @@
 package com.syan.smart_park.controller;
 
 import com.syan.smart_park.common.R;
+import com.syan.smart_park.common.annotation.RequirePermission;
 import com.syan.smart_park.common.exception.ReturnCode;
 import com.syan.smart_park.entity.BlacklistDTO;
 import com.syan.smart_park.service.BlacklistService;
@@ -26,6 +27,7 @@ public class BlacklistController {
      * @return 黑名单记录列表
      */
     @GetMapping("/list")
+    @RequirePermission("blacklist:list")
     public R<List<BlacklistDTO>> getAllBlacklists() {
         List<BlacklistDTO> blacklists = blacklistService.getAllBlacklists();
         return R.success(blacklists);
@@ -38,6 +40,7 @@ public class BlacklistController {
      * @return 黑名单记录详情
      */
     @GetMapping("/{id}")
+    @RequirePermission("blacklist:list")
     public R<BlacklistDTO> getBlacklistById(@PathVariable Long id) {
         BlacklistDTO blacklistDTO = blacklistService.getBlacklistById(id);
         if (blacklistDTO == null) {
@@ -53,6 +56,7 @@ public class BlacklistController {
      * @return 创建的黑名单记录
      */
     @PostMapping
+    @RequirePermission("blacklist:create")
     public R<BlacklistDTO> createBlacklist(@Valid @RequestBody BlacklistDTO blacklistDTO) {
         BlacklistDTO createdBlacklist = blacklistService.createBlacklist(blacklistDTO);
         if (createdBlacklist == null) {
@@ -69,6 +73,7 @@ public class BlacklistController {
      * @return 更新后的黑名单记录
      */
     @PutMapping("/{id}")
+    @RequirePermission("blacklist:update")
     public R<BlacklistDTO> updateBlacklist(@PathVariable Long id, @Valid @RequestBody BlacklistDTO blacklistDTO) {
         BlacklistDTO updatedBlacklist = blacklistService.updateBlacklist(id, blacklistDTO);
         if (updatedBlacklist == null) {
@@ -84,6 +89,7 @@ public class BlacklistController {
      * @return 删除结果
      */
     @DeleteMapping("/{id}")
+    @RequirePermission("blacklist:delete")
     public R<Boolean> deleteBlacklist(@PathVariable Long id) {
         boolean success = blacklistService.deleteBlacklist(id);
         if (!success) {
@@ -99,6 +105,7 @@ public class BlacklistController {
      * @return 黑名单记录列表
      */
     @GetMapping("/plate-number/{plateNumber}")
+    @RequirePermission("blacklist:list")
     public R<List<BlacklistDTO>> getBlacklistsByPlateNumber(@PathVariable String plateNumber) {
         List<BlacklistDTO> blacklists = blacklistService.getBlacklistsByPlateNumber(plateNumber);
         return R.success(blacklists);
@@ -111,6 +118,7 @@ public class BlacklistController {
      * @return 黑名单记录列表
      */
     @GetMapping("/status/{status}")
+    @RequirePermission("blacklist:list")
     public R<List<BlacklistDTO>> getBlacklistsByStatus(@PathVariable Integer status) {
         List<BlacklistDTO> blacklists = blacklistService.getBlacklistsByStatus(status);
         return R.success(blacklists);
@@ -123,6 +131,7 @@ public class BlacklistController {
      * @return 检查结果
      */
     @GetMapping("/check/{plateNumber}")
+    @RequirePermission("blacklist:list")
     public R<Boolean> isPlateNumberInBlacklist(@PathVariable String plateNumber) {
         boolean isInBlacklist = blacklistService.isPlateNumberInBlacklist(plateNumber);
         return R.success(isInBlacklist);
@@ -134,6 +143,7 @@ public class BlacklistController {
      * @return 生效的黑名单记录列表
      */
     @GetMapping("/active")
+    @RequirePermission("blacklist:list")
     public R<List<BlacklistDTO>> getActiveBlacklists() {
         List<BlacklistDTO> blacklists = blacklistService.getActiveBlacklists();
         return R.success(blacklists);
@@ -145,6 +155,7 @@ public class BlacklistController {
      * @return 已过期的黑名单记录列表
      */
     @GetMapping("/expired")
+    @RequirePermission("blacklist:list")
     public R<List<BlacklistDTO>> getExpiredBlacklists() {
         List<BlacklistDTO> blacklists = blacklistService.getExpiredBlacklists();
         return R.success(blacklists);
@@ -158,6 +169,7 @@ public class BlacklistController {
      * @return 更新结果
      */
     @PutMapping("/batch/status")
+    @RequirePermission("blacklist:update")
     public R<Boolean> batchUpdateStatus(@RequestParam List<Long> ids, @RequestParam Integer status) {
         boolean success = blacklistService.batchUpdateStatus(ids, status);
         if (!success) {
@@ -173,6 +185,7 @@ public class BlacklistController {
      * @return 黑名单记录列表
      */
     @GetMapping("/created-by/{createdBy}")
+    @RequirePermission("blacklist:list")
     public R<List<BlacklistDTO>> getBlacklistsByCreatedBy(@PathVariable Long createdBy) {
         List<BlacklistDTO> blacklists = blacklistService.getBlacklistsByCreatedBy(createdBy);
         return R.success(blacklists);
@@ -185,6 +198,7 @@ public class BlacklistController {
      * @return 黑名单记录列表
      */
     @GetMapping("/search")
+    @RequirePermission("blacklist:list")
     public R<List<BlacklistDTO>> searchBlacklists(@RequestParam String keyword) {
         List<BlacklistDTO> blacklists = blacklistService.searchBlacklists(keyword);
         return R.success(blacklists);

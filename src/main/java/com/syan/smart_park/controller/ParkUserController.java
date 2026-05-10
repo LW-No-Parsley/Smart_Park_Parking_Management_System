@@ -53,8 +53,8 @@ public class ParkUserController {
         }
         
         // 生成双token
-        String accessToken = jwtUtil.generateAccessToken(parkUserDTO.getId(), parkUserDTO.getUsername());
-        String refreshToken = jwtUtil.generateRefreshToken(parkUserDTO.getId(), parkUserDTO.getUsername());
+        String accessToken = jwtUtil.generateAccessToken(parkUserDTO.getId(), parkUserDTO.getUsername(), JwtUtil.USER_TYPE_PARK_USER);
+        String refreshToken = jwtUtil.generateRefreshToken(parkUserDTO.getId(), parkUserDTO.getUsername(), JwtUtil.USER_TYPE_PARK_USER);
         
         // 构建返回结果
         Map<String, Object> result = new HashMap<>();

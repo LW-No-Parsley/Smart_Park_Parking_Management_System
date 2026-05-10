@@ -1,6 +1,7 @@
 package com.syan.smart_park.controller;
 
 import com.syan.smart_park.common.R;
+import com.syan.smart_park.common.annotation.RequirePermission;
 import com.syan.smart_park.common.exception.ReturnCode;
 import com.syan.smart_park.entity.FeeCalculationResult;
 import com.syan.smart_park.entity.ReservationDTO;
@@ -28,6 +29,7 @@ public class ReservationController {
      * 获取所有预约列表
      */
     @GetMapping("/list")
+    @RequirePermission("reservation:list")
     public R<List<ReservationDTO>> getAllReservations() {
         List<ReservationDTO> reservations = reservationService.getAllReservations();
         return R.success(reservations);
@@ -37,6 +39,7 @@ public class ReservationController {
      * 根据ID获取预约详情
      */
     @GetMapping("/{id}")
+    @RequirePermission("reservation:list")
     public R<ReservationDTO> getReservationById(@PathVariable Long id) {
         ReservationDTO reservation = reservationService.getReservationById(id);
         if (reservation == null) {
@@ -49,6 +52,7 @@ public class ReservationController {
      * 创建预约
      */
     @PostMapping
+    @RequirePermission("reservation:list")
     public R<ReservationDTO> createReservation(@Valid @RequestBody ReservationDTO reservationDTO) {
         ReservationDTO createdReservation = reservationService.createReservation(reservationDTO);
         if (createdReservation == null) {
@@ -61,6 +65,7 @@ public class ReservationController {
      * 更新预约
      */
     @PutMapping("/{id}")
+    @RequirePermission("reservation:list")
     public R<ReservationDTO> updateReservation(@PathVariable Long id, @Valid @RequestBody ReservationDTO reservationDTO) {
         ReservationDTO updatedReservation = reservationService.updateReservation(id, reservationDTO);
         if (updatedReservation == null) {
@@ -73,6 +78,7 @@ public class ReservationController {
      * 删除预约
      */
     @DeleteMapping("/{id}")
+    @RequirePermission("reservation:cancel")
     public R<Boolean> deleteReservation(@PathVariable Long id) {
         boolean result = reservationService.deleteReservation(id);
         if (!result) {
@@ -85,6 +91,7 @@ public class ReservationController {
      * 根据用户ID获取预约列表
      */
     @GetMapping("/user/{userId}")
+    @RequirePermission("reservation:list")
     public R<List<ReservationDTO>> getReservationsByUserId(@PathVariable Long userId) {
         List<ReservationDTO> reservations = reservationService.getReservationsByUserId(userId);
         return R.success(reservations);
@@ -94,6 +101,7 @@ public class ReservationController {
      * 根据车辆ID获取预约列表
      */
     @GetMapping("/vehicle/{vehicleId}")
+    @RequirePermission("reservation:list")
     public R<List<ReservationDTO>> getReservationsByVehicleId(@PathVariable Long vehicleId) {
         List<ReservationDTO> reservations = reservationService.getReservationsByVehicleId(vehicleId);
         return R.success(reservations);
@@ -103,6 +111,7 @@ public class ReservationController {
      * 根据车位ID获取预约列表
      */
     @GetMapping("/space/{spaceId}")
+    @RequirePermission("reservation:list")
     public R<List<ReservationDTO>> getReservationsBySpaceId(@PathVariable Long spaceId) {
         List<ReservationDTO> reservations = reservationService.getReservationsBySpaceId(spaceId);
         return R.success(reservations);
@@ -112,6 +121,7 @@ public class ReservationController {
      * 根据预约类型获取预约列表
      */
     @GetMapping("/type/{reservationType}")
+    @RequirePermission("reservation:list")
     public R<List<ReservationDTO>> getReservationsByType(@PathVariable Integer reservationType) {
         List<ReservationDTO> reservations = reservationService.getReservationsByType(reservationType);
         return R.success(reservations);
@@ -121,6 +131,7 @@ public class ReservationController {
      * 根据审批状态获取预约列表
      */
     @GetMapping("/approval-status/{approvalStatus}")
+    @RequirePermission("reservation:list")
     public R<List<ReservationDTO>> getReservationsByApprovalStatus(@PathVariable Integer approvalStatus) {
         List<ReservationDTO> reservations = reservationService.getReservationsByApprovalStatus(approvalStatus);
         return R.success(reservations);
@@ -130,6 +141,7 @@ public class ReservationController {
      * 根据预约状态获取预约列表
      */
     @GetMapping("/status/{status}")
+    @RequirePermission("reservation:list")
     public R<List<ReservationDTO>> getReservationsByStatus(@PathVariable Integer status) {
         List<ReservationDTO> reservations = reservationService.getReservationsByStatus(status);
         return R.success(reservations);
@@ -139,6 +151,7 @@ public class ReservationController {
      * 根据支付状态获取预约列表
      */
     @GetMapping("/pay-status/{payStatus}")
+    @RequirePermission("reservation:list")
     public R<List<ReservationDTO>> getReservationsByPayStatus(@PathVariable Integer payStatus) {
         List<ReservationDTO> reservations = reservationService.getReservationsByPayStatus(payStatus);
         return R.success(reservations);
@@ -148,6 +161,7 @@ public class ReservationController {
      * 根据创建来源获取预约列表
      */
     @GetMapping("/source/{source}")
+    @RequirePermission("reservation:list")
     public R<List<ReservationDTO>> getReservationsBySource(@PathVariable Integer source) {
         List<ReservationDTO> reservations = reservationService.getReservationsBySource(source);
         return R.success(reservations);
@@ -157,6 +171,7 @@ public class ReservationController {
      * 获取指定时间范围内的预约列表
      */
     @GetMapping("/time-range")
+    @RequirePermission("reservation:list")
     public R<List<ReservationDTO>> getReservationsByTimeRange(
             @RequestParam LocalDateTime startTime,
             @RequestParam LocalDateTime endTime) {
@@ -168,6 +183,7 @@ public class ReservationController {
      * 审批预约（从Token中获取当前用户作为审批人）
      */
     @PutMapping("/{id}/approve")
+    @RequirePermission("reservation:approve")
     public R<Boolean> approveReservation(@PathVariable Long id, Authentication authentication) {
         Long currentUserId = (Long) authentication.getPrincipal();
         boolean result = reservationService.approveReservation(id, currentUserId, null);
@@ -181,7 +197,8 @@ public class ReservationController {
      * 拒绝预约（从Token中获取当前用户作为审批人）
      */
     @PutMapping("/{id}/reject")
-    public R<Boolean> rejectReservation(@PathVariable Long id, 
+    @RequirePermission("reservation:approve")
+    public R<Boolean> rejectReservation(@PathVariable Long id,
                                         @RequestParam String rejectReason,
                                         Authentication authentication) {
         Long currentUserId = (Long) authentication.getPrincipal();
@@ -196,6 +213,7 @@ public class ReservationController {
      * 更新预约状态
      */
     @PutMapping("/{id}/status")
+    @RequirePermission("reservation:list")
     public R<Boolean> updateReservationStatus(@PathVariable Long id, @RequestParam Integer status) {
         boolean result = reservationService.updateReservationStatus(id, status);
         if (!result) {
@@ -208,7 +226,8 @@ public class ReservationController {
      * 更新支付状态和金额
      */
     @PutMapping("/{id}/payment")
-    public R<Boolean> updatePaymentStatus(@PathVariable Long id, 
+    @RequirePermission("reservation:list")
+    public R<Boolean> updatePaymentStatus(@PathVariable Long id,
                                           @RequestParam Integer payStatus,
                                           @RequestParam BigDecimal paidAmount) {
         boolean result = reservationService.updatePaymentStatus(id, payStatus, paidAmount);
@@ -222,6 +241,7 @@ public class ReservationController {
      * 记录到达时间
      */
     @PutMapping("/{id}/arrive")
+    @RequirePermission("reservation:list")
     public R<Boolean> recordArrival(@PathVariable Long id, @RequestParam LocalDateTime arriveTime) {
         boolean result = reservationService.recordArrival(id, arriveTime);
         if (!result) {
@@ -234,7 +254,8 @@ public class ReservationController {
      * 记录离开时间
      */
     @PutMapping("/{id}/leave")
-    public R<Boolean> recordDeparture(@PathVariable Long id, 
+    @RequirePermission("reservation:list")
+    public R<Boolean> recordDeparture(@PathVariable Long id,
                                       @RequestParam LocalDateTime leaveTime,
                                       @RequestParam BigDecimal totalFee) {
         boolean result = reservationService.recordDeparture(id, leaveTime, totalFee);
@@ -248,6 +269,7 @@ public class ReservationController {
      * 批量更新预约状态
      */
     @PutMapping("/batch/update-status")
+    @RequirePermission("reservation:list")
     public R<Boolean> batchUpdateReservationStatus(@RequestParam List<Long> ids, @RequestParam Integer status) {
         boolean result = reservationService.batchUpdateReservationStatus(ids, status);
         if (!result) {
@@ -260,6 +282,7 @@ public class ReservationController {
      * 获取待审批的预约列表
      */
     @GetMapping("/pending-approval")
+    @RequirePermission("reservation:approve")
     public R<List<ReservationDTO>> getPendingApprovalReservations() {
         List<ReservationDTO> reservations = reservationService.getPendingApprovalReservations();
         return R.success(reservations);
@@ -269,6 +292,7 @@ public class ReservationController {
      * 获取用户当前有效的预约
      */
     @GetMapping("/user/{userId}/current-valid")
+    @RequirePermission("reservation:list")
     public R<ReservationDTO> getUserCurrentValidReservation(@PathVariable Long userId) {
         ReservationDTO reservation = reservationService.getUserCurrentValidReservation(userId);
         if (reservation == null) {
@@ -281,6 +305,7 @@ public class ReservationController {
      * 检查车位在指定时间是否可用
      */
     @GetMapping("/check-availability")
+    @RequirePermission("reservation:list")
     public R<Boolean> checkSpaceAvailability(@RequestParam Long spaceId,
                                              @RequestParam LocalDateTime startTime,
                                              @RequestParam LocalDateTime endTime,
@@ -294,6 +319,7 @@ public class ReservationController {
      * 根据到达时间/预约开始时间和离开时间，自动匹配计费规则计算停车费用
      */
     @PutMapping("/{id}/leave-auto-fee")
+    @RequirePermission("reservation:list")
     public R<FeeCalculationResult> recordDepartureWithAutoFee(
             @PathVariable Long id,
             @RequestParam LocalDateTime leaveTime) {

@@ -38,15 +38,42 @@ public class JwtUtil {
     private static final String TOKEN_TYPE_REFRESH = "refresh";
     private static final String TOKEN_TYPE_RESET = "reset";
 
+    // 用户类型常量
+    public static final String USER_TYPE_ADMIN = "admin";
+    public static final String USER_TYPE_PARK_USER = "park_user";
+
     /**
-     * 生成访问token
+     * 生成访问token（默认admin用户）
      *
      * @param userId   用户ID
      * @param username 用户名
      * @return token字符串
      */
     public String generateAccessToken(Long userId, String username) {
-        return generateToken(username, userId, expiration, TOKEN_TYPE_ACCESS);
+        return generateAccessToken(userId, username, USER_TYPE_ADMIN);
+    }
+
+    /**
+     * 生成访问token
+     *
+     * @param userId   用户ID
+     * @param username 用户名
+     * @param userType 用户类型（admin/park_user）
+     * @return token字符串
+     */
+    public String generateAccessToken(Long userId, String username, String userType) {
+        return generateToken(username, userId, expiration, TOKEN_TYPE_ACCESS, userType);
+    }
+
+    /**
+     * 生成刷新token（默认admin用户）
+     *
+     * @param userId   用户ID
+     * @param username 用户名
+     * @return token字符串
+     */
+    public String generateRefreshToken(Long userId, String username) {
+        return generateRefreshToken(userId, username, USER_TYPE_ADMIN);
     }
 
     /**
@@ -54,11 +81,12 @@ public class JwtUtil {
      *
      * @param userId   用户ID
      * @param username 用户名
+     * @param userType 用户类型（admin/park_user）
      * @return token字符串
      */
-    public String generateRefreshToken(Long userId, String username) {
+    public String generateRefreshToken(Long userId, String username, String userType) {
         // 刷新token有效期更长，例如7天
-        return generateToken(username, userId, expiration * 24 * 7, TOKEN_TYPE_REFRESH);
+        return generateToken(username, userId, expiration * 24 * 7, TOKEN_TYPE_REFRESH, userType);
     }
 
     /**
@@ -69,8 +97,7 @@ public class JwtUtil {
      * @return token字符串
      */
     public String generateResetToken(Long userId, String username) {
-        // 重置密码token有效期较短，例如1小时
-        return generateToken(username, userId, 3600000L, TOKEN_TYPE_RESET);
+        return generateToken(username, userId, 3600000L, TOKEN_TYPE_RESET, USER_TYPE_ADMIN);
     }
 
     /**
@@ -80,12 +107,14 @@ public class JwtUtil {
      * @param userId   用户ID
      * @param expirationTime 过期时间（毫秒）
      * @param tokenType token类型（access/refresh/reset）
+     * @param userType 用户类型（admin/park_user）
      * @return token字符串
      */
-    private String generateToken(String username, Long userId, Long expirationTime, String tokenType) {
+    private String generateToken(String username, Long userId, Long expirationTime, String tokenType, String userType) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("username", username);
         claims.put("userId", userId);
+        claims.put("userType", userType);
         claims.put("created", new Date());
         claims.put("tokenType", tokenType); // 添加token类型，用于区分accessToken和refreshToken
         // 添加jti（JWT ID）用于黑名单管理
@@ -99,6 +128,17 @@ public class JwtUtil {
                 .expiration(new Date(System.currentTimeMillis() + expirationTime))
                 .signWith(getSigningKey())
                 .compact();
+    }
+
+    /**
+     * 从token中获取用户类型
+     *
+     * @param token token字符串
+     * @return 用户类型
+     */
+    public String getUserTypeFromToken(String token) {
+        Claims claims = getClaimsFromToken(token);
+        return claims.get("userType", String.class);
     }
 
     /**

@@ -2,6 +2,7 @@ package com.syan.smart_park.entity;
 
 import lombok.Data;
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 用户数据传输对象（安全版本）
@@ -9,32 +10,42 @@ import java.time.LocalDateTime;
  */
 @Data
 public class UserDTO {
-    
+
+    /**
+     * 用户ID
+     */
+    private Long id;
+
     /**
      * 用户名
      */
     private String username;
-    
+
     /**
      * 手机号
      */
     private String phone;
-    
+
     /**
      * 邮箱
      */
     private String email;
-    
+
     /**
      * 用户状态：0-禁用，1-启用
      */
     private Integer status;
-    
+
     /**
      * 创建时间
      */
     private LocalDateTime createTime;
-    
+
+    /**
+     * 角色列表（简化信息）
+     */
+    private List<RoleSimpleDTO> roles;
+
     /**
      * 构造函数：从User实体创建UserDTO
      */
@@ -42,8 +53,9 @@ public class UserDTO {
         if (user == null) {
             return null;
         }
-        
+
         UserDTO dto = new UserDTO();
+        dto.setId(user.getId());
         dto.setUsername(user.getUsername());
         dto.setPhone(user.getPhone());
         dto.setEmail(user.getEmail());

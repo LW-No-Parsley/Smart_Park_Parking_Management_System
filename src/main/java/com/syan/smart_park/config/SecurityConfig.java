@@ -30,6 +30,11 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/refresh").permitAll()
                         .requestMatchers("/api/auth/validate").permitAll()
                         
+                        // 小程序公开接口
+                        .requestMatchers("/api/park-user/login").permitAll()
+                        .requestMatchers("/api/park-user/refresh").permitAll()
+                        .requestMatchers("/api/park-user/validate").permitAll()
+
                         // 静态资源
                         .requestMatchers("/api/resources/**").permitAll()
                         

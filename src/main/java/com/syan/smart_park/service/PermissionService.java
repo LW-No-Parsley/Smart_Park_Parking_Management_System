@@ -39,4 +39,13 @@ public interface PermissionService {
      * 删除权限（检查是否有子权限或关联角色）
      */
     void deletePermission(Long id);
+
+    /**
+     * 获取用户的菜单树（仅返回 permissionType=1 的菜单，
+     * 且只包含用户有权限的节点及其祖先节点）
+     *
+     * @param userId 用户ID
+     * @return 菜单树
+     */
+    List<PermissionDTO> getUserMenuTree(Long userId);
 }

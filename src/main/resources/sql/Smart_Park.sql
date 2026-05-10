@@ -604,4 +604,127 @@ CREATE TABLE `vehicle`  (
   CONSTRAINT `fk_vehicle_user` FOREIGN KEY (`user_id`) REFERENCES `park_user` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT
 ) ENGINE = InnoDB AUTO_INCREMENT = 6 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '车辆表' ROW_FORMAT = DYNAMIC;
 
+-- ----------------------------
+-- Initial permission data (权限菜单树)
+-- ----------------------------
+INSERT INTO `sys_permission` (`id`, `permission_name`, `permission_code`, `permission_type`, `parent_id`, `path`, `icon`, `sort_order`, `status`) VALUES
+-- 一级菜单：系统管理
+(1, '系统管理', 'system:manage', 1, 0, NULL, 'Setting', 1, 1),
+-- 二级菜单：用户管理
+(2, '用户管理', 'system:user:manage', 1, 1, '/admin-user', 'User', 1, 1),
+(3, '用户查询', 'system:user:list', 2, 2, NULL, NULL, 1, 1),
+(4, '用户新增', 'system:user:create', 2, 2, NULL, NULL, 2, 1),
+(5, '用户修改', 'system:user:update', 2, 2, NULL, NULL, 3, 1),
+(6, '用户删除', 'system:user:delete', 2, 2, NULL, NULL, 4, 1),
+-- 二级菜单：角色管理
+(7, '角色管理', 'system:role:manage', 1, 1, '/role-permission', 'UserFilled', 2, 1),
+(8, '角色查询', 'system:role:list', 2, 7, NULL, NULL, 1, 1),
+(9, '角色新增', 'system:role:create', 2, 7, NULL, NULL, 2, 1),
+(10, '角色修改', 'system:role:update', 2, 7, NULL, NULL, 3, 1),
+(11, '角色删除', 'system:role:delete', 2, 7, NULL, NULL, 4, 1),
+(12, '角色权限分配', 'system:role:assign-permission', 2, 7, NULL, NULL, 5, 1),
+(13, '用户角色分配', 'system:role:assign-user', 2, 7, NULL, NULL, 6, 1),
+-- 一级菜单：园区管理
+(14, '园区管理', 'park:area:manage', 1, 0, '/park-area', 'TrendCharts', 2, 1),
+(15, '园区查询', 'park:area:list', 2, 14, NULL, NULL, 1, 1),
+(16, '园区新增', 'park:area:create', 2, 14, NULL, NULL, 2, 1),
+(17, '园区修改', 'park:area:update', 2, 14, NULL, NULL, 3, 1),
+(18, '园区删除', 'park:area:delete', 2, 14, NULL, NULL, 4, 1),
+-- 一级菜单：车位管理
+(19, '车位管理', 'park:space:manage', 1, 0, '/parking-space', 'Location', 3, 1),
+(20, '车位查询', 'park:space:list', 2, 19, NULL, NULL, 1, 1),
+(21, '车位新增', 'park:space:create', 2, 19, NULL, NULL, 2, 1),
+(22, '车位修改', 'park:space:update', 2, 19, NULL, NULL, 3, 1),
+(23, '车位删除', 'park:space:delete', 2, 19, NULL, NULL, 4, 1),
+-- 一级菜单：车辆管理
+(24, '车辆管理', 'vehicle:manage', 1, 0, '/vehicle', 'Van', 4, 1),
+(25, '车辆查询', 'vehicle:list', 2, 24, NULL, NULL, 1, 1),
+(26, '车辆新增', 'vehicle:create', 2, 24, NULL, NULL, 2, 1),
+(27, '车辆修改', 'vehicle:update', 2, 24, NULL, NULL, 3, 1),
+(28, '车辆删除', 'vehicle:delete', 2, 24, NULL, NULL, 4, 1),
+-- 一级菜单：预约管理
+(29, '预约管理', 'reservation:manage', 1, 0, '/reservation', 'Calendar', 5, 1),
+(30, '预约查询', 'reservation:list', 2, 29, NULL, NULL, 1, 1),
+(31, '预约审批', 'reservation:approve', 2, 29, NULL, NULL, 2, 1),
+(32, '预约取消', 'reservation:cancel', 2, 29, NULL, NULL, 3, 1),
+-- 一级菜单：道闸设备
+(33, '道闸设备管理', 'gate:manage', 1, 0, '/gate-device', 'Monitor', 6, 1),
+(34, '设备查询', 'gate:list', 2, 33, NULL, NULL, 1, 1),
+(35, '设备新增', 'gate:create', 2, 33, NULL, NULL, 2, 1),
+(36, '设备修改', 'gate:update', 2, 33, NULL, NULL, 3, 1),
+(37, '设备删除', 'gate:delete', 2, 33, NULL, NULL, 4, 1),
+-- 一级菜单：计费规则
+(38, '停车计费规则', 'fee:manage', 1, 0, '/fee-rule', 'Coin', 7, 1),
+(39, '规则查询', 'fee:list', 2, 38, NULL, NULL, 1, 1),
+(40, '规则新增', 'fee:create', 2, 38, NULL, NULL, 2, 1),
+(41, '规则修改', 'fee:update', 2, 38, NULL, NULL, 3, 1),
+(42, '规则删除', 'fee:delete', 2, 38, NULL, NULL, 4, 1),
+-- 一级菜单：黑名单
+(43, '黑名单管理', 'blacklist:manage', 1, 0, '/blacklist', 'Warning', 8, 1),
+(44, '黑名单查询', 'blacklist:list', 2, 43, NULL, NULL, 1, 1),
+(45, '黑名单新增', 'blacklist:create', 2, 43, NULL, NULL, 2, 1),
+(46, '黑名单修改', 'blacklist:update', 2, 43, NULL, NULL, 3, 1),
+(47, '黑名单删除', 'blacklist:delete', 2, 43, NULL, NULL, 4, 1),
+-- 一级菜单：进出记录
+(48, '进出记录管理', 'access:manage', 1, 0, '/access-log', 'Document', 9, 1),
+(49, '记录查询', 'access:list', 2, 48, NULL, NULL, 1, 1),
+-- 一级菜单：异常上报
+(50, '异常上报管理', 'exception:manage', 1, 0, '/exception-report', 'Warning', 10, 1),
+(51, '异常查询', 'exception:list', 2, 50, NULL, NULL, 1, 1),
+(52, '异常处理', 'exception:handle', 2, 50, NULL, NULL, 2, 1),
+-- 一级菜单：操作日志
+(53, '操作日志管理', 'log:manage', 1, 0, '/operation-log', 'Document', 11, 1),
+(54, '日志查询', 'log:list', 2, 53, NULL, NULL, 1, 1),
+-- 一级菜单：支付记录
+(55, '支付记录管理', 'payment:manage', 1, 0, '/payment', 'Coin', 12, 1),
+(56, '支付查询', 'payment:list', 2, 55, NULL, NULL, 1, 1),
+(57, '支付退款', 'payment:refund', 2, 55, NULL, NULL, 2, 1),
+-- 一级菜单：统计分析
+(58, '统计分析', 'report:manage', 1, 0, '/reports', 'TrendCharts', 13, 1),
+(59, '报表查看', 'report:view', 2, 58, NULL, NULL, 1, 1),
+-- 一级菜单：系统设置
+(60, '系统设置', 'system:settings:manage', 1, 0, '/settings', 'Setting', 14, 1),
+(61, '设置查看', 'system:settings:view', 2, 60, NULL, NULL, 1, 1),
+(62, '设置修改', 'system:settings:update', 2, 60, NULL, NULL, 2, 1);
+
+-- ----------------------------
+-- Initial role data (角色)
+-- ----------------------------
+INSERT INTO `sys_role` (`id`, `role_name`, `role_code`, `description`, `status`) VALUES
+(1, '超级管理员', 'super_admin', '系统超级管理员，拥有所有权限', 1),
+(2, '园区管理员', 'admin', '园区管理员，可管理园区内各项业务', 1),
+(3, '保安', 'guard', '保安人员，主要负责进出管理和异常处理', 1);
+
+-- ----------------------------
+-- Role-Permission assignments (角色权限分配)
+-- ----------------------------
+-- 超级管理员：所有权限
+INSERT INTO `sys_role_permission` (`role_id`, `permission_id`) SELECT 1, `id` FROM `sys_permission`;
+-- 园区管理员：除系统管理外的所有权限
+INSERT INTO `sys_role_permission` (`role_id`, `permission_id`)
+SELECT 2, `id` FROM `sys_permission` WHERE `permission_code` NOT LIKE 'system:%';
+-- 保安：基本业务权限
+INSERT INTO `sys_role_permission` (`role_id`, `permission_id`)
+SELECT 3, `id` FROM `sys_permission` WHERE `permission_code` IN (
+  'park:space:list',
+  'vehicle:list',
+  'reservation:list',
+  'reservation:approve',
+  'gate:list',
+  'blacklist:list',
+  'access:list',
+  'exception:list',
+  'exception:handle'
+);
+
+-- ----------------------------
+-- Initial admin user (初始管理员账号)
+-- ----------------------------
+-- 密码：Admin@123 (MD5: 0192023a7bbd73250516f069df18b500)
+INSERT INTO `sys_user` (`id`, `username`, `password`, `phone`, `email`, `status`) VALUES
+(1, 'admin', '0192023a7bbd73250516f069df18b500', '13800138000', 'admin@smartpark.com', 1);
+
+-- Assign super_admin role to admin user
+INSERT INTO `sys_user_role` (`user_id`, `role_id`) VALUES (1, 1);
+
 SET FOREIGN_KEY_CHECKS = 1;

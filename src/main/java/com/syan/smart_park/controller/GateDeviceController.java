@@ -2,6 +2,7 @@ package com.syan.smart_park.controller;
 
 import com.syan.smart_park.common.PageResult;
 import com.syan.smart_park.common.R;
+import com.syan.smart_park.common.annotation.RequirePermission;
 import com.syan.smart_park.common.exception.ReturnCode;
 import com.syan.smart_park.entity.GateDeviceDTO;
 import com.syan.smart_park.service.GateDeviceService;
@@ -28,6 +29,7 @@ public class GateDeviceController {
      *        /entrance/* /exit/* /online /faulty /search 等路由
      */
     @GetMapping("/list")
+    @RequirePermission("gate:list")
     public R<PageResult<GateDeviceDTO>> getGateDeviceList(
             @RequestParam(defaultValue = "1") int current,
             @RequestParam(defaultValue = "10") int size,
@@ -44,6 +46,7 @@ public class GateDeviceController {
      * 根据ID获取道闸设备详情
      */
     @GetMapping("/{id}")
+    @RequirePermission("gate:list")
     public R<GateDeviceDTO> getGateDeviceById(@PathVariable Long id) {
         GateDeviceDTO gateDeviceDTO = gateDeviceService.getGateDeviceById(id);
         if (gateDeviceDTO == null) {
@@ -56,6 +59,7 @@ public class GateDeviceController {
      * 创建道闸设备
      */
     @PostMapping
+    @RequirePermission("gate:create")
     public R<GateDeviceDTO> createGateDevice(@Valid @RequestBody GateDeviceDTO gateDeviceDTO) {
         GateDeviceDTO createdGateDevice = gateDeviceService.createGateDevice(gateDeviceDTO);
         if (createdGateDevice == null) {
@@ -68,6 +72,7 @@ public class GateDeviceController {
      * 更新道闸设备信息
      */
     @PutMapping("/{id}")
+    @RequirePermission("gate:update")
     public R<GateDeviceDTO> updateGateDevice(@PathVariable Long id,
                                              @Valid @RequestBody GateDeviceDTO gateDeviceDTO) {
         GateDeviceDTO updatedGateDevice = gateDeviceService.updateGateDevice(id, gateDeviceDTO);
@@ -81,6 +86,7 @@ public class GateDeviceController {
      * 更新设备心跳时间
      */
     @PutMapping("/{id}/heartbeat")
+    @RequirePermission("gate:update")
     public R<Boolean> updateHeartbeat(@PathVariable Long id,
                                       @RequestBody LocalDateTime lastHeartbeat) {
         boolean success = gateDeviceService.updateHeartbeat(id, lastHeartbeat);
@@ -94,6 +100,7 @@ public class GateDeviceController {
      * 批量更新设备状态
      */
     @PutMapping("/batch/status")
+    @RequirePermission("gate:update")
     public R<Boolean> batchUpdateStatus(@RequestParam List<Long> ids,
                                         @RequestParam Integer status) {
         boolean success = gateDeviceService.batchUpdateStatus(ids, status);

@@ -5,19 +5,18 @@ import com.syan.smart_park.common.exception.BusinessException;
 import com.syan.smart_park.common.exception.ReturnCode;
 import com.syan.smart_park.dao.PermissionMapper;
 import com.syan.smart_park.dao.RolePermissionMapper;
+import com.syan.smart_park.dao.UserRoleMapper;
 import com.syan.smart_park.entity.Permission;
 import com.syan.smart_park.entity.PermissionDTO;
 import com.syan.smart_park.entity.RolePermission;
+import com.syan.smart_park.entity.UserRole;
 import com.syan.smart_park.service.PermissionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -29,6 +28,7 @@ public class PermissionServiceImpl implements PermissionService {
 
     private final PermissionMapper permissionMapper;
     private final RolePermissionMapper rolePermissionMapper;
+    private final UserRoleMapper userRoleMapper;
 
     @Override
     public List<PermissionDTO> getAllPermissions() {
@@ -168,5 +168,87 @@ public class PermissionServiceImpl implements PermissionService {
         existing.setDeleted(1);
         existing.setUpdateTime(LocalDateTime.now());
         permissionMapper.updateById(existing);
+    }
+
+    @Override
+    public List<PermissionDTO> getUserMenuTree(Long userId) {
+        // 1. 获取用户的角色
+        QueryWrapper<UserRole> userRoleQuery = new QueryWrapper<>();
+        userRoleQuery.eq("user_id", userId);
+        List<UserRole> userRoles = userRoleMapper.selectList(userRoleQuery);
+
+        if (userRoles.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        Set<Long> userRoleIds = userRoles.stream()
+                .map(UserRole::getRoleId)
+                .collect(Collectors.toSet());
+
+        // 2. 获取角色拥有的权限ID
+        QueryWrapper<RolePermission> rpQuery = new QueryWrapper<>();
+        rpQuery.in("role_id", userRoleIds);
+        List<RolePermission> rolePermissions = rolePermissionMapper.selectList(rpQuery);
+
+        if (rolePermissions.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        Set<Long> userPermissionIds = rolePermissions.stream()
+                .map(RolePermission::getPermissionId)
+                .collect(Collectors.toSet());
+
+        // 3. 获取所有菜单权限（type=1）
+        QueryWrapper<Permission> menuQuery = new QueryWrapper<>();
+        menuQuery.eq("deleted", 0)
+                .eq("permission_type", 1)
+                .orderByAsc("sort_order", "create_time");
+        List<Permission> allMenus = permissionMapper.selectList(menuQuery);
+
+        if (allMenus.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        // 4. 构建完整菜单 ID -> 实体 映射
+        Map<Long, PermissionDTO> menuMap = allMenus.stream()
+                .map(PermissionDTO::fromPermission)
+                .collect(Collectors.toMap(PermissionDTO::getId, p -> p));
+
+        // 5. 收集用户有权限的菜单ID及其所有祖先ID
+        Set<Long> accessibleIds = new HashSet<>();
+        for (Permission p : allMenus) {
+            if (userPermissionIds.contains(p.getId())) {
+                // 将该节点及其所有祖先加入 accessibleIds
+                Long currentId = p.getId();
+                while (currentId != null) {
+                    accessibleIds.add(currentId);
+                    PermissionDTO current = menuMap.get(currentId);
+                    Long parentId = (current != null) ? current.getParentId() : null;
+                    if (parentId == null || parentId == 0) {
+                        break;
+                    }
+                    currentId = parentId;
+                }
+            }
+        }
+
+        // 6. 筛选出 accessible 的菜单，按 parentId 分组
+        List<PermissionDTO> accessibleMenus = allMenus.stream()
+                .map(PermissionDTO::fromPermission)
+                .filter(p -> accessibleIds.contains(p.getId()))
+                .collect(Collectors.toList());
+
+        // 7. 构建树
+        Map<Long, List<PermissionDTO>> parentIdMap = accessibleMenus.stream()
+                .filter(p -> p.getParentId() != null && p.getParentId() != 0)
+                .collect(Collectors.groupingBy(PermissionDTO::getParentId));
+
+        List<PermissionDTO> tree = accessibleMenus.stream()
+                .filter(p -> p.getParentId() == null || p.getParentId() == 0)
+                .sorted(Comparator.comparingInt(PermissionDTO::getSortOrder))
+                .collect(Collectors.toList());
+
+        buildChildren(tree, parentIdMap);
+        return tree;
     }
 }
