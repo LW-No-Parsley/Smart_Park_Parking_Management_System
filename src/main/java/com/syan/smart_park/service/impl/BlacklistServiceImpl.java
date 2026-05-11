@@ -5,17 +5,23 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.syan.smart_park.dao.BlacklistMapper;
 import com.syan.smart_park.entity.Blacklist;
 import com.syan.smart_park.entity.BlacklistDTO;
+import com.syan.smart_park.common.exception.BusinessException;
+import com.syan.smart_park.common.exception.ReturnCode;
 import com.syan.smart_park.service.BlacklistService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
  * 黑名单服务实现类
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class BlacklistServiceImpl extends ServiceImpl<BlacklistMapper, Blacklist> implements BlacklistService {
@@ -156,21 +162,31 @@ public class BlacklistServiceImpl extends ServiceImpl<BlacklistMapper, Blacklist
         if (ids == null || ids.isEmpty()) {
             return false;
         }
-        
+
         LambdaQueryWrapper<Blacklist> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.in(Blacklist::getId, ids)
                    .eq(Blacklist::getDeleted, 0);
-        
+
         List<Blacklist> blacklists = blacklistMapper.selectList(queryWrapper);
         if (blacklists.isEmpty()) {
             return false;
         }
-        
+
+        // 校验所有记录属于同一园区，防止越权跨园区操作
+        Set<Long> areaIds = blacklists.stream()
+                .map(Blacklist::getParkAreaId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        if (areaIds.size() > 1) {
+            log.warn("批量操作跨园区: IDs=" + ids + ", areas=" + areaIds);
+            throw new BusinessException(ReturnCode.RC403, "不允许跨园区批量操作");
+        }
+
         for (Blacklist blacklist : blacklists) {
             blacklist.setStatus(status);
             blacklistMapper.updateById(blacklist);
         }
-        
+
         return true;
     }
 

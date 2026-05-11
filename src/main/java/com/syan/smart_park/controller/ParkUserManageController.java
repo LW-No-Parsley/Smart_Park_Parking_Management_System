@@ -5,6 +5,7 @@ import com.syan.smart_park.common.annotation.RequirePermission;
 import com.syan.smart_park.entity.ParkUser;
 import com.syan.smart_park.entity.ParkUserDTO;
 import com.syan.smart_park.service.ParkUserService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -34,13 +35,20 @@ public class ParkUserManageController {
 
     @PostMapping
     @RequirePermission("system:user:create")
-    public R<ParkUserDTO> createParkUser(@RequestBody ParkUser parkUser) {
+    public R<ParkUserDTO> createParkUser(@Valid @RequestBody ParkUser parkUser) {
+        parkUser.setId(null);
+        parkUser.setStatus(null);
+        parkUser.setDeleted(null);
+        parkUser.setUserType(null);
         return R.success(parkUserService.createParkUser(parkUser));
     }
 
     @PutMapping("/{id}")
     @RequirePermission("system:user:update")
-    public R<ParkUserDTO> updateParkUser(@PathVariable Long id, @RequestBody ParkUser parkUser) {
+    public R<ParkUserDTO> updateParkUser(@PathVariable Long id, @Valid @RequestBody ParkUser parkUser) {
+        parkUser.setStatus(null);
+        parkUser.setDeleted(null);
+        parkUser.setUserType(null);
         return R.success(parkUserService.updateParkUser(id, parkUser));
     }
 

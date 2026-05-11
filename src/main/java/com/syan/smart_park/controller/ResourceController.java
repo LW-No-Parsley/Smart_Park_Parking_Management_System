@@ -46,8 +46,13 @@ public class ResourceController {
                 log.debug("映射category: images -> img");
             }
             
-            // 构建文件路径
-            Path filePath = Paths.get(RESOURCE_BASE_PATH, actualCategory, filename).normalize();
+            // 构建文件路径并校验路径遍历
+            Path basePath = Paths.get(RESOURCE_BASE_PATH).normalize().toAbsolutePath();
+            Path filePath = basePath.resolve(actualCategory).resolve(filename).normalize().toAbsolutePath();
+            if (!filePath.startsWith(basePath)) {
+                log.warn("路径遍历攻击拦截: {}/{} -> {}", category, filename, filePath);
+                return ResponseEntity.badRequest().build();
+            }
             Resource resource = new UrlResource(filePath.toUri());
 
             // 检查资源是否存在且可读

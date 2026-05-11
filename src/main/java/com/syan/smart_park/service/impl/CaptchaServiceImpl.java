@@ -38,7 +38,7 @@ public class CaptchaServiceImpl implements CaptchaService {
     private static final int HEIGHT = 40;
     private static final int CODE_COUNT = 4;
     private static final int LINE_COUNT = 4;
-    private static final int EXPIRE_MINUTES = 5; // 验证码有效期5分钟
+    private static final int EXPIRE_MINUTES = 2; // 验证码有效期2分钟
 
     @Override
     public CaptchaInfo generateCaptcha() {

@@ -4,6 +4,7 @@ import com.syan.smart_park.common.R;
 import com.syan.smart_park.common.exception.BusinessException;
 import com.syan.smart_park.common.exception.ReturnCode;
 import com.syan.smart_park.common.utils.JwtUtil;
+import com.syan.smart_park.common.utils.RateLimitUtil;
 import com.syan.smart_park.entity.User;
 import com.syan.smart_park.entity.LoginLog;
 import com.syan.smart_park.entity.RegisterRequestDTO;
@@ -56,6 +57,12 @@ public class AuthController {
      */
     @PostMapping("/login")
     public R<Map<String, Object>> login(@Valid @RequestBody LoginRequestDTO loginRequest, HttpServletRequest request) {
+        // 登录频率限制（按IP + 用户名）
+        String rateLimitKey = "login:" + loginRequest.getUsername();
+        if (!RateLimitUtil.tryAcquire(rateLimitKey)) {
+            return R.error(ReturnCode.RC607); // 登录尝试次数过多
+        }
+
         // 验证验证码
         boolean captchaValid = captchaService.validateCaptcha(loginRequest.getCaptchaId(), loginRequest.getCaptchaCode());
         if (!captchaValid) {

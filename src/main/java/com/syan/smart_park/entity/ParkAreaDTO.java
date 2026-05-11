@@ -1,6 +1,9 @@
 package com.syan.smart_park.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -21,11 +24,13 @@ public class ParkAreaDTO {
     /**
      * 园区名称
      */
+    @Size(max = 100)
     private String name;
-    
+
     /**
      * 园区地址
      */
+    @Size(max = 200)
     private String address;
     
     /**
@@ -61,6 +66,7 @@ public class ParkAreaDTO {
     /**
      * 园区状态：0-关闭，1-开放
      */
+    @Min(0) @Max(1)
     private Integer status;
     
     /**

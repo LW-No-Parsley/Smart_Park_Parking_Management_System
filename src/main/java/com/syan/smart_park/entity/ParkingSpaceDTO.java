@@ -1,5 +1,7 @@
 package com.syan.smart_park.entity;
 
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -34,11 +36,15 @@ public class ParkingSpaceDTO {
     /**
      * 车位类型：1-固定，2-临时，3-访客，4-残障专用
      */
+    @Min(value = 1, message = "车位类型不能小于1")
+    @Max(value = 4, message = "车位类型不能大于4")
     private Integer spaceType;
-    
+
     /**
      * 车位状态：0-禁用，1-正常，4-故障
      */
+    @Min(value = 0, message = "车位状态不能小于0")
+    @Max(value = 4, message = "车位状态不能大于4")
     private Integer status;
     
     /**

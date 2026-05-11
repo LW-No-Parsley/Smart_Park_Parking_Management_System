@@ -36,7 +36,7 @@ public class UserServiceImpl implements UserService {
         // 查询用户
         User user = findByUsername(username);
         if (user == null) {
-            throw new BusinessException(ReturnCode.RC600); // 用户不存在
+            throw new BusinessException(ReturnCode.RC601); // 统一为"用户名或密码错误"，防止枚举用户
         }
 
         // 检查用户状态

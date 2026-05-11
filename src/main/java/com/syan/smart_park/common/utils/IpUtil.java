@@ -114,8 +114,14 @@ public class IpUtil {
         if (request == null) {
             return UNKNOWN;
         }
-        
-        String ip = request.getHeader("x-forwarded-for");
+
+        // X-Real-IP 由可信反向代理（如 Nginx）设置，优先级最高
+        String ip = request.getHeader("X-Real-IP");
+        if (StringUtils.hasText(ip) && !UNKNOWN.equalsIgnoreCase(ip)) {
+            return ip.trim();
+        }
+
+        ip = request.getHeader("x-forwarded-for");
         if (!StringUtils.hasText(ip) || UNKNOWN.equalsIgnoreCase(ip)) {
             ip = request.getHeader("Proxy-Client-IP");
         }
@@ -140,12 +146,16 @@ public class IpUtil {
                 }
             }
         }
-        
+
         // 对于通过多个代理的情况，第一个IP为客户端真实IP
         if (StringUtils.hasText(ip) && ip.contains(SEPARATOR)) {
             ip = ip.split(SEPARATOR)[0].trim();
         }
-        
+
+        if (StringUtils.hasText(ip) && !UNKNOWN.equalsIgnoreCase(ip)) {
+            log.warn("未通过 X-Real-IP 获取客户端 IP，请确保反向代理已配置 X-Real-IP 头");
+        }
+
         return ip;
     }
 
@@ -266,10 +276,24 @@ public class IpUtil {
             return false;
         }
         
-        return ip.startsWith("192.168.") || 
-               ip.startsWith("10.") || 
-               ip.startsWith("172.") ||
-               LOCALHOST_IP.equals(ip) || 
+        return ip.startsWith("192.168.") ||
+               ip.startsWith("10.") ||
+               (ip.startsWith("172.") && isPrivate172(ip)) ||
+               ip.startsWith("127.") ||
                LOCALHOST_IPV6.equals(ip);
+    }
+
+    /**
+     * 判断是否为 RFC 1918 定义的 172.16.0.0/12 私有地址段
+     */
+    private static boolean isPrivate172(String ip) {
+        String[] parts = ip.split("\\.");
+        if (parts.length < 2) return false;
+        try {
+            int second = Integer.parseInt(parts[1]);
+            return second >= 16 && second <= 31;
+        } catch (NumberFormatException e) {
+            return false;
+        }
     }
 }

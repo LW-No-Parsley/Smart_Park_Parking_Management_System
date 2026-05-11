@@ -1,5 +1,10 @@
 package com.syan.smart_park.entity;
 
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -39,11 +44,13 @@ public class FeeRuleDTO {
     /**
      * 规则名称
      */
+    @Size(max = 100)
     private String ruleName;
 
     /**
      * 计费模式：1-按时间段计费，2-按次计费，3-阶梯计费
      */
+    @Min(1) @Max(3)
     private Integer feeMode;
 
     /**
@@ -64,11 +71,14 @@ public class FeeRuleDTO {
     /**
      * 每单位时长价格，如4.00
      */
+    @Positive(message = "单价必须大于零")
+    @DecimalMin(value = "0.01", message = "单价至少为0.01")
     private BigDecimal unitPrice;
 
     /**
      * 每日封顶金额（NULL表示不封顶）
      */
+    @DecimalMin(value = "0.01", message = "封顶金额至少为0.01")
     private BigDecimal dailyCap;
 
     /**
@@ -89,6 +99,8 @@ public class FeeRuleDTO {
     /**
      * 按次计费的固定价格
      */
+    @Positive(message = "固定价格必须大于零")
+    @DecimalMin(value = "0.01", message = "固定价格至少为0.01")
     private BigDecimal fixedPrice;
 
     /**
@@ -104,6 +116,7 @@ public class FeeRuleDTO {
     /**
      * 备注说明
      */
+    @Size(max = 500)
     private String remark;
 
     /**

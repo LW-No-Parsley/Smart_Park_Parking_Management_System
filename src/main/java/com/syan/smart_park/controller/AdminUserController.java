@@ -5,6 +5,7 @@ import com.syan.smart_park.common.annotation.RequirePermission;
 import com.syan.smart_park.entity.AdminUserDTO;
 import com.syan.smart_park.entity.User;
 import com.syan.smart_park.service.UserService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -38,13 +39,20 @@ public class AdminUserController {
 
     @PostMapping
     @RequirePermission("system:user:create")
-    public R<AdminUserDTO> createUser(@RequestBody User user) {
+    public R<AdminUserDTO> createUser(@Valid @RequestBody User user) {
+        // 防止客户端传入敏感字段（Mass Assignment）
+        user.setId(null);
+        user.setStatus(null);
+        user.setDeleted(null);
         return R.success(AdminUserDTO.fromUser(userService.createUser(user)));
     }
 
     @PutMapping("/{id}")
     @RequirePermission("system:user:update")
-    public R<AdminUserDTO> updateUser(@PathVariable Long id, @RequestBody User user) {
+    public R<AdminUserDTO> updateUser(@PathVariable Long id, @Valid @RequestBody User user) {
+        // 防止客户端修改敏感字段
+        user.setStatus(null);
+        user.setDeleted(null);
         return R.success(AdminUserDTO.fromUser(userService.updateUser(id, user)));
     }
 

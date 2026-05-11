@@ -35,6 +35,10 @@ public class SecurityConfig {
                         .requestMatchers("/api/park-user/refresh").permitAll()
                         .requestMatchers("/api/park-user/validate").permitAll()
 
+                        // App端公开接口
+                        .requestMatchers("/api/app/login").permitAll()
+                        .requestMatchers("/api/app/refresh").permitAll()
+
                         // 静态资源
                         .requestMatchers("/api/resources/**").permitAll()
                         
@@ -62,7 +66,7 @@ public class SecurityConfig {
                 )
                 .headers(headers -> headers
                         .frameOptions(frame -> frame
-                                .disable()  // 允许嵌入iframe（可选）
+                                .sameOrigin()  // 允许嵌入iframe（可选）
                         )
                 );
 

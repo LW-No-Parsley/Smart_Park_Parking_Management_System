@@ -685,7 +685,13 @@ INSERT INTO `sys_permission` (`id`, `permission_name`, `permission_code`, `permi
 -- 一级菜单：系统设置
 (60, '系统设置', 'system:settings:manage', 1, 0, '/settings', 'Setting', 14, 1),
 (61, '设置查看', 'system:settings:view', 2, 60, NULL, NULL, 1, 1),
-(62, '设置修改', 'system:settings:update', 2, 60, NULL, NULL, 2, 1);
+(62, '设置修改', 'system:settings:update', 2, 60, NULL, NULL, 2, 1),
+-- 二级菜单：权限管理（挂在系统管理下）
+(63, '权限管理', 'system:permission:manage', 1, 1, '/permission', 'Lock', 3, 1),
+(64, '权限查询', 'system:permission:list', 2, 63, NULL, NULL, 1, 1),
+(65, '权限新增', 'system:permission:create', 2, 63, NULL, NULL, 2, 1),
+(66, '权限修改', 'system:permission:update', 2, 63, NULL, NULL, 3, 1),
+(67, '权限删除', 'system:permission:delete', 2, 63, NULL, NULL, 4, 1);
 
 -- ----------------------------
 -- Initial role data (角色)

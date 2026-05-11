@@ -1,5 +1,8 @@
 package com.syan.smart_park.entity;
 
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -20,16 +23,19 @@ public class PermissionDTO {
     /**
      * 权限名称
      */
+    @Size(max = 100)
     private String permissionName;
-    
+
     /**
      * 权限编码
      */
+    @Size(max = 100)
     private String permissionCode;
     
     /**
      * 权限类型：1-菜单，2-按钮，3-接口
      */
+    @Min(1) @Max(3)
     private Integer permissionType;
     
     /**

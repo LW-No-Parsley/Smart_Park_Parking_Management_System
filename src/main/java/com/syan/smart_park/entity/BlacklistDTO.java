@@ -1,5 +1,8 @@
 package com.syan.smart_park.entity;
 
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -18,11 +21,13 @@ public class BlacklistDTO {
     /**
      * 车牌号
      */
+    @Size(min = 5, max = 10)
     private String plateNumber;
-    
+
     /**
      * 加入原因
      */
+    @Size(max = 500)
     private String reason;
     
     /**
@@ -48,6 +53,7 @@ public class BlacklistDTO {
     /**
      * 状态：0-禁用，1-生效
      */
+    @Min(0) @Max(1)
     private Integer status;
     
     /**

@@ -112,12 +112,12 @@ public class AuthServiceImpl implements AuthService {
         String browser = UserAgentUtil.getBrowser(request);
         String os = UserAgentUtil.getOs(request);
 
-        // 7. 记录登录日志
+        // 7. 记录登录日志（IP已脱敏）
         LoginLog loginLog = new LoginLog();
         loginLog.setUserId(user.getId());
         loginLog.setUsername(user.getUsername());
         loginLog.setLoginTime(LocalDateTime.now());
-        loginLog.setIpAddress(ipAddress);
+        loginLog.setIpAddress(maskIp(ipAddress));
         loginLog.setLocation(location);
         loginLog.setBrowser(browser);
         loginLog.setOs(os);
@@ -298,5 +298,20 @@ public class AuthServiceImpl implements AuthService {
         // 5. 记录重置请求（实际项目中应该保存到数据库）
         
         return true;
+    }
+
+    /**
+     * 对 IP 地址进行脱敏处理（保留前两段，后两段用 * 代替）
+     */
+    private String maskIp(String ip) {
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            return ip;
+        }
+        String[] parts = ip.split("\\.");
+        if (parts.length == 4) {
+            return parts[0] + "." + parts[1] + ".*.*";
+        }
+        // IPv6 或其他格式不处理
+        return ip;
     }
 }

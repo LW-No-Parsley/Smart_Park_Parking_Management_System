@@ -40,6 +40,16 @@ public class AccessLog {
     private Long vehicleId;
     
     /**
+     * 关联业主用户ID（park_user.id，可为空）
+     */
+    private Long userId;
+    
+    /**
+     * 关联预约ID（reservation.id，可为空）
+     */
+    private Long reservationId;
+    
+    /**
      * 进出类型：1-入场，2-出场
      */
     private Integer accessType;

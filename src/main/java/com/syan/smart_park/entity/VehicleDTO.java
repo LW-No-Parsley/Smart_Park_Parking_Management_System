@@ -1,5 +1,8 @@
 package com.syan.smart_park.entity;
 
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -28,31 +31,37 @@ public class VehicleDTO {
     /**
      * 车牌号
      */
+    @Size(min = 5, max = 10)
     private String plateNumber;
     
     /**
      * 是否默认车牌：0-否，1-是
      */
+    @Min(0) @Max(1)
     private Integer isDefault;
-    
+
     /**
      * 车辆类型：1-小车，2-大车，3-新能源车
      */
+    @Min(1) @Max(3)
     private Integer vehicleType;
     
     /**
      * 车辆品牌
      */
+    @Size(max = 50)
     private String brand;
-    
+
     /**
      * 车辆颜色
      */
+    @Size(max = 20)
     private String color;
     
     /**
      * 车辆状态：0-禁用，1-正常
      */
+    @Min(0) @Max(1)
     private Integer status;
 
     /**

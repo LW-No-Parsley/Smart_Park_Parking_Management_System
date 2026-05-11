@@ -7,6 +7,7 @@ import com.syan.smart_park.entity.FeeCalculationResult;
 import com.syan.smart_park.entity.ReservationDTO;
 import com.syan.smart_park.service.ReservationService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -54,13 +55,19 @@ public class ReservationController {
     @PostMapping
     @RequirePermission("reservation:list")
     public R<ReservationDTO> createReservation(@Valid @RequestBody ReservationDTO reservationDTO) {
+        // 覆盖客户端传入的业务敏感字段，防止越权操作
+        reservationDTO.setApprovalStatus(null);
+        reservationDTO.setPayStatus(null);
+        reservationDTO.setTotalFee(null);
+        reservationDTO.setPaidAmount(null);
+        reservationDTO.setStatus(null);
         ReservationDTO createdReservation = reservationService.createReservation(reservationDTO);
         if (createdReservation == null) {
             return R.error(ReturnCode.RC500); // 创建失败
         }
         return R.success(createdReservation);
     }
-    
+
     /**
      * 更新预约
      */
@@ -229,7 +236,7 @@ public class ReservationController {
     @RequirePermission("reservation:list")
     public R<Boolean> updatePaymentStatus(@PathVariable Long id,
                                           @RequestParam Integer payStatus,
-                                          @RequestParam BigDecimal paidAmount) {
+                                          @Positive @RequestParam BigDecimal paidAmount) {
         boolean result = reservationService.updatePaymentStatus(id, payStatus, paidAmount);
         if (!result) {
             return R.error(ReturnCode.RC500); // 更新失败
@@ -257,7 +264,7 @@ public class ReservationController {
     @RequirePermission("reservation:list")
     public R<Boolean> recordDeparture(@PathVariable Long id,
                                       @RequestParam LocalDateTime leaveTime,
-                                      @RequestParam BigDecimal totalFee) {
+                                      @Positive @RequestParam BigDecimal totalFee) {
         boolean result = reservationService.recordDeparture(id, leaveTime, totalFee);
         if (!result) {
             return R.error(ReturnCode.RC500); // 记录失败

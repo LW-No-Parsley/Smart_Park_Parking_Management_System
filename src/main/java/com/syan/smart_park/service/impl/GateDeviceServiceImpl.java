@@ -10,17 +10,23 @@ import com.syan.smart_park.entity.*;
 import com.syan.smart_park.entity.GateDevice;
 import com.syan.smart_park.entity.GateDeviceDTO;
 import com.syan.smart_park.service.GateDeviceService;
+import com.syan.smart_park.common.exception.BusinessException;
+import com.syan.smart_park.common.exception.ReturnCode;
 import com.syan.smart_park.service.OperationLogService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
  * 道闸设备服务实现类
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class GateDeviceServiceImpl extends ServiceImpl<GateDeviceMapper, GateDevice> implements GateDeviceService {
@@ -117,21 +123,31 @@ public class GateDeviceServiceImpl extends ServiceImpl<GateDeviceMapper, GateDev
         if (ids == null || ids.isEmpty()) {
             return false;
         }
-        
+
         LambdaQueryWrapper<GateDevice> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.in(GateDevice::getId, ids)
                    .eq(GateDevice::getDeleted, 0);
-        
+
         List<GateDevice> gateDevices = gateDeviceMapper.selectList(queryWrapper);
         if (gateDevices.isEmpty()) {
             return false;
         }
-        
+
+        // 校验所有记录属于同一园区，防止越权跨园区操作
+        Set<Long> areaIds = gateDevices.stream()
+                .map(GateDevice::getParkAreaId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        if (areaIds.size() > 1) {
+            log.warn("批量操作跨园区: IDs=" + ids + ", areas=" + areaIds);
+            throw new BusinessException(ReturnCode.RC403, "不允许跨园区批量操作");
+        }
+
         for (GateDevice gateDevice : gateDevices) {
             gateDevice.setStatus(status);
             gateDeviceMapper.updateById(gateDevice);
         }
-        
+
         return true;
     }
 }

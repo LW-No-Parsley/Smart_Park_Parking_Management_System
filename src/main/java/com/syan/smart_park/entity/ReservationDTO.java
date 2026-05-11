@@ -1,6 +1,8 @@
 package com.syan.smart_park.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -53,11 +55,13 @@ public class ReservationDTO {
     /**
      * 预约类型：1-车主预约，2-访客申请，3-保安现场
      */
+    @Min(1) @Max(3)
     private Integer reservationType;
-    
+
     /**
      * 审批状态：0-待审批，1-通过，2-拒绝
      */
+    @Min(0) @Max(2)
     private Integer approvalStatus;
     
     /**
@@ -83,6 +87,7 @@ public class ReservationDTO {
     /**
      * 创建来源：1-小程序，2-后台管理员，3-保安
      */
+    @Min(1) @Max(3)
     private Integer source;
     
     /**
@@ -98,6 +103,7 @@ public class ReservationDTO {
     /**
      * 预约状态：0-已取消，1-已预约，2-已使用，3-已过期
      */
+    @Min(0) @Max(3)
     private Integer status;
     
     /**
@@ -128,6 +134,7 @@ public class ReservationDTO {
     /**
      * 整单支付状态：0-未支付，1-已支付，2-部分支付，3-已退款
      */
+    @Min(0) @Max(3)
     private Integer payStatus;
     
     /**

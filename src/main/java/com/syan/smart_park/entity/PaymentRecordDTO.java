@@ -1,5 +1,9 @@
 package com.syan.smart_park.entity;
 
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Positive;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -29,13 +33,16 @@ public class PaymentRecordDTO {
     /**
      * 支付金额
      */
+    @Positive(message = "支付金额必须大于零")
+    @DecimalMin(value = "0.01", message = "支付金额至少为0.01")
     private BigDecimal amount;
     
     /**
      * 支付方式：1-微信支付，2-支付宝，3-余额支付
      */
+    @Min(1) @Max(3)
     private Integer paymentMethod;
-    
+
     /**
      * 第三方支付交易ID
      */
@@ -44,8 +51,9 @@ public class PaymentRecordDTO {
     /**
      * 支付状态：0-未支付，1-支付成功，2-支付失败，3-已退款
      */
+    @Min(0) @Max(3)
     private Integer paymentStatus;
-    
+
     /**
      * 支付时间
      */

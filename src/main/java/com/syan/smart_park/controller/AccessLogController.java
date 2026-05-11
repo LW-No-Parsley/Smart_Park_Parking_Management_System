@@ -5,6 +5,8 @@ import com.syan.smart_park.common.R;
 import com.syan.smart_park.common.annotation.RequirePermission;
 import com.syan.smart_park.common.exception.ReturnCode;
 import com.syan.smart_park.entity.AccessLogDTO;
+import com.syan.smart_park.entity.GateAccessDTO;
+import com.syan.smart_park.entity.GateAccessResult;
 import com.syan.smart_park.service.AccessLogService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +24,30 @@ import java.util.List;
 public class AccessLogController {
     
     private final AccessLogService accessLogService;
+
+    /**
+     * 闸机入场接口
+     * 设备只需要提供：园区ID + 设备编号 + 车牌号
+     * 系统自动判断：业主默认车辆 → 预约车辆 → 临时车
+     */
+    @PostMapping("/gate/entry")
+    public R<GateAccessResult> gateEntry(@Valid @RequestBody GateAccessDTO dto) {
+        dto.setAccessType(1); // 入场
+        GateAccessResult result = accessLogService.handleEntry(dto);
+        return R.success(result);
+    }
+
+    /**
+     * 闸机出场接口
+     * 设备只需要提供：园区ID + 设备编号 + 车牌号
+     * 系统自动执行：释放车位占用 + 更新预约 + 生成支付记录
+     */
+    @PostMapping("/gate/exit")
+    public R<GateAccessResult> gateExit(@Valid @RequestBody GateAccessDTO dto) {
+        dto.setAccessType(2); // 出场
+        GateAccessResult result = accessLogService.handleExit(dto);
+        return R.success(result);
+    }
 
     /**
      * 统一分页查询进出记录列表（支持多条件组合筛选）
