@@ -76,21 +76,6 @@ public interface AccessLogService extends IService<AccessLog> {
     boolean batchUpdateAccessLogs(List<AccessLogDTO> accessLogDTOs);
 
     /**
-     * 根据车牌号和时间范围查询进出记录
-     */
-    List<AccessLogDTO> getAccessLogsByPlateNumberAndTimeRange(String plateNumber, LocalDateTime startTime, LocalDateTime endTime);
-
-    /**
-     * 获取最近N条进出记录
-     */
-    List<AccessLogDTO> getRecentAccessLogs(Integer limit);
-
-    /**
-     * 获取异常进出记录（识别失败或黑名单）
-     */
-    List<AccessLogDTO> getExceptionAccessLogs();
-
-    /**
      * 更新识别结果
      */
     boolean updateRecognitionResult(Long id, Integer recognitionResult, String remark);

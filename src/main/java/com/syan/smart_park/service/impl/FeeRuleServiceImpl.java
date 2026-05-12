@@ -1,9 +1,11 @@
 package com.syan.smart_park.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.syan.smart_park.common.PageResult;
 import com.syan.smart_park.common.exception.BusinessException;
 import com.syan.smart_park.common.exception.ReturnCode;
 import com.syan.smart_park.dao.FeeRuleMapper;
@@ -36,11 +38,24 @@ public class FeeRuleServiceImpl extends ServiceImpl<FeeRuleMapper, FeeRule> impl
     private final ObjectMapper objectMapper;
 
     @Override
-    public List<FeeRuleDTO> getAllFeeRules() {
-        List<FeeRule> feeRules = this.list();
-        return feeRules.stream()
+    public PageResult<FeeRuleDTO> listFeeRules(Long parkAreaId, Integer status, Integer page, Integer size) {
+        LambdaQueryWrapper<FeeRule> queryWrapper = new LambdaQueryWrapper<>();
+        if (parkAreaId != null) {
+            queryWrapper.eq(FeeRule::getParkAreaId, parkAreaId);
+        }
+        if (status != null) {
+            queryWrapper.eq(FeeRule::getStatus, status);
+        }
+        queryWrapper.orderByAsc(FeeRule::getSortOrder);
+
+        Page<FeeRule> mpPage = new Page<>(page, size);
+        Page<FeeRule> resultPage = this.page(mpPage, queryWrapper);
+
+        List<FeeRuleDTO> dtos = resultPage.getRecords().stream()
                 .map(FeeRuleDTO::fromFeeRule)
                 .collect(Collectors.toList());
+
+        return PageResult.of(dtos, resultPage.getTotal(), resultPage.getCurrent(), resultPage.getSize());
     }
 
     @Override
@@ -75,28 +90,6 @@ public class FeeRuleServiceImpl extends ServiceImpl<FeeRuleMapper, FeeRule> impl
     @Transactional
     public boolean deleteFeeRule(Long id) {
         return this.removeById(id);
-    }
-
-    @Override
-    public List<FeeRuleDTO> getFeeRulesByParkAreaId(Long parkAreaId) {
-        LambdaQueryWrapper<FeeRule> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(FeeRule::getParkAreaId, parkAreaId)
-                   .orderByAsc(FeeRule::getSortOrder);
-        List<FeeRule> feeRules = this.list(queryWrapper);
-        return feeRules.stream()
-                .map(FeeRuleDTO::fromFeeRule)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public List<FeeRuleDTO> getFeeRulesByStatus(Integer status) {
-        LambdaQueryWrapper<FeeRule> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(FeeRule::getStatus, status)
-                   .orderByAsc(FeeRule::getSortOrder);
-        List<FeeRule> feeRules = this.list(queryWrapper);
-        return feeRules.stream()
-                .map(FeeRuleDTO::fromFeeRule)
-                .collect(Collectors.toList());
     }
 
     @Override

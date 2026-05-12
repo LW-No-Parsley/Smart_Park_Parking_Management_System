@@ -1,6 +1,8 @@
 package com.syan.smart_park.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.syan.smart_park.common.PageResult;
 import com.syan.smart_park.common.exception.BusinessException;
 import com.syan.smart_park.common.exception.ReturnCode;
 import com.syan.smart_park.dao.*;
@@ -29,11 +31,45 @@ public class RoleServiceImpl implements RoleService {
     private final UserMapper userMapper;
 
     @Override
-    public List<Role> getAllRoles() {
+    public PageResult<Role> listRoles(Long userId, Integer status, Integer page, Integer size) {
+        // 如果指定了 userId，先查出该用户的角色ID列表
+        if (userId != null) {
+            QueryWrapper<UserRole> userRoleQuery = new QueryWrapper<>();
+            userRoleQuery.eq("user_id", userId);
+            List<UserRole> userRoles = userRoleMapper.selectList(userRoleQuery);
+
+            if (userRoles.isEmpty()) {
+                return PageResult.empty();
+            }
+
+            List<Long> roleIds = userRoles.stream()
+                    .map(UserRole::getRoleId)
+                    .collect(Collectors.toList());
+
+            QueryWrapper<Role> roleQuery = new QueryWrapper<>();
+            roleQuery.in("id", roleIds)
+                    .eq("deleted", 0);
+            if (status != null) {
+                roleQuery.eq("status", status);
+            }
+            roleQuery.orderByAsc("create_time");
+
+            Page<Role> mpPage = new Page<>(page, size);
+            Page<Role> resultPage = roleMapper.selectPage(mpPage, roleQuery);
+            return PageResult.of(resultPage);
+        }
+
+        // 无 userId，直接查角色表
         QueryWrapper<Role> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("deleted", 0)
-                   .orderByAsc("create_time");
-        return roleMapper.selectList(queryWrapper);
+        queryWrapper.eq("deleted", 0);
+        if (status != null) {
+            queryWrapper.eq("status", status);
+        }
+        queryWrapper.orderByAsc("create_time");
+
+        Page<Role> mpPage = new Page<>(page, size);
+        Page<Role> resultPage = roleMapper.selectPage(mpPage, queryWrapper);
+        return PageResult.of(resultPage);
     }
 
     @Override
@@ -162,40 +198,6 @@ public class RoleServiceImpl implements RoleService {
     }
 
     @Override
-    public List<Role> getUserRoles(Long userId) {
-        // 查询用户角色关联
-        QueryWrapper<UserRole> userRoleQuery = new QueryWrapper<>();
-        userRoleQuery.eq("user_id", userId);
-        List<UserRole> userRoles = userRoleMapper.selectList(userRoleQuery);
-        
-        if (userRoles.isEmpty()) {
-            return new ArrayList<>();
-        }
-        
-        // 获取角色ID列表
-        List<Long> roleIds = userRoles.stream()
-                .map(UserRole::getRoleId)
-                .collect(Collectors.toList());
-        
-        // 查询角色信息
-        QueryWrapper<Role> roleQuery = new QueryWrapper<>();
-        roleQuery.in("id", roleIds)
-                .eq("deleted", 0)
-                .eq("status", 1);
-        
-        return roleMapper.selectList(roleQuery);
-    }
-
-    @Override
-    public List<Role> getRolesByStatus(Integer status) {
-        QueryWrapper<Role> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("deleted", 0)
-                   .eq("status", status)
-                   .orderByAsc("create_time");
-        return roleMapper.selectList(queryWrapper);
-    }
-
-    @Override
     public List<Long> getRolePermissionIds(Long roleId) {
         QueryWrapper<RolePermission> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("role_id", roleId);
@@ -305,8 +307,9 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     public List<Permission> getUserPermissions(Long userId) {
-        // 获取用户角色
-        List<Role> userRoles = getUserRoles(userId);
+        // 获取用户角色（使用 listRoles 统一查询，不分页取全部）
+        PageResult<Role> result = listRoles(userId, 1, 1, Integer.MAX_VALUE);
+        List<Role> userRoles = result.getRecords();
         if (userRoles.isEmpty()) {
             return new ArrayList<>();
         }

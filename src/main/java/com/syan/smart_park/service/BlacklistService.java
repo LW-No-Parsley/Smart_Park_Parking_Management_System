@@ -1,6 +1,7 @@
 package com.syan.smart_park.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.syan.smart_park.common.PageResult;
 import com.syan.smart_park.entity.Blacklist;
 import com.syan.smart_park.entity.BlacklistDTO;
 
@@ -12,9 +13,18 @@ import java.util.List;
 public interface BlacklistService extends IService<Blacklist> {
     
     /**
-     * 获取所有黑名单记录
+     * 统一查询黑名单列表（支持多条件筛选 + 分页）
+     *
+     * @param plateNumber 车牌号（可选，精确匹配）
+     * @param status      状态：0-禁用，1-生效（可选）
+     * @param createdBy   创建人ID（可选）
+     * @param keyword     搜索关键词，按车牌号/原因模糊搜索（可选）
+     * @param expired     是否已过期（可选）
+     * @param page        页码
+     * @param size        每页大小
      */
-    List<BlacklistDTO> getAllBlacklists();
+    PageResult<BlacklistDTO> listBlacklists(String plateNumber, Integer status, Long createdBy,
+                                            String keyword, Boolean expired, Integer page, Integer size);
     
     /**
      * 根据ID获取黑名单记录
@@ -37,42 +47,12 @@ public interface BlacklistService extends IService<Blacklist> {
     boolean deleteBlacklist(Long id);
     
     /**
-     * 根据车牌号查询黑名单记录
-     */
-    List<BlacklistDTO> getBlacklistsByPlateNumber(String plateNumber);
-    
-    /**
-     * 根据状态查询黑名单记录
-     */
-    List<BlacklistDTO> getBlacklistsByStatus(Integer status);
-    
-    /**
      * 检查车牌号是否在黑名单中
      */
     boolean isPlateNumberInBlacklist(String plateNumber);
     
     /**
-     * 获取当前生效的黑名单记录
-     */
-    List<BlacklistDTO> getActiveBlacklists();
-    
-    /**
-     * 获取已过期的黑名单记录
-     */
-    List<BlacklistDTO> getExpiredBlacklists();
-    
-    /**
      * 批量更新黑名单状态
      */
     boolean batchUpdateStatus(List<Long> ids, Integer status);
-    
-    /**
-     * 根据创建人查询黑名单记录
-     */
-    List<BlacklistDTO> getBlacklistsByCreatedBy(Long createdBy);
-    
-    /**
-     * 搜索黑名单记录
-     */
-    List<BlacklistDTO> searchBlacklists(String keyword);
 }

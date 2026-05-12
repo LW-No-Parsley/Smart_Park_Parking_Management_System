@@ -1,7 +1,9 @@
 package com.syan.smart_park.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.syan.smart_park.common.PageResult;
 import com.syan.smart_park.dao.ParkUserMapper;
 import com.syan.smart_park.dao.VehicleMapper;
 import com.syan.smart_park.dao.ParkingSpaceMapper;
@@ -131,14 +133,39 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
     }
 
     @Override
-    public List<VehicleDTO> getAllVehicles() {
-        List<Vehicle> vehicles = this.list();
-        List<VehicleDTO> dtos = vehicles.stream()
+    public PageResult<VehicleDTO> listVehicles(Long userId, String plateNumber, Integer status,
+                                               Integer vehicleType, Integer isDefault, Integer page, Integer size) {
+        LambdaQueryWrapper<Vehicle> queryWrapper = new LambdaQueryWrapper<>();
+        if (userId != null) {
+            queryWrapper.eq(Vehicle::getUserId, userId);
+        }
+        if (plateNumber != null && !plateNumber.trim().isEmpty()) {
+            queryWrapper.like(Vehicle::getPlateNumber, plateNumber.trim());
+        }
+        if (status != null) {
+            queryWrapper.eq(Vehicle::getStatus, status);
+        }
+        if (vehicleType != null) {
+            queryWrapper.eq(Vehicle::getVehicleType, vehicleType);
+        }
+        if (isDefault != null) {
+            queryWrapper.eq(Vehicle::getIsDefault, isDefault);
+        }
+        queryWrapper.orderByDesc(Vehicle::getCreateTime);
+
+        // 使用 MyBatis-Plus 分页
+        com.baomidou.mybatisplus.extension.plugins.pagination.Page<Vehicle> mpPage =
+                new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(page, size);
+        com.baomidou.mybatisplus.extension.plugins.pagination.Page<Vehicle> resultPage =
+                this.page(mpPage, queryWrapper);
+
+        List<VehicleDTO> dtos = resultPage.getRecords().stream()
                 .map(VehicleDTO::fromVehicle)
                 .collect(Collectors.toList());
         fillUsernames(dtos);
         fillSpaceIds(dtos);
-        return dtos;
+
+        return PageResult.of(dtos, resultPage.getTotal(), resultPage.getCurrent(), resultPage.getSize());
     }
 
     @Override
@@ -349,68 +376,6 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
         }
 
         return result;
-    }
-
-    @Override
-    public List<VehicleDTO> getVehiclesByUserId(Long userId) {
-        LambdaQueryWrapper<Vehicle> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(Vehicle::getUserId, userId);
-        List<Vehicle> vehicles = this.list(queryWrapper);
-        List<VehicleDTO> dtos = vehicles.stream()
-                .map(VehicleDTO::fromVehicle)
-                .collect(Collectors.toList());
-        fillUsernames(dtos);
-        fillSpaceIds(dtos);
-        return dtos;
-    }
-
-    @Override
-    public VehicleDTO getVehicleByPlateNumber(String plateNumber) {
-        LambdaQueryWrapper<Vehicle> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(Vehicle::getPlateNumber, plateNumber);
-        Vehicle vehicle = this.getOne(queryWrapper);
-        VehicleDTO dto = VehicleDTO.fromVehicle(vehicle);
-        fillUsername(dto);
-        fillSpaceId(dto);
-        return dto;
-    }
-
-    @Override
-    public List<VehicleDTO> getVehiclesByStatus(Integer status) {
-        LambdaQueryWrapper<Vehicle> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(Vehicle::getStatus, status);
-        List<Vehicle> vehicles = this.list(queryWrapper);
-        List<VehicleDTO> dtos = vehicles.stream()
-                .map(VehicleDTO::fromVehicle)
-                .collect(Collectors.toList());
-        fillUsernames(dtos);
-        fillSpaceIds(dtos);
-        return dtos;
-    }
-
-    @Override
-    public List<VehicleDTO> getVehiclesByType(Integer vehicleType) {
-        LambdaQueryWrapper<Vehicle> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(Vehicle::getVehicleType, vehicleType);
-        List<Vehicle> vehicles = this.list(queryWrapper);
-        List<VehicleDTO> dtos = vehicles.stream()
-                .map(VehicleDTO::fromVehicle)
-                .collect(Collectors.toList());
-        fillUsernames(dtos);
-        fillSpaceIds(dtos);
-        return dtos;
-    }
-
-    @Override
-    public VehicleDTO getDefaultVehicleByUserId(Long userId) {
-        LambdaQueryWrapper<Vehicle> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(Vehicle::getUserId, userId)
-                   .eq(Vehicle::getIsDefault, 1);
-        Vehicle vehicle = this.getOne(queryWrapper);
-        VehicleDTO dto = VehicleDTO.fromVehicle(vehicle);
-        fillUsername(dto);
-        fillSpaceId(dto);
-        return dto;
     }
 
     @Override

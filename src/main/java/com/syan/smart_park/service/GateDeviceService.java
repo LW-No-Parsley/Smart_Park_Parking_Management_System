@@ -58,6 +58,14 @@ public interface GateDeviceService extends IService<GateDevice> {
     boolean updateHeartbeat(Long id, java.time.LocalDateTime lastHeartbeat);
 
     /**
+     * 更新单个设备状态
+     * @param id 设备ID
+     * @param status 设备状态
+     * @return 是否更新成功
+     */
+    boolean updateGateDeviceStatus(Long id, Integer status);
+
+    /**
      * 批量更新设备状态
      * @param ids 设备ID列表
      * @param status 设备状态

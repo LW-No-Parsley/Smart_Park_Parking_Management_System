@@ -1,6 +1,7 @@
 package com.syan.smart_park.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.syan.smart_park.common.PageResult;
 import com.syan.smart_park.entity.ParkArea;
 import com.syan.smart_park.entity.ParkAreaDTO;
 import com.syan.smart_park.entity.ParkAreaOccupancyStats;
@@ -13,10 +14,14 @@ import java.util.List;
 public interface ParkAreaService extends IService<ParkArea> {
 
     /**
-     * 获取所有园区列表
-     * @return 园区DTO列表
+     * 统一查询园区列表（支持多条件筛选 + 分页）
+     *
+     * @param status  园区状态：0-关闭，1-开放（可选）
+     * @param keyword 搜索关键词，按名称或地址模糊搜索（可选）
+     * @param page    页码
+     * @param size    每页大小
      */
-    List<ParkAreaDTO> getAllParkAreas();
+    PageResult<ParkAreaDTO> listParkAreas(Integer status, String keyword, Integer page, Integer size);
 
     /**
      * 根据ID获取园区详情
@@ -48,13 +53,6 @@ public interface ParkAreaService extends IService<ParkArea> {
     boolean deleteParkArea(Long id);
 
     /**
-     * 根据状态获取园区列表
-     * @param status 园区状态
-     * @return 园区DTO列表
-     */
-    List<ParkAreaDTO> getParkAreasByStatus(Integer status);
-
-    /**
      * 更新园区总车位数
      * @param parkAreaId 园区ID
      * @return 是否更新成功
@@ -81,11 +79,4 @@ public interface ParkAreaService extends IService<ParkArea> {
      * @return 所有园区的占用统计信息列表
      */
     List<ParkAreaOccupancyStats> getAllParkAreasOccupancyStats();
-    
-    /**
-     * 搜索园区
-     * @param keyword 搜索关键词（园区名称或地址）
-     * @return 园区DTO列表
-     */
-    List<ParkAreaDTO> searchParkAreas(String keyword);
 }

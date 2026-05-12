@@ -1,5 +1,6 @@
 package com.syan.smart_park.service;
 
+import com.syan.smart_park.common.PageResult;
 import com.syan.smart_park.entity.Role;
 import com.syan.smart_park.entity.Permission;
 
@@ -11,11 +12,14 @@ import java.util.List;
 public interface RoleService {
     
     /**
-     * 获取所有角色
+     * 统一查询角色列表（支持多条件筛选 + 分页）
      *
-     * @return 角色列表
+     * @param userId 用户ID（可选，查询该用户拥有的角色）
+     * @param status 角色状态：0-禁用，1-启用（可选）
+     * @param page   页码
+     * @param size   每页大小
      */
-    List<Role> getAllRoles();
+    PageResult<Role> listRoles(Long userId, Integer status, Integer page, Integer size);
     
     /**
      * 根据ID获取角色
@@ -68,28 +72,12 @@ public interface RoleService {
     boolean removeRoleFromUser(Long userId, Long roleId);
     
     /**
-     * 获取用户的角色列表
-     *
-     * @param userId 用户ID
-     * @return 角色列表
-     */
-    List<Role> getUserRoles(Long userId);
-    
-    /**
      * 获取所有权限
      *
      * @return 权限列表
      */
     List<Permission> getAllPermissions();
     
-    /**
-     * 根据状态获取角色列表
-     *
-     * @param status 角色状态：0-禁用，1-启用
-     * @return 角色列表
-     */
-    List<Role> getRolesByStatus(Integer status);
-
     /**
      * 获取角色的权限ID列表
      *

@@ -150,6 +150,11 @@ public class ExceptionReportServiceImpl extends ServiceImpl<ExceptionReportMappe
         return ExceptionReportDTO.fromExceptionReport(exceptionReport);
     }
 
+    @Override
+    public boolean deleteExceptionReport(Long id) {
+        return this.removeById(id);
+    }
+
     /**
      * 填充单个DTO的上报用户姓名和处理人姓名
      */

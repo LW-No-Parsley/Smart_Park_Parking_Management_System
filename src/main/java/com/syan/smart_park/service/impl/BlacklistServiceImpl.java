@@ -1,7 +1,9 @@
 package com.syan.smart_park.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.syan.smart_park.common.PageResult;
 import com.syan.smart_park.dao.BlacklistMapper;
 import com.syan.smart_park.entity.Blacklist;
 import com.syan.smart_park.entity.BlacklistDTO;
@@ -29,14 +31,42 @@ public class BlacklistServiceImpl extends ServiceImpl<BlacklistMapper, Blacklist
     private final BlacklistMapper blacklistMapper;
 
     @Override
-    public List<BlacklistDTO> getAllBlacklists() {
+    public PageResult<BlacklistDTO> listBlacklists(String plateNumber, Integer status, Long createdBy,
+                                                   String keyword, Boolean expired, Integer page, Integer size) {
         LambdaQueryWrapper<Blacklist> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(Blacklist::getDeleted, 0);
+
+        if (plateNumber != null && !plateNumber.trim().isEmpty()) {
+            queryWrapper.eq(Blacklist::getPlateNumber, plateNumber.trim());
+        }
+        if (status != null) {
+            queryWrapper.eq(Blacklist::getStatus, status);
+        }
+        if (createdBy != null) {
+            queryWrapper.eq(Blacklist::getCreatedBy, createdBy);
+        }
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            queryWrapper.and(w -> w.like(Blacklist::getPlateNumber, keyword.trim())
+                                   .or().like(Blacklist::getReason, keyword.trim()));
+        }
+        if (expired != null && expired) {
+            queryWrapper.lt(Blacklist::getEndTime, LocalDateTime.now());
+        } else if (expired != null && !expired) {
+            // 未过期：生效中（status=1 且在有效期内）
+            queryWrapper.eq(Blacklist::getStatus, 1)
+                       .le(Blacklist::getStartTime, LocalDateTime.now())
+                       .ge(Blacklist::getEndTime, LocalDateTime.now());
+        }
         queryWrapper.orderByDesc(Blacklist::getCreateTime);
-        
-        List<Blacklist> blacklists = blacklistMapper.selectList(queryWrapper);
-        return blacklists.stream()
-                         .map(BlacklistDTO::fromBlacklist)
-                         .collect(Collectors.toList());
+
+        Page<Blacklist> mpPage = new Page<>(page, size);
+        Page<Blacklist> resultPage = blacklistMapper.selectPage(mpPage, queryWrapper);
+
+        List<BlacklistDTO> dtos = resultPage.getRecords().stream()
+                .map(BlacklistDTO::fromBlacklist)
+                .collect(Collectors.toList());
+
+        return PageResult.of(dtos, resultPage.getTotal(), resultPage.getCurrent(), resultPage.getSize());
     }
 
     @Override
@@ -89,30 +119,6 @@ public class BlacklistServiceImpl extends ServiceImpl<BlacklistMapper, Blacklist
     }
 
     @Override
-    public List<BlacklistDTO> getBlacklistsByPlateNumber(String plateNumber) {
-        LambdaQueryWrapper<Blacklist> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(Blacklist::getPlateNumber, plateNumber)
-                   .orderByDesc(Blacklist::getCreateTime);
-        
-        List<Blacklist> blacklists = blacklistMapper.selectList(queryWrapper);
-        return blacklists.stream()
-                         .map(BlacklistDTO::fromBlacklist)
-                         .collect(Collectors.toList());
-    }
-
-    @Override
-    public List<BlacklistDTO> getBlacklistsByStatus(Integer status) {
-        LambdaQueryWrapper<Blacklist> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(Blacklist::getStatus, status)
-                   .orderByDesc(Blacklist::getCreateTime);
-        
-        List<Blacklist> blacklists = blacklistMapper.selectList(queryWrapper);
-        return blacklists.stream()
-                         .map(BlacklistDTO::fromBlacklist)
-                         .collect(Collectors.toList());
-    }
-
-    @Override
     public boolean isPlateNumberInBlacklist(String plateNumber) {
         LambdaQueryWrapper<Blacklist> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(Blacklist::getPlateNumber, plateNumber)
@@ -121,34 +127,6 @@ public class BlacklistServiceImpl extends ServiceImpl<BlacklistMapper, Blacklist
                    .ge(Blacklist::getEndTime, LocalDateTime.now()); // 失效时间 >= 当前时间
         
         return blacklistMapper.selectCount(queryWrapper) > 0;
-    }
-
-    @Override
-    public List<BlacklistDTO> getActiveBlacklists() {
-        LambdaQueryWrapper<Blacklist> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(Blacklist::getDeleted, 0)
-                   .eq(Blacklist::getStatus, 1) // 生效状态
-                   .le(Blacklist::getStartTime, LocalDateTime.now()) // 生效时间 <= 当前时间
-                   .ge(Blacklist::getEndTime, LocalDateTime.now()) // 失效时间 >= 当前时间
-                   .orderByDesc(Blacklist::getCreateTime);
-        
-        List<Blacklist> blacklists = blacklistMapper.selectList(queryWrapper);
-        return blacklists.stream()
-                         .map(BlacklistDTO::fromBlacklist)
-                         .collect(Collectors.toList());
-    }
-
-    @Override
-    public List<BlacklistDTO> getExpiredBlacklists() {
-        LambdaQueryWrapper<Blacklist> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(Blacklist::getDeleted, 0)
-                   .lt(Blacklist::getEndTime, LocalDateTime.now()) // 失效时间 < 当前时间
-                   .orderByDesc(Blacklist::getCreateTime);
-        
-        List<Blacklist> blacklists = blacklistMapper.selectList(queryWrapper);
-        return blacklists.stream()
-                         .map(BlacklistDTO::fromBlacklist)
-                         .collect(Collectors.toList());
     }
 
     @Override
@@ -182,34 +160,5 @@ public class BlacklistServiceImpl extends ServiceImpl<BlacklistMapper, Blacklist
         }
 
         return true;
-    }
-
-    @Override
-    public List<BlacklistDTO> getBlacklistsByCreatedBy(Long createdBy) {
-        LambdaQueryWrapper<Blacklist> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(Blacklist::getDeleted, 0)
-                   .eq(Blacklist::getCreatedBy, createdBy)
-                   .orderByDesc(Blacklist::getCreateTime);
-        
-        List<Blacklist> blacklists = blacklistMapper.selectList(queryWrapper);
-        return blacklists.stream()
-                         .map(BlacklistDTO::fromBlacklist)
-                         .collect(Collectors.toList());
-    }
-
-    @Override
-    public List<BlacklistDTO> searchBlacklists(String keyword) {
-        LambdaQueryWrapper<Blacklist> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(Blacklist::getDeleted, 0)
-                   .and(wrapper -> wrapper
-                       .like(Blacklist::getPlateNumber, keyword)
-                       .or()
-                       .like(Blacklist::getReason, keyword))
-                   .orderByDesc(Blacklist::getCreateTime);
-        
-        List<Blacklist> blacklists = blacklistMapper.selectList(queryWrapper);
-        return blacklists.stream()
-                         .map(BlacklistDTO::fromBlacklist)
-                         .collect(Collectors.toList());
     }
 }

@@ -2,6 +2,8 @@ package com.syan.smart_park.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.syan.smart_park.common.PageResult;
 import com.syan.smart_park.common.exception.BusinessException;
 import com.syan.smart_park.common.exception.ReturnCode;
 import com.syan.smart_park.dao.ParkUserMapper;
@@ -102,13 +104,25 @@ public class ParkUserServiceImpl implements ParkUserService {
     // ====== 园区用户管理 ======
 
     @Override
-    public List<ParkUserDTO> getAllParkUsers() {
+    public PageResult<ParkUserDTO> listParkUsers(Integer status, Integer userType, Integer page, Integer size) {
         QueryWrapper<ParkUser> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("deleted", 0)
-                   .orderByAsc("create_time");
-        return parkUserMapper.selectList(queryWrapper).stream()
+        queryWrapper.eq("deleted", 0);
+        if (status != null) {
+            queryWrapper.eq("status", status);
+        }
+        if (userType != null) {
+            queryWrapper.eq("user_type", userType);
+        }
+        queryWrapper.orderByAsc("create_time");
+
+        Page<ParkUser> mpPage = new Page<>(page, size);
+        Page<ParkUser> resultPage = parkUserMapper.selectPage(mpPage, queryWrapper);
+
+        List<ParkUserDTO> dtos = resultPage.getRecords().stream()
                 .map(ParkUserDTO::fromParkUser)
                 .collect(Collectors.toList());
+
+        return PageResult.of(dtos, resultPage.getTotal(), resultPage.getCurrent(), resultPage.getSize());
     }
 
     @Override
@@ -180,27 +194,5 @@ public class ParkUserServiceImpl implements ParkUserService {
         parkUser.setDeleted(1);
         parkUser.setUpdateTime(LocalDateTime.now());
         parkUserMapper.updateById(parkUser);
-    }
-
-    @Override
-    public List<ParkUserDTO> getParkUsersByStatus(Integer status) {
-        QueryWrapper<ParkUser> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("deleted", 0)
-                   .eq("status", status)
-                   .orderByAsc("create_time");
-        return parkUserMapper.selectList(queryWrapper).stream()
-                .map(ParkUserDTO::fromParkUser)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public List<ParkUserDTO> getParkUsersByType(Integer userType) {
-        QueryWrapper<ParkUser> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("deleted", 0)
-                   .eq("user_type", userType)
-                   .orderByAsc("create_time");
-        return parkUserMapper.selectList(queryWrapper).stream()
-                .map(ParkUserDTO::fromParkUser)
-                .collect(Collectors.toList());
     }
 }

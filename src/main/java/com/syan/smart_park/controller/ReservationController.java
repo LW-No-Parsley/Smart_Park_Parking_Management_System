@@ -1,5 +1,6 @@
 package com.syan.smart_park.controller;
 
+import com.syan.smart_park.common.PageResult;
 import com.syan.smart_park.common.R;
 import com.syan.smart_park.common.annotation.RequirePermission;
 import com.syan.smart_park.common.exception.ReturnCode;
@@ -27,13 +28,40 @@ public class ReservationController {
     private final ReservationService reservationService;
     
     /**
-     * 获取所有预约列表
+     * 统一查询预约列表（支持多条件筛选 + 分页）
+     *
+     * @param userId         用户ID（可选）
+     * @param vehicleId      车辆ID（可选）
+     * @param spaceId        车位ID（可选）
+     * @param reservationType 预约类型（可选）
+     * @param approvalStatus 审批状态：0-待审批，1-通过，2-拒绝（可选）
+     * @param status         预约状态：0-已取消，1-已预约，2-已使用，3-已过期（可选）
+     * @param payStatus      支付状态：0-未支付，1-已支付，2-部分支付，3-已退款（可选）
+     * @param source         创建来源：1-小程序，2-后台管理员，3-保安（可选）
+     * @param startTime      预约开始时间（可选）
+     * @param endTime        预约结束时间（可选）
+     * @param page           页码（默认1）
+     * @param size           每页大小（默认10）
      */
     @GetMapping("/list")
     @RequirePermission("reservation:list")
-    public R<List<ReservationDTO>> getAllReservations() {
-        List<ReservationDTO> reservations = reservationService.getAllReservations();
-        return R.success(reservations);
+    public R<PageResult<ReservationDTO>> listReservations(
+            @RequestParam(required = false) Long userId,
+            @RequestParam(required = false) Long vehicleId,
+            @RequestParam(required = false) Long spaceId,
+            @RequestParam(required = false) Integer reservationType,
+            @RequestParam(required = false) Integer approvalStatus,
+            @RequestParam(required = false) Integer status,
+            @RequestParam(required = false) Integer payStatus,
+            @RequestParam(required = false) Integer source,
+            @RequestParam(required = false) LocalDateTime startTime,
+            @RequestParam(required = false) LocalDateTime endTime,
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(defaultValue = "10") Integer size) {
+        PageResult<ReservationDTO> result = reservationService.listReservations(
+                userId, vehicleId, spaceId, reservationType, approvalStatus,
+                status, payStatus, source, startTime, endTime, page, size);
+        return R.success(result);
     }
     
     /**
@@ -44,7 +72,7 @@ public class ReservationController {
     public R<ReservationDTO> getReservationById(@PathVariable Long id) {
         ReservationDTO reservation = reservationService.getReservationById(id);
         if (reservation == null) {
-            return R.error(ReturnCode.RC1300); // 数据不存在
+            return R.error(ReturnCode.RC1300);
         }
         return R.success(reservation);
     }
@@ -92,98 +120,6 @@ public class ReservationController {
             return R.error(ReturnCode.RC1300); // 数据不存在或删除失败
         }
         return R.success(true);
-    }
-    
-    /**
-     * 根据用户ID获取预约列表
-     */
-    @GetMapping("/user/{userId}")
-    @RequirePermission("reservation:list")
-    public R<List<ReservationDTO>> getReservationsByUserId(@PathVariable Long userId) {
-        List<ReservationDTO> reservations = reservationService.getReservationsByUserId(userId);
-        return R.success(reservations);
-    }
-    
-    /**
-     * 根据车辆ID获取预约列表
-     */
-    @GetMapping("/vehicle/{vehicleId}")
-    @RequirePermission("reservation:list")
-    public R<List<ReservationDTO>> getReservationsByVehicleId(@PathVariable Long vehicleId) {
-        List<ReservationDTO> reservations = reservationService.getReservationsByVehicleId(vehicleId);
-        return R.success(reservations);
-    }
-    
-    /**
-     * 根据车位ID获取预约列表
-     */
-    @GetMapping("/space/{spaceId}")
-    @RequirePermission("reservation:list")
-    public R<List<ReservationDTO>> getReservationsBySpaceId(@PathVariable Long spaceId) {
-        List<ReservationDTO> reservations = reservationService.getReservationsBySpaceId(spaceId);
-        return R.success(reservations);
-    }
-    
-    /**
-     * 根据预约类型获取预约列表
-     */
-    @GetMapping("/type/{reservationType}")
-    @RequirePermission("reservation:list")
-    public R<List<ReservationDTO>> getReservationsByType(@PathVariable Integer reservationType) {
-        List<ReservationDTO> reservations = reservationService.getReservationsByType(reservationType);
-        return R.success(reservations);
-    }
-    
-    /**
-     * 根据审批状态获取预约列表
-     */
-    @GetMapping("/approval-status/{approvalStatus}")
-    @RequirePermission("reservation:list")
-    public R<List<ReservationDTO>> getReservationsByApprovalStatus(@PathVariable Integer approvalStatus) {
-        List<ReservationDTO> reservations = reservationService.getReservationsByApprovalStatus(approvalStatus);
-        return R.success(reservations);
-    }
-    
-    /**
-     * 根据预约状态获取预约列表
-     */
-    @GetMapping("/status/{status}")
-    @RequirePermission("reservation:list")
-    public R<List<ReservationDTO>> getReservationsByStatus(@PathVariable Integer status) {
-        List<ReservationDTO> reservations = reservationService.getReservationsByStatus(status);
-        return R.success(reservations);
-    }
-    
-    /**
-     * 根据支付状态获取预约列表
-     */
-    @GetMapping("/pay-status/{payStatus}")
-    @RequirePermission("reservation:list")
-    public R<List<ReservationDTO>> getReservationsByPayStatus(@PathVariable Integer payStatus) {
-        List<ReservationDTO> reservations = reservationService.getReservationsByPayStatus(payStatus);
-        return R.success(reservations);
-    }
-    
-    /**
-     * 根据创建来源获取预约列表
-     */
-    @GetMapping("/source/{source}")
-    @RequirePermission("reservation:list")
-    public R<List<ReservationDTO>> getReservationsBySource(@PathVariable Integer source) {
-        List<ReservationDTO> reservations = reservationService.getReservationsBySource(source);
-        return R.success(reservations);
-    }
-    
-    /**
-     * 获取指定时间范围内的预约列表
-     */
-    @GetMapping("/time-range")
-    @RequirePermission("reservation:list")
-    public R<List<ReservationDTO>> getReservationsByTimeRange(
-            @RequestParam LocalDateTime startTime,
-            @RequestParam LocalDateTime endTime) {
-        List<ReservationDTO> reservations = reservationService.getReservationsByTimeRange(startTime, endTime);
-        return R.success(reservations);
     }
     
     /**
@@ -283,16 +219,6 @@ public class ReservationController {
             return R.error(ReturnCode.RC500); // 批量更新失败
         }
         return R.success(true);
-    }
-    
-    /**
-     * 获取待审批的预约列表
-     */
-    @GetMapping("/pending-approval")
-    @RequirePermission("reservation:approve")
-    public R<List<ReservationDTO>> getPendingApprovalReservations() {
-        List<ReservationDTO> reservations = reservationService.getPendingApprovalReservations();
-        return R.success(reservations);
     }
     
     /**

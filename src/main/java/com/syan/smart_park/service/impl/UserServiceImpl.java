@@ -2,6 +2,8 @@ package com.syan.smart_park.service.impl;
 
 import cn.hutool.crypto.digest.DigestUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.syan.smart_park.common.PageResult;
 import com.syan.smart_park.common.exception.BusinessException;
 import com.syan.smart_park.common.exception.ReturnCode;
 import com.syan.smart_park.dao.UserMapper;
@@ -13,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 用户服务实现类
@@ -115,11 +118,18 @@ public class UserServiceImpl implements UserService {
     // ====== 管理员用户管理 ======
 
     @Override
-    public List<User> getAllUsers() {
+    public PageResult<User> listUsers(Integer status, Integer page, Integer size) {
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("deleted", 0)
-                   .orderByAsc("create_time");
-        return userMapper.selectList(queryWrapper);
+        queryWrapper.eq("deleted", 0);
+        if (status != null) {
+            queryWrapper.eq("status", status);
+        }
+        queryWrapper.orderByAsc("create_time");
+
+        Page<User> mpPage = new Page<>(page, size);
+        Page<User> resultPage = userMapper.selectPage(mpPage, queryWrapper);
+
+        return PageResult.of(resultPage);
     }
 
     @Override
@@ -192,14 +202,5 @@ public class UserServiceImpl implements UserService {
         user.setDeleted(1);
         user.setUpdateTime(LocalDateTime.now());
         userMapper.updateById(user);
-    }
-
-    @Override
-    public List<User> getUsersByStatus(Integer status) {
-        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("deleted", 0)
-                   .eq("status", status)
-                   .orderByAsc("create_time");
-        return userMapper.selectList(queryWrapper);
     }
 }

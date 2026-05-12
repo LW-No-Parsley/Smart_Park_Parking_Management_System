@@ -44,6 +44,11 @@ public interface ExceptionReportService extends IService<ExceptionReport> {
     ExceptionReportDTO updateExceptionReport(Long id, ExceptionReportDTO exceptionReportDTO);
     
     /**
+     * 删除异常上报记录
+     */
+    boolean deleteExceptionReport(Long id);
+    
+    /**
      * 处理异常上报（更新处理状态、处理人员、处理时间和处理结果）
      */
     ExceptionReportDTO handleExceptionReport(Long id, Long handledBy, String handleResult);

@@ -1,9 +1,12 @@
 package com.syan.smart_park.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.syan.smart_park.common.PageResult;
 import com.syan.smart_park.dao.ParkAreaMapper;
 import com.syan.smart_park.dao.ParkingSpaceMapper;
+import com.syan.smart_park.dao.ReservationMapper;
 import com.syan.smart_park.dao.SpaceOccupyMapper;
 import com.syan.smart_park.entity.*;
 import com.syan.smart_park.entity.ParkArea;
@@ -30,18 +33,30 @@ public class ParkAreaServiceImpl extends ServiceImpl<ParkAreaMapper, ParkArea> i
     private final ParkAreaMapper parkAreaMapper;
     private final ParkingSpaceMapper parkingSpaceMapper;
     private final SpaceOccupyMapper spaceOccupyMapper;
+    private final ReservationMapper reservationMapper;
     private final OperationLogService operationLogService;
 
     @Override
-    public List<ParkAreaDTO> getAllParkAreas() {
+    public PageResult<ParkAreaDTO> listParkAreas(Integer status, String keyword, Integer page, Integer size) {
         LambdaQueryWrapper<ParkArea> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(ParkArea::getDeleted, 0)
-                   .orderByDesc(ParkArea::getCreateTime);
-        
-        List<ParkArea> parkAreas = parkAreaMapper.selectList(queryWrapper);
-        return parkAreas.stream()
-                       .map(ParkAreaDTO::fromParkArea)
-                       .collect(Collectors.toList());
+        queryWrapper.eq(ParkArea::getDeleted, 0);
+        if (status != null) {
+            queryWrapper.eq(ParkArea::getStatus, status);
+        }
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            queryWrapper.and(w -> w.like(ParkArea::getName, keyword.trim())
+                                   .or().like(ParkArea::getAddress, keyword.trim()));
+        }
+        queryWrapper.orderByDesc(ParkArea::getCreateTime);
+
+        Page<ParkArea> mpPage = new Page<>(page, size);
+        Page<ParkArea> resultPage = parkAreaMapper.selectPage(mpPage, queryWrapper);
+
+        List<ParkAreaDTO> dtos = resultPage.getRecords().stream()
+                .map(ParkAreaDTO::fromParkArea)
+                .collect(Collectors.toList());
+
+        return PageResult.of(dtos, resultPage.getTotal(), resultPage.getCurrent(), resultPage.getSize());
     }
 
     @Override
@@ -121,19 +136,6 @@ public class ParkAreaServiceImpl extends ServiceImpl<ParkAreaMapper, ParkArea> i
     }
 
     @Override
-    public List<ParkAreaDTO> getParkAreasByStatus(Integer status) {
-        LambdaQueryWrapper<ParkArea> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(ParkArea::getDeleted, 0)
-                   .eq(ParkArea::getStatus, status)
-                   .orderByDesc(ParkArea::getCreateTime);
-        
-        List<ParkArea> parkAreas = parkAreaMapper.selectList(queryWrapper);
-        return parkAreas.stream()
-                       .map(ParkAreaDTO::fromParkArea)
-                       .collect(Collectors.toList());
-    }
-
-    @Override
     public boolean updateTotalSpaces(Long parkAreaId) {
         // 检查园区是否存在且未删除
         ParkArea parkArea = parkAreaMapper.selectById(parkAreaId);
@@ -186,19 +188,19 @@ public class ParkAreaServiceImpl extends ServiceImpl<ParkAreaMapper, ParkArea> i
         // 获取总车位数
         Integer totalSpaces = parkArea.getTotalSpaces();
         
-        // 获取当前时间占用的车位数
+        // 获取当前时间占用的车位数（space_occupy + reservation）
         LocalDateTime currentTime = LocalDateTime.now();
-        Long occupiedSpaces = spaceOccupyMapper.countOccupiedSpacesByParkAreaIdAndTime(parkAreaId, currentTime);
-        
-        if (occupiedSpaces == null) {
-            occupiedSpaces = 0L;
-        }
+        Long occupyCount = spaceOccupyMapper.countOccupiedSpacesByParkAreaIdAndTime(parkAreaId, currentTime);
+        Long reserveCount = reservationMapper.countReservedSpacesByParkAreaIdAndTime(parkAreaId, currentTime);
+
+        long occupiedSpaces = (occupyCount != null ? occupyCount : 0)
+                            + (reserveCount != null ? reserveCount : 0);
         
         return new ParkAreaOccupancyStats(
             parkAreaId,
             parkArea.getName(),
             totalSpaces,
-            occupiedSpaces.intValue()
+            (int) occupiedSpaces
         );
     }
 
@@ -216,39 +218,22 @@ public class ParkAreaServiceImpl extends ServiceImpl<ParkAreaMapper, ParkArea> i
                     // 获取总车位数
                     Integer totalSpaces = parkArea.getTotalSpaces();
                     
-                    // 获取当前时间占用的车位数
-                    Long occupiedSpaces = spaceOccupyMapper.countOccupiedSpacesByParkAreaIdAndTime(
+                    // 获取当前时间占用的车位数（space_occupy + reservation）
+                    Long occupyCount = spaceOccupyMapper.countOccupiedSpacesByParkAreaIdAndTime(
                         parkArea.getId(), currentTime);
-                    
-                    if (occupiedSpaces == null) {
-                        occupiedSpaces = 0L;
-                    }
+                    Long reserveCount = reservationMapper.countReservedSpacesByParkAreaIdAndTime(
+                        parkArea.getId(), currentTime);
+
+                    long occupiedSpaces = (occupyCount != null ? occupyCount : 0)
+                                        + (reserveCount != null ? reserveCount : 0);
                     
                     return new ParkAreaOccupancyStats(
                         parkArea.getId(),
                         parkArea.getName(),
                         totalSpaces,
-                        occupiedSpaces.intValue()
+                        (int) occupiedSpaces
                     );
                 })
                 .collect(Collectors.toList());
-    }
-
-    @Override
-    public List<ParkAreaDTO> searchParkAreas(String keyword) {
-        if (keyword == null || keyword.trim().isEmpty()) {
-            return getAllParkAreas();
-        }
-        
-        LambdaQueryWrapper<ParkArea> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(ParkArea::getDeleted, 0)
-                   .and(w -> w.like(ParkArea::getName, keyword)
-                              .or()
-                              .like(ParkArea::getAddress, keyword));
-        
-        List<ParkArea> parkAreas = parkAreaMapper.selectList(queryWrapper);
-        return parkAreas.stream()
-                       .map(ParkAreaDTO::fromParkArea)
-                       .collect(Collectors.toList());
     }
 }

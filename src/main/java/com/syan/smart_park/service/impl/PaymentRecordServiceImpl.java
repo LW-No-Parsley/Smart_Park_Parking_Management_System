@@ -226,17 +226,6 @@ public class PaymentRecordServiceImpl extends ServiceImpl<PaymentRecordMapper, P
     }
     
     @Override
-    public List<PaymentRecordDTO> getPendingPaymentRecords() {
-        LambdaQueryWrapper<PaymentRecord> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(PaymentRecord::getPaymentStatus, 0); // 未支付
-        List<PaymentRecord> paymentRecords = list(queryWrapper);
-        
-        return paymentRecords.stream()
-                .map(PaymentRecordDTO::fromPaymentRecord)
-                .collect(Collectors.toList());
-    }
-    
-    @Override
     @Transactional
     public boolean batchUpdatePaymentStatus(List<Long> ids, Integer paymentStatus) {
         if (ids == null || ids.isEmpty()) {

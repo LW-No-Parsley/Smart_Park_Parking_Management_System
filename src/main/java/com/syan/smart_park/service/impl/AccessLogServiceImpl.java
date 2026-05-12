@@ -428,35 +428,6 @@ public class AccessLogServiceImpl extends ServiceImpl<AccessLogMapper, AccessLog
     }
 
     @Override
-    public List<AccessLogDTO> getAccessLogsByPlateNumberAndTimeRange(String plateNumber, LocalDateTime startTime, LocalDateTime endTime) {
-        LambdaQueryWrapper<AccessLog> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(AccessLog::getPlateNumber, plateNumber);
-        wrapper.ge(AccessLog::getAccessTime, startTime);
-        wrapper.le(AccessLog::getAccessTime, endTime);
-        wrapper.orderByDesc(AccessLog::getAccessTime);
-        return accessLogMapper.selectList(wrapper).stream()
-                .map(this::convertToDTO).collect(Collectors.toList());
-    }
-
-    @Override
-    public List<AccessLogDTO> getRecentAccessLogs(Integer limit) {
-        LambdaQueryWrapper<AccessLog> wrapper = new LambdaQueryWrapper<>();
-        wrapper.orderByDesc(AccessLog::getAccessTime);
-        wrapper.last("LIMIT " + limit);
-        return accessLogMapper.selectList(wrapper).stream()
-                .map(this::convertToDTO).collect(Collectors.toList());
-    }
-
-    @Override
-    public List<AccessLogDTO> getExceptionAccessLogs() {
-        LambdaQueryWrapper<AccessLog> wrapper = new LambdaQueryWrapper<>();
-        wrapper.in(AccessLog::getRecognitionResult, 0, 2);
-        wrapper.orderByDesc(AccessLog::getAccessTime);
-        return accessLogMapper.selectList(wrapper).stream()
-                .map(this::convertToDTO).collect(Collectors.toList());
-    }
-
-    @Override
     public boolean updateRecognitionResult(Long id, Integer recognitionResult, String remark) {
         AccessLog log = accessLogMapper.selectById(id);
         if (log == null) return false;

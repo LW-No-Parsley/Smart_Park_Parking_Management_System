@@ -1,6 +1,7 @@
 package com.syan.smart_park.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.syan.smart_park.common.PageResult;
 import com.syan.smart_park.entity.ParkingSpace;
 import com.syan.smart_park.entity.ParkingSpaceDTO;
 
@@ -12,10 +13,15 @@ import java.util.List;
 public interface ParkingSpaceService extends IService<ParkingSpace> {
     
     /**
+     * 统一查询车位列表（支持多条件筛选 + 分页）
+     */
+    PageResult<ParkingSpaceDTO> listParkingSpaces(Long parkAreaId, Long zoneId, Integer status,
+                                                  Integer spaceType, Long bindUserId,
+                                                  Boolean available, Boolean withOccupied,
+                                                  Integer page, Integer size);
+    
+    /**
      * 获取车位详情（包含当前占用状态）
-     *
-     * @param id 车位ID
-     * @return 车位详情（包含占用状态）
      */
     ParkingSpaceDTO getParkingSpaceWithOccupiedStatus(Long id);
     
@@ -40,37 +46,6 @@ public interface ParkingSpaceService extends IService<ParkingSpace> {
     boolean deleteParkingSpace(Long id);
     
     /**
-     * 根据园区ID获取车位列表
-     */
-    List<ParkingSpaceDTO> getParkingSpacesByParkAreaId(Long parkAreaId);
-    
-    /**
-     * 根据分区ID获取车位列表
-     */
-    List<ParkingSpaceDTO> getParkingSpacesByZoneId(Long zoneId);
-    
-    /**
-     * 根据车位状态获取车位列表
-     */
-    List<ParkingSpaceDTO> getParkingSpacesByStatus(Integer status);
-    
-    /**
-     * 根据车位类型获取车位列表
-     */
-    List<ParkingSpaceDTO> getParkingSpacesByType(Integer spaceType);
-    
-    /**
-     * 根据绑定用户ID获取车位列表
-     */
-    List<ParkingSpaceDTO> getParkingSpacesByBindUserId(Long bindUserId);
-    
-    /**
-     * 获取空闲车位列表
-     * @param time 指定时间（可选，默认为当前时间），格式：yyyy-MM-dd HH:mm:ss
-     */
-    List<ParkingSpaceDTO> getAvailableParkingSpaces(String time);
-    
-    /**
      * 批量更新车位状态
      */
     boolean batchUpdateParkingSpaceStatus(List<Long> ids, Integer status);
@@ -83,23 +58,6 @@ public interface ParkingSpaceService extends IService<ParkingSpace> {
      */
     boolean isSpaceOccupied(Long spaceId);
     
-
-    
-    /**
-     * 获取所有车位（包含当前占用状态）
-     *
-     * @return 车位列表（包含占用状态）
-     */
-    List<ParkingSpaceDTO> getAllParkingSpacesWithOccupiedStatus();
-    
-    /**
-     * 根据园区ID获取车位列表（包含当前占用状态）
-     *
-     * @param parkAreaId 园区ID
-     * @return 车位列表（包含占用状态）
-     */
-    List<ParkingSpaceDTO> getParkingSpacesByParkAreaIdWithOccupiedStatus(Long parkAreaId);
-
     /**
      * 获取可用于车辆绑定（长期占用）的车位列表
      * 返回状态正常且没有被其他车辆长期绑定的车位

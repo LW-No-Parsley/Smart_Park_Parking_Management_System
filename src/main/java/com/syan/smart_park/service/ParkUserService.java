@@ -1,5 +1,6 @@
 package com.syan.smart_park.service;
 
+import com.syan.smart_park.common.PageResult;
 import com.syan.smart_park.entity.ParkUser;
 import com.syan.smart_park.entity.ParkUserDTO;
 
@@ -33,9 +34,9 @@ public interface ParkUserService {
     // ====== 园区用户管理 ======
 
     /**
-     * 获取所有园区用户
+     * 统一查询园区用户列表（支持多条件筛选 + 分页）
      */
-    List<ParkUserDTO> getAllParkUsers();
+    PageResult<ParkUserDTO> listParkUsers(Integer status, Integer userType, Integer page, Integer size);
 
     /**
      * 根据ID获取园区用户
@@ -56,14 +57,4 @@ public interface ParkUserService {
      * 删除园区用户（软删除）
      */
     void deleteParkUser(Long id);
-
-    /**
-     * 根据状态获取园区用户列表
-     */
-    List<ParkUserDTO> getParkUsersByStatus(Integer status);
-
-    /**
-     * 根据用户类型获取园区用户列表
-     */
-    List<ParkUserDTO> getParkUsersByType(Integer userType);
 }

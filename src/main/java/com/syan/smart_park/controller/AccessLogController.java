@@ -165,39 +165,6 @@ public class AccessLogController {
     }
     
     /**
-     * 根据车牌号和时间范围查询进出记录
-     */
-    @GetMapping("/plate-number-time-range")
-    @RequirePermission("access:list")
-    public R<List<AccessLogDTO>> getAccessLogsByPlateNumberAndTimeRange(
-            @RequestParam String plateNumber,
-            @RequestParam LocalDateTime startTime,
-            @RequestParam LocalDateTime endTime) {
-        List<AccessLogDTO> accessLogs = accessLogService.getAccessLogsByPlateNumberAndTimeRange(plateNumber, startTime, endTime);
-        return R.success(accessLogs);
-    }
-    
-    /**
-     * 获取最近N条进出记录
-     */
-    @GetMapping("/recent")
-    @RequirePermission("access:list")
-    public R<List<AccessLogDTO>> getRecentAccessLogs(@RequestParam(defaultValue = "10") Integer limit) {
-        List<AccessLogDTO> accessLogs = accessLogService.getRecentAccessLogs(limit);
-        return R.success(accessLogs);
-    }
-    
-    /**
-     * 获取异常进出记录（识别失败或黑名单）
-     */
-    @GetMapping("/exception")
-    @RequirePermission("access:list")
-    public R<List<AccessLogDTO>> getExceptionAccessLogs() {
-        List<AccessLogDTO> accessLogs = accessLogService.getExceptionAccessLogs();
-        return R.success(accessLogs);
-    }
-    
-    /**
      * 更新识别结果
      */
     @PutMapping("/{id}/recognition-result")

@@ -1,5 +1,6 @@
 package com.syan.smart_park.controller.app;
 
+import com.syan.smart_park.common.PageResult;
 import com.syan.smart_park.common.R;
 import com.syan.smart_park.common.exception.ReturnCode;
 import com.syan.smart_park.entity.VehicleDTO;
@@ -37,8 +38,8 @@ public class AppVehicleController {
         if (userId == null) {
             return R.unauthorized();
         }
-        List<VehicleDTO> vehicles = vehicleService.getVehiclesByUserId(userId);
-        return R.success(vehicles);
+        PageResult<VehicleDTO> pageResult = vehicleService.listVehicles(userId, null, null, null, null, 1, Integer.MAX_VALUE);
+        return R.success(pageResult.getRecords());
     }
 
     @PostMapping

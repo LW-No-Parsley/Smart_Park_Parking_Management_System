@@ -1,5 +1,6 @@
 package com.syan.smart_park.controller;
 
+import com.syan.smart_park.common.PageResult;
 import com.syan.smart_park.common.R;
 import com.syan.smart_park.common.annotation.RequirePermission;
 import com.syan.smart_park.common.exception.ReturnCode;
@@ -22,13 +23,33 @@ public class ParkingSpaceController {
     private final ParkingSpaceService parkingSpaceService;
     
     /**
-     * 获取所有车位列表
+     * 统一查询车位列表（支持多条件筛选 + 分页）
+     *
+     * @param parkAreaId   园区ID（可选）
+     * @param zoneId       分区ID（可选）
+     * @param status       车位状态：0-禁用，1-正常，4-故障（可选）
+     * @param spaceType    车位类型：1-固定，2-临时，3-访客，4-残障专用（可选）
+     * @param bindUserId   绑定用户ID（可选）
+     * @param available    是否仅查空闲车位（可选）
+     * @param withOccupied 是否附带当前占用状态（默认true，传false可跳过以提升性能）
+     * @param page         页码（默认1）
+     * @param size         每页大小（默认10）
      */
     @GetMapping("/list")
     @RequirePermission("park:space:list")
-    public R<List<ParkingSpaceDTO>> getAllParkingSpacesWithOccupiedStatus() {
-        List<ParkingSpaceDTO> parkingSpaces = parkingSpaceService.getAllParkingSpacesWithOccupiedStatus();
-        return R.success(parkingSpaces);
+    public R<PageResult<ParkingSpaceDTO>> listParkingSpaces(
+            @RequestParam(required = false) Long parkAreaId,
+            @RequestParam(required = false) Long zoneId,
+            @RequestParam(required = false) Integer status,
+            @RequestParam(required = false) Integer spaceType,
+            @RequestParam(required = false) Long bindUserId,
+            @RequestParam(required = false) Boolean available,
+            @RequestParam(required = false) Boolean withOccupied,
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(defaultValue = "10") Integer size) {
+        PageResult<ParkingSpaceDTO> result = parkingSpaceService.listParkingSpaces(
+                parkAreaId, zoneId, status, spaceType, bindUserId, available, withOccupied, page, size);
+        return R.success(result);
     }
     
     /**
@@ -39,7 +60,7 @@ public class ParkingSpaceController {
     public R<ParkingSpaceDTO> getParkingSpaceById(@PathVariable Long id) {
         ParkingSpaceDTO parkingSpace = parkingSpaceService.getParkingSpaceById(id);
         if (parkingSpace == null) {
-            return R.error(ReturnCode.RC1300); // 数据不存在
+            return R.error(ReturnCode.RC1300);
         }
         return R.success(parkingSpace);
     }
@@ -84,68 +105,6 @@ public class ParkingSpaceController {
     }
     
     /**
-     * 根据园区ID获取车位列表
-     */
-    @GetMapping("/park-area/{parkAreaId}")
-    @RequirePermission("park:space:list")
-    public R<List<ParkingSpaceDTO>> getParkingSpacesByParkAreaId(@PathVariable Long parkAreaId) {
-        List<ParkingSpaceDTO> parkingSpaces = parkingSpaceService.getParkingSpacesByParkAreaId(parkAreaId);
-        return R.success(parkingSpaces);
-    }
-    
-    /**
-     * 根据分区ID获取车位列表
-     */
-    @GetMapping("/zone/{zoneId}")
-    @RequirePermission("park:space:list")
-    public R<List<ParkingSpaceDTO>> getParkingSpacesByZoneId(@PathVariable Long zoneId) {
-        List<ParkingSpaceDTO> parkingSpaces = parkingSpaceService.getParkingSpacesByZoneId(zoneId);
-        return R.success(parkingSpaces);
-    }
-    
-    /**
-     * 根据车位状态获取车位列表
-     */
-    @GetMapping("/status/{status}")
-    @RequirePermission("park:space:list")
-    public R<List<ParkingSpaceDTO>> getParkingSpacesByStatus(@PathVariable Integer status) {
-        List<ParkingSpaceDTO> parkingSpaces = parkingSpaceService.getParkingSpacesByStatus(status);
-        return R.success(parkingSpaces);
-    }
-    
-    /**
-     * 根据车位类型获取车位列表
-     */
-    @GetMapping("/type/{spaceType}")
-    @RequirePermission("park:space:list")
-    public R<List<ParkingSpaceDTO>> getParkingSpacesByType(@PathVariable Integer spaceType) {
-        List<ParkingSpaceDTO> parkingSpaces = parkingSpaceService.getParkingSpacesByType(spaceType);
-        return R.success(parkingSpaces);
-    }
-    
-    /**
-     * 根据绑定用户ID获取车位列表
-     */
-    @GetMapping("/bind-user/{bindUserId}")
-    @RequirePermission("park:space:list")
-    public R<List<ParkingSpaceDTO>> getParkingSpacesByBindUserId(@PathVariable Long bindUserId) {
-        List<ParkingSpaceDTO> parkingSpaces = parkingSpaceService.getParkingSpacesByBindUserId(bindUserId);
-        return R.success(parkingSpaces);
-    }
-    
-    /**
-     * 获取空闲车位列表
-     * @param time 指定时间（可选，默认为当前时间），格式：yyyy-MM-dd HH:mm:ss
-     */
-    @GetMapping("/available")
-    @RequirePermission("park:space:list")
-    public R<List<ParkingSpaceDTO>> getAvailableParkingSpaces(
-            @RequestParam(required = false) String time) {
-        List<ParkingSpaceDTO> parkingSpaces = parkingSpaceService.getAvailableParkingSpaces(time);
-        return R.success(parkingSpaces);
-    }
-    
-    /**
      * 批量更新车位状态
      */
     @PutMapping("/batch/update-status")
@@ -169,16 +128,6 @@ public class ParkingSpaceController {
             return R.error(ReturnCode.RC1300); // 数据不存在
         }
         return R.success(parkingSpace);
-    }
-    
-    /**
-     * 根据园区ID获取车位列表（包含当前占用状态）
-     */
-    @GetMapping("/park-area/{parkAreaId}/with-occupied-status")
-    @RequirePermission("park:space:list")
-    public R<List<ParkingSpaceDTO>> getParkingSpacesByParkAreaIdWithOccupiedStatus(@PathVariable Long parkAreaId) {
-        List<ParkingSpaceDTO> parkingSpaces = parkingSpaceService.getParkingSpacesByParkAreaIdWithOccupiedStatus(parkAreaId);
-        return R.success(parkingSpaces);
     }
     
     /**

@@ -78,6 +78,19 @@ public class ExceptionReportController {
     }
     
     /**
+     * 删除异常上报记录
+     */
+    @DeleteMapping("/{id}")
+    @RequirePermission("exception:list")
+    public R<Boolean> deleteExceptionReport(@PathVariable Long id) {
+        boolean result = exceptionReportService.deleteExceptionReport(id);
+        if (!result) {
+            return R.error(ReturnCode.RC1300);
+        }
+        return R.success(true);
+    }
+    
+    /**
      * 处理异常上报
      */
     @PutMapping("/{id}/handle")

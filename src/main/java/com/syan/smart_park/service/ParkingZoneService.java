@@ -1,6 +1,7 @@
 package com.syan.smart_park.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.syan.smart_park.common.PageResult;
 import com.syan.smart_park.entity.ParkingZone;
 import com.syan.smart_park.entity.ParkingZoneDTO;
 
@@ -12,15 +13,18 @@ import java.util.List;
 public interface ParkingZoneService extends IService<ParkingZone> {
 
     /**
-     * 获取所有车位分区列表
-     * @return 车位分区DTO列表
+     * 统一查询车位分区列表（支持多条件筛选 + 分页）
+     *
+     * @param parkAreaId 园区ID（可选）
+     * @param status     分区状态（可选）
+     * @param keyword    搜索关键词，按分区名称模糊搜索（可选）
+     * @param page       页码
+     * @param size       每页大小
      */
-    List<ParkingZoneDTO> getAllParkingZones();
+    PageResult<ParkingZoneDTO> listParkingZones(Long parkAreaId, Integer status, String keyword, Integer page, Integer size);
 
     /**
      * 根据ID获取车位分区详情
-     * @param id 分区ID
-     * @return 车位分区DTO
      */
     ParkingZoneDTO getParkingZoneById(Long id);
 
@@ -45,27 +49,6 @@ public interface ParkingZoneService extends IService<ParkingZone> {
      * @return 是否删除成功
      */
     boolean deleteParkingZone(Long id);
-
-    /**
-     * 根据园区ID获取车位分区列表
-     * @param parkAreaId 园区ID
-     * @return 车位分区DTO列表
-     */
-    List<ParkingZoneDTO> getParkingZonesByParkAreaId(Long parkAreaId);
-
-    /**
-     * 根据状态获取车位分区列表
-     * @param status 分区状态
-     * @return 车位分区DTO列表
-     */
-    List<ParkingZoneDTO> getParkingZonesByStatus(Integer status);
-
-    /**
-     * 搜索车位分区（按分区名称）
-     * @param keyword 搜索关键词
-     * @return 车位分区DTO列表
-     */
-    List<ParkingZoneDTO> searchParkingZones(String keyword);
 
     /**
      * 批量更新分区状态

@@ -1,6 +1,7 @@
 package com.syan.smart_park.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.syan.smart_park.common.PageResult;
 import com.syan.smart_park.entity.Vehicle;
 import com.syan.smart_park.entity.VehicleDTO;
 
@@ -12,9 +13,18 @@ import java.util.List;
 public interface VehicleService extends IService<Vehicle> {
     
     /**
-     * 获取所有车辆
+     * 统一查询车辆列表（支持多条件筛选 + 分页）
+     *
+     * @param userId      用户ID（可选）
+     * @param plateNumber 车牌号（可选，支持模糊匹配）
+     * @param status      车辆状态（可选）
+     * @param vehicleType 车辆类型（可选）
+     * @param isDefault   是否默认车辆（可选）
+     * @param page        页码
+     * @param size        每页大小
      */
-    List<VehicleDTO> getAllVehicles();
+    PageResult<VehicleDTO> listVehicles(Long userId, String plateNumber, Integer status,
+                                        Integer vehicleType, Integer isDefault, Integer page, Integer size);
     
     /**
      * 根据ID获取车辆
@@ -35,32 +45,6 @@ public interface VehicleService extends IService<Vehicle> {
      * 删除车辆
      */
     boolean deleteVehicle(Long id);
-    
-    /**
-     * 根据用户ID获取车辆列表
-     */
-    List<VehicleDTO> getVehiclesByUserId(Long userId);
-
-    
-    /**
-     * 根据车牌号获取车辆
-     */
-    VehicleDTO getVehicleByPlateNumber(String plateNumber);
-    
-    /**
-     * 根据车辆状态获取车辆列表
-     */
-    List<VehicleDTO> getVehiclesByStatus(Integer status);
-    
-    /**
-     * 根据车辆类型获取车辆列表
-     */
-    List<VehicleDTO> getVehiclesByType(Integer vehicleType);
-    
-    /**
-     * 获取用户的默认车辆
-     */
-    VehicleDTO getDefaultVehicleByUserId(Long userId);
     
     /**
      * 设置默认车辆

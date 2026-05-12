@@ -1,7 +1,9 @@
 package com.syan.smart_park.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.syan.smart_park.common.PageResult;
 import com.syan.smart_park.dao.ParkingSpaceMapper;
 import com.syan.smart_park.dao.ParkingZoneMapper;
 import com.syan.smart_park.dao.ParkUserMapper;
@@ -44,6 +46,68 @@ public class ParkingSpaceServiceImpl extends ServiceImpl<ParkingSpaceMapper, Par
 //                 .map(ParkingSpaceDTO::fromParkingSpace)
 //                 .collect(Collectors.toList());
 //     }
+
+    @Override
+    public PageResult<ParkingSpaceDTO> listParkingSpaces(Long parkAreaId, Long zoneId, Integer status,
+                                                         Integer spaceType, Long bindUserId,
+                                                         Boolean available, Boolean withOccupied,
+                                                         Integer page, Integer size) {
+        LambdaQueryWrapper<ParkingSpace> queryWrapper = new LambdaQueryWrapper<>();
+        if (parkAreaId != null) {
+            queryWrapper.eq(ParkingSpace::getParkAreaId, parkAreaId);
+        }
+        if (zoneId != null) {
+            queryWrapper.eq(ParkingSpace::getZoneId, zoneId);
+        }
+        if (status != null) {
+            queryWrapper.eq(ParkingSpace::getStatus, status);
+        }
+        if (spaceType != null) {
+            queryWrapper.eq(ParkingSpace::getSpaceType, spaceType);
+        }
+        if (bindUserId != null) {
+            queryWrapper.eq(ParkingSpace::getBindUserId, bindUserId);
+        }
+        queryWrapper.orderByAsc(ParkingSpace::getSpaceNumber);
+
+        Page<ParkingSpace> mpPage = new Page<>(page, size);
+        Page<ParkingSpace> resultPage = this.page(mpPage, queryWrapper);
+
+        List<ParkingSpaceDTO> dtos = resultPage.getRecords().stream()
+                .map(ParkingSpaceDTO::fromParkingSpace)
+                .collect(Collectors.toList());
+
+        // 填充绑定用户名
+        if (bindUserId != null) {
+            ParkUser parkUser = parkUserMapper.selectById(bindUserId);
+            String bindUsername = (parkUser != null) ? parkUser.getUsername() : null;
+            for (ParkingSpaceDTO dto : dtos) {
+                dto.setBindUsername(bindUsername);
+            }
+        }
+
+        // 过滤空闲车位
+        if (available != null && available) {
+            LocalDateTime checkTime = LocalDateTime.now();
+            dtos = dtos.stream()
+                    .filter(dto -> !isSpaceOccupiedAtTime(dto.getId(), checkTime))
+                    .collect(Collectors.toList());
+        }
+
+        // 设置占用状态（默认计算，除非显式传 withOccupied=false）
+        if (withOccupied == null || withOccupied) {
+            LocalDateTime currentTime = LocalDateTime.now();
+            for (ParkingSpaceDTO dto : dtos) {
+                try {
+                    dto.setCurrentOccupiedStatus(isSpaceOccupiedAtTime(dto.getId(), currentTime) ? 1 : 0);
+                } catch (Exception e) {
+                    dto.setCurrentOccupiedStatus(0);
+                }
+            }
+        }
+
+        return PageResult.of(dtos, resultPage.getTotal(), resultPage.getCurrent(), resultPage.getSize());
+    }
 
     @Override
     public ParkingSpaceDTO getParkingSpaceById(Long id) {
@@ -160,112 +224,6 @@ public class ParkingSpaceServiceImpl extends ServiceImpl<ParkingSpaceMapper, Par
     }
 
     @Override
-    public List<ParkingSpaceDTO> getParkingSpacesByParkAreaId(Long parkAreaId) {
-        LambdaQueryWrapper<ParkingSpace> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(ParkingSpace::getParkAreaId, parkAreaId);
-        List<ParkingSpace> parkingSpaces = this.list(queryWrapper);
-        
-        return parkingSpaces.stream()
-                .map(ParkingSpaceDTO::fromParkingSpace)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public List<ParkingSpaceDTO> getParkingSpacesByZoneId(Long zoneId) {
-        LambdaQueryWrapper<ParkingSpace> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(ParkingSpace::getZoneId, zoneId);
-        List<ParkingSpace> parkingSpaces = this.list(queryWrapper);
-        
-        return parkingSpaces.stream()
-                .map(ParkingSpaceDTO::fromParkingSpace)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public List<ParkingSpaceDTO> getParkingSpacesByStatus(Integer status) {
-        LambdaQueryWrapper<ParkingSpace> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(ParkingSpace::getStatus, status);
-        List<ParkingSpace> parkingSpaces = this.list(queryWrapper);
-        
-        return parkingSpaces.stream()
-                .map(ParkingSpaceDTO::fromParkingSpace)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public List<ParkingSpaceDTO> getParkingSpacesByType(Integer spaceType) {
-        LambdaQueryWrapper<ParkingSpace> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(ParkingSpace::getSpaceType, spaceType);
-        List<ParkingSpace> parkingSpaces = this.list(queryWrapper);
-        
-        return parkingSpaces.stream()
-                .map(ParkingSpaceDTO::fromParkingSpace)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public List<ParkingSpaceDTO> getParkingSpacesByBindUserId(Long bindUserId) {
-        LambdaQueryWrapper<ParkingSpace> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(ParkingSpace::getBindUserId, bindUserId);
-        List<ParkingSpace> parkingSpaces = this.list(queryWrapper);
-        
-        // 查询绑定用户名称
-        ParkUser parkUser = parkUserMapper.selectById(bindUserId);
-        String bindUsername = (parkUser != null) ? parkUser.getUsername() : null;
-        
-        return parkingSpaces.stream()
-                .map(space -> {
-                    ParkingSpaceDTO dto = ParkingSpaceDTO.fromParkingSpace(space);
-                    dto.setBindUsername(bindUsername);
-                    return dto;
-                })
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public List<ParkingSpaceDTO> getAvailableParkingSpaces(String time) {
-        // 解析时间参数
-        final LocalDateTime checkTime = parseTime(time);
-        
-        // 获取所有正常状态的车位
-        LambdaQueryWrapper<ParkingSpace> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(ParkingSpace::getStatus, 1); // 1表示正常状态
-        List<ParkingSpace> parkingSpaces = this.list(queryWrapper);
-        
-        // 过滤掉在指定时间被占用的车位（同时检查space_occupy和reservation），并设置占用状态
-        List<ParkingSpaceDTO> availableSpaces = parkingSpaces.stream()
-                .filter(space -> !isSpaceOccupiedAtTime(space.getId(), checkTime))
-                .map(space -> {
-                    ParkingSpaceDTO dto = ParkingSpaceDTO.fromParkingSpace(space);
-                    dto.setCurrentOccupiedStatus(0);
-                    return dto;
-                })
-                .collect(Collectors.toList());
-        
-        return availableSpaces;
-    }
-    
-    /**
-     * 解析时间参数
-     */
-    private LocalDateTime parseTime(String time) {
-        if (time == null || time.trim().isEmpty()) {
-            return LocalDateTime.now();
-        }
-        try {
-            // 尝试解析 ISO 格式 (2026-04-29T21:00:00)
-            return LocalDateTime.parse(time);
-        } catch (Exception e) {
-            try {
-                // 尝试解析空格分隔格式 (2026-04-29 21:00:00)
-                return LocalDateTime.parse(time.replace(" ", "T"));
-            } catch (Exception ex) {
-                return LocalDateTime.now();
-            }
-        }
-    }
-
-    @Override
     @Transactional
     public boolean batchUpdateParkingSpaceStatus(List<Long> ids, Integer status) {
         if (ids == null || ids.isEmpty()) {
@@ -319,41 +277,6 @@ public class ParkingSpaceServiceImpl extends ServiceImpl<ParkingSpaceMapper, Par
         // 设置当前占用状态
         dto.setCurrentOccupiedStatus(isSpaceOccupied(id) ? 1 : 0);
         return dto;
-    }
-
-    @Override
-    public List<ParkingSpaceDTO> getAllParkingSpacesWithOccupiedStatus() {
-        List<ParkingSpace> parkingSpaces = this.list();
-        LocalDateTime currentTime = LocalDateTime.now();
-        
-        return parkingSpaces.stream()
-                .map(space -> {
-                    ParkingSpaceDTO dto = ParkingSpaceDTO.fromParkingSpace(space);
-                    try {
-                        dto.setCurrentOccupiedStatus(isSpaceOccupiedAtTime(space.getId(), currentTime) ? 1 : 0);
-                    } catch (Exception e) {
-                        dto.setCurrentOccupiedStatus(0);
-                    }
-                    return dto;
-                })
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public List<ParkingSpaceDTO> getParkingSpacesByParkAreaIdWithOccupiedStatus(Long parkAreaId) {
-        LambdaQueryWrapper<ParkingSpace> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(ParkingSpace::getParkAreaId, parkAreaId);
-        List<ParkingSpace> parkingSpaces = this.list(queryWrapper);
-        
-        LocalDateTime currentTime = LocalDateTime.now();
-        
-        return parkingSpaces.stream()
-                .map(space -> {
-                    ParkingSpaceDTO dto = ParkingSpaceDTO.fromParkingSpace(space);
-                    dto.setCurrentOccupiedStatus(isSpaceOccupiedAtTime(space.getId(), currentTime) ? 1 : 0);
-                    return dto;
-                })
-                .collect(Collectors.toList());
     }
 
     @Override

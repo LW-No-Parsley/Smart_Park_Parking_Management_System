@@ -119,6 +119,16 @@ public class GateDeviceServiceImpl extends ServiceImpl<GateDeviceMapper, GateDev
     }
 
     @Override
+    public boolean updateGateDeviceStatus(Long id, Integer status) {
+        GateDevice device = gateDeviceMapper.selectById(id);
+        if (device == null || device.getDeleted() == 1) {
+            return false;
+        }
+        device.setStatus(status);
+        return gateDeviceMapper.updateById(device) > 0;
+    }
+
+    @Override
     public boolean batchUpdateStatus(List<Long> ids, Integer status) {
         if (ids == null || ids.isEmpty()) {
             return false;

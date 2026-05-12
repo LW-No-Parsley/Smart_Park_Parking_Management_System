@@ -1,0 +1,81 @@
+@font-face {
+  font-family: "iconfont"; /* Project id 5174962 */
+  src: url('iconfont.ttf?t=1778606674083') format('truetype');
+}
+
+.iconfont {
+  font-family: "iconfont" !important;
+  font-size: 16px;
+  font-style: normal;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.icon-ditu-dibiao:before {
+  content: "\ec3f";
+}
+
+.icon-wode-copy:before {
+  content: "\e61d";
+}
+
+.icon-shouye-shouye:before {
+  content: "\e618";
+}
+
+.icon-favorite:before {
+  content: "\e6a0";
+}
+
+.icon-nearby:before {
+  content: "\e640";
+}
+
+.icon-car:before {
+  content: "\e6f1";
+}
+
+.icon-logout:before {
+  content: "\e935";
+}
+
+.icon-history:before {
+  content: "\e7d3";
+}
+
+.icon-coupons_fill:before {
+  content: "\e6ed";
+}
+
+.icon-order_fill:before {
+  content: "\e713";
+}
+
+.icon-notification:before {
+  content: "\e6fe";
+}
+
+.icon-search:before {
+  content: "\e6e1";
+}
+
+.icon-info:before {
+  content: "\e625";
+}
+
+.icon-user:before {
+  content: "\e621";
+}
+
+.icon-wallet:before {
+  content: "\ebcf";
+}
+
+.icon-arrow-right:before {
+  content: "\e98a";
+}
+
+.icon-charge:before {
+  content: "\e60d";
+}
+

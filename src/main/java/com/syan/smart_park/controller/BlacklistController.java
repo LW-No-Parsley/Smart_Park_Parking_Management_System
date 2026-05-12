@@ -1,5 +1,6 @@
 package com.syan.smart_park.controller;
 
+import com.syan.smart_park.common.PageResult;
 import com.syan.smart_park.common.R;
 import com.syan.smart_park.common.annotation.RequirePermission;
 import com.syan.smart_park.common.exception.ReturnCode;
@@ -22,29 +23,39 @@ public class BlacklistController {
     private final BlacklistService blacklistService;
 
     /**
-     * 获取所有黑名单记录
+     * 统一查询黑名单列表（支持多条件筛选 + 分页）
      *
-     * @return 黑名单记录列表
+     * @param plateNumber 车牌号（可选，精确匹配）
+     * @param status      状态：0-禁用，1-生效（可选）
+     * @param createdBy   创建人ID（可选）
+     * @param keyword     搜索关键词，按车牌号/原因模糊搜索（可选）
+     * @param expired     是否已过期：true=已过期，false/null=不过滤（可选）
+     * @param page        页码（默认1）
+     * @param size        每页大小（默认10）
      */
     @GetMapping("/list")
     @RequirePermission("blacklist:list")
-    public R<List<BlacklistDTO>> getAllBlacklists() {
-        List<BlacklistDTO> blacklists = blacklistService.getAllBlacklists();
-        return R.success(blacklists);
+    public R<PageResult<BlacklistDTO>> listBlacklists(
+            @RequestParam(required = false) String plateNumber,
+            @RequestParam(required = false) Integer status,
+            @RequestParam(required = false) Long createdBy,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Boolean expired,
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(defaultValue = "10") Integer size) {
+        PageResult<BlacklistDTO> result = blacklistService.listBlacklists(plateNumber, status, createdBy, keyword, expired, page, size);
+        return R.success(result);
     }
 
     /**
      * 根据ID获取黑名单记录详情
-     *
-     * @param id 黑名单ID
-     * @return 黑名单记录详情
      */
     @GetMapping("/{id}")
     @RequirePermission("blacklist:list")
     public R<BlacklistDTO> getBlacklistById(@PathVariable Long id) {
         BlacklistDTO blacklistDTO = blacklistService.getBlacklistById(id);
         if (blacklistDTO == null) {
-            return R.error(ReturnCode.RC1300); // 数据不存在
+            return R.error(ReturnCode.RC1300);
         }
         return R.success(blacklistDTO);
     }
@@ -99,32 +110,6 @@ public class BlacklistController {
     }
 
     /**
-     * 根据车牌号查询黑名单记录
-     *
-     * @param plateNumber 车牌号
-     * @return 黑名单记录列表
-     */
-    @GetMapping("/plate-number/{plateNumber}")
-    @RequirePermission("blacklist:list")
-    public R<List<BlacklistDTO>> getBlacklistsByPlateNumber(@PathVariable String plateNumber) {
-        List<BlacklistDTO> blacklists = blacklistService.getBlacklistsByPlateNumber(plateNumber);
-        return R.success(blacklists);
-    }
-
-    /**
-     * 根据状态查询黑名单记录
-     *
-     * @param status 状态：0-禁用，1-生效
-     * @return 黑名单记录列表
-     */
-    @GetMapping("/status/{status}")
-    @RequirePermission("blacklist:list")
-    public R<List<BlacklistDTO>> getBlacklistsByStatus(@PathVariable Integer status) {
-        List<BlacklistDTO> blacklists = blacklistService.getBlacklistsByStatus(status);
-        return R.success(blacklists);
-    }
-
-    /**
      * 检查车牌号是否在黑名单中
      *
      * @param plateNumber 车牌号
@@ -135,30 +120,6 @@ public class BlacklistController {
     public R<Boolean> isPlateNumberInBlacklist(@PathVariable String plateNumber) {
         boolean isInBlacklist = blacklistService.isPlateNumberInBlacklist(plateNumber);
         return R.success(isInBlacklist);
-    }
-
-    /**
-     * 获取当前生效的黑名单记录
-     *
-     * @return 生效的黑名单记录列表
-     */
-    @GetMapping("/active")
-    @RequirePermission("blacklist:list")
-    public R<List<BlacklistDTO>> getActiveBlacklists() {
-        List<BlacklistDTO> blacklists = blacklistService.getActiveBlacklists();
-        return R.success(blacklists);
-    }
-
-    /**
-     * 获取已过期的黑名单记录
-     *
-     * @return 已过期的黑名单记录列表
-     */
-    @GetMapping("/expired")
-    @RequirePermission("blacklist:list")
-    public R<List<BlacklistDTO>> getExpiredBlacklists() {
-        List<BlacklistDTO> blacklists = blacklistService.getExpiredBlacklists();
-        return R.success(blacklists);
     }
 
     /**
@@ -178,29 +139,4 @@ public class BlacklistController {
         return R.success(true);
     }
 
-    /**
-     * 根据创建人查询黑名单记录
-     *
-     * @param createdBy 创建人ID
-     * @return 黑名单记录列表
-     */
-    @GetMapping("/created-by/{createdBy}")
-    @RequirePermission("blacklist:list")
-    public R<List<BlacklistDTO>> getBlacklistsByCreatedBy(@PathVariable Long createdBy) {
-        List<BlacklistDTO> blacklists = blacklistService.getBlacklistsByCreatedBy(createdBy);
-        return R.success(blacklists);
-    }
-
-    /**
-     * 搜索黑名单记录
-     *
-     * @param keyword 搜索关键词
-     * @return 黑名单记录列表
-     */
-    @GetMapping("/search")
-    @RequirePermission("blacklist:list")
-    public R<List<BlacklistDTO>> searchBlacklists(@RequestParam String keyword) {
-        List<BlacklistDTO> blacklists = blacklistService.searchBlacklists(keyword);
-        return R.success(blacklists);
-    }
 }

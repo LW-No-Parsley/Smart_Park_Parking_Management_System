@@ -1,5 +1,6 @@
 package com.syan.smart_park.controller;
 
+import com.syan.smart_park.common.PageResult;
 import com.syan.smart_park.common.R;
 import com.syan.smart_park.common.annotation.RequirePermission;
 import com.syan.smart_park.common.exception.ReturnCode;
@@ -22,13 +23,28 @@ public class VehicleController {
     private final VehicleService vehicleService;
     
     /**
-     * 获取所有车辆列表
+     * 统一查询车辆列表（支持多条件筛选 + 分页）
+     *
+     * @param userId      用户ID（可选）
+     * @param plateNumber 车牌号（可选，支持模糊匹配）
+     * @param status      车辆状态：0-禁用，1-正常（可选）
+     * @param vehicleType 车辆类型：1-小车，2-大车，3-新能源车（可选）
+     * @param isDefault   是否默认车辆：0-否，1-是（可选）
+     * @param page        页码（默认1）
+     * @param size        每页大小（默认10）
      */
     @GetMapping("/list")
     @RequirePermission("vehicle:list")
-    public R<List<VehicleDTO>> getAllVehicles() {
-        List<VehicleDTO> vehicles = vehicleService.getAllVehicles();
-        return R.success(vehicles);
+    public R<PageResult<VehicleDTO>> listVehicles(
+            @RequestParam(required = false) Long userId,
+            @RequestParam(required = false) String plateNumber,
+            @RequestParam(required = false) Integer status,
+            @RequestParam(required = false) Integer vehicleType,
+            @RequestParam(required = false) Integer isDefault,
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(defaultValue = "10") Integer size) {
+        PageResult<VehicleDTO> result = vehicleService.listVehicles(userId, plateNumber, status, vehicleType, isDefault, page, size);
+        return R.success(result);
     }
     
     /**
@@ -81,62 +97,6 @@ public class VehicleController {
             return R.error(ReturnCode.RC1300); // 数据不存在或删除失败
         }
         return R.success(true);
-    }
-    
-    /**
-     * 根据用户ID获取车辆列表
-     */
-    @GetMapping("/user/{userId}")
-    @RequirePermission("vehicle:list")
-    public R<List<VehicleDTO>> getVehiclesByUserId(@PathVariable Long userId) {
-        List<VehicleDTO> vehicles = vehicleService.getVehiclesByUserId(userId);
-        return R.success(vehicles);
-    }
-    
-    /**
-     * 根据车牌号获取车辆
-     */
-    @GetMapping("/plate-number/{plateNumber}")
-    @RequirePermission("vehicle:list")
-    public R<VehicleDTO> getVehicleByPlateNumber(@PathVariable String plateNumber) {
-        VehicleDTO vehicle = vehicleService.getVehicleByPlateNumber(plateNumber);
-        if (vehicle == null) {
-            return R.error(ReturnCode.RC1300); // 数据不存在
-        }
-        return R.success(vehicle);
-    }
-    
-    /**
-     * 根据车辆状态获取车辆列表
-     */
-    @GetMapping("/status/{status}")
-    @RequirePermission("vehicle:list")
-    public R<List<VehicleDTO>> getVehiclesByStatus(@PathVariable Integer status) {
-        List<VehicleDTO> vehicles = vehicleService.getVehiclesByStatus(status);
-        return R.success(vehicles);
-    }
-    
-    /**
-     * 根据车辆类型获取车辆列表
-     */
-    @GetMapping("/type/{vehicleType}")
-    @RequirePermission("vehicle:list")
-    public R<List<VehicleDTO>> getVehiclesByType(@PathVariable Integer vehicleType) {
-        List<VehicleDTO> vehicles = vehicleService.getVehiclesByType(vehicleType);
-        return R.success(vehicles);
-    }
-    
-    /**
-     * 获取用户的默认车辆
-     */
-    @GetMapping("/user/{userId}/default")
-    @RequirePermission("vehicle:list")
-    public R<VehicleDTO> getDefaultVehicleByUserId(@PathVariable Long userId) {
-        VehicleDTO vehicle = vehicleService.getDefaultVehicleByUserId(userId);
-        if (vehicle == null) {
-            return R.error(ReturnCode.RC1300); // 数据不存在
-        }
-        return R.success(vehicle);
     }
     
     /**

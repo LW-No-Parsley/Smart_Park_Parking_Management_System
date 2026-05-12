@@ -78,11 +78,6 @@ public interface PaymentRecordService extends IService<PaymentRecord> {
     boolean handleRefund(Long id, String refundTransactionId);
     
     /**
-     * 获取待处理的支付记录
-     */
-    List<PaymentRecordDTO> getPendingPaymentRecords();
-    
-    /**
      * 批量更新支付状态
      */
     boolean batchUpdatePaymentStatus(List<Long> ids, Integer paymentStatus);

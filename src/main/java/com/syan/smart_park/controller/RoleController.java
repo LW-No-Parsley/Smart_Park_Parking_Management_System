@@ -1,5 +1,6 @@
 package com.syan.smart_park.controller;
 
+import com.syan.smart_park.common.PageResult;
 import com.syan.smart_park.common.R;
 import com.syan.smart_park.common.annotation.RequirePermission;
 import com.syan.smart_park.entity.*;
@@ -21,15 +22,25 @@ public class RoleController {
     private final RoleService roleService;
 
     /**
-     * 获取所有角色列表
+     * 统一查询角色列表（支持多条件筛选 + 分页）
+     *
+     * @param userId 用户ID（可选，查询该用户拥有的角色）
+     * @param status 角色状态：0-禁用，1-启用（可选）
+     * @param page   页码（默认1）
+     * @param size   每页大小（默认10）
      */
     @GetMapping("/list")
     @RequirePermission("system:role:list")
-    public R<List<RoleDTO>> getAllRoles() {
-        List<RoleDTO> dtos = roleService.getAllRoles().stream()
+    public R<PageResult<RoleDTO>> listRoles(
+            @RequestParam(required = false) Long userId,
+            @RequestParam(required = false) Integer status,
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(defaultValue = "10") Integer size) {
+        PageResult<Role> result = roleService.listRoles(userId, status, page, size);
+        List<RoleDTO> dtos = result.getRecords().stream()
                 .map(RoleDTO::fromRole)
                 .collect(Collectors.toList());
-        return R.success(dtos);
+        return R.success(PageResult.of(dtos, result.getTotal(), result.getCurrent(), result.getSize()));
     }
 
     /**
@@ -74,18 +85,6 @@ public class RoleController {
     }
 
     /**
-     * 根据状态获取角色列表
-     */
-    @GetMapping("/status/{status}")
-    @RequirePermission("system:role:list")
-    public R<List<RoleDTO>> getRolesByStatus(@PathVariable Integer status) {
-        List<RoleDTO> dtos = roleService.getRolesByStatus(status).stream()
-                .map(RoleDTO::fromRole)
-                .collect(Collectors.toList());
-        return R.success(dtos);
-    }
-
-    /**
      * 获取角色的权限ID列表
      */
     @GetMapping("/{id}/permissions")
@@ -102,18 +101,6 @@ public class RoleController {
     public R<Void> assignPermissionsToRole(@PathVariable Long id, @RequestBody List<Long> permissionIds) {
         roleService.assignPermissionsToRole(id, permissionIds);
         return R.success();
-    }
-
-    /**
-     * 获取用户的角色列表
-     */
-    @GetMapping("/user/{userId}")
-    @RequirePermission("system:role:list")
-    public R<List<RoleDTO>> getUserRoles(@PathVariable Long userId) {
-        List<RoleDTO> dtos = roleService.getUserRoles(userId).stream()
-                .map(RoleDTO::fromRole)
-                .collect(Collectors.toList());
-        return R.success(dtos);
     }
 
     /**

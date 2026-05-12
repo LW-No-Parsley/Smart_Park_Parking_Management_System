@@ -1,6 +1,7 @@
 package com.syan.smart_park.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.syan.smart_park.common.PageResult;
 import com.syan.smart_park.entity.FeeCalculationResult;
 import com.syan.smart_park.entity.Reservation;
 import com.syan.smart_park.entity.ReservationDTO;
@@ -15,9 +16,13 @@ import java.util.List;
 public interface ReservationService extends IService<Reservation> {
     
     /**
-     * 获取所有预约
+     * 统一查询预约列表（支持多条件筛选 + 分页）
      */
-    List<ReservationDTO> getAllReservations();
+    PageResult<ReservationDTO> listReservations(Long userId, Long vehicleId, Long spaceId,
+                                                Integer reservationType, Integer approvalStatus,
+                                                Integer status, Integer payStatus, Integer source,
+                                                LocalDateTime startTime, LocalDateTime endTime,
+                                                Integer page, Integer size);
     
     /**
      * 根据ID获取预约
@@ -38,51 +43,6 @@ public interface ReservationService extends IService<Reservation> {
      * 删除预约
      */
     boolean deleteReservation(Long id);
-    
-    /**
-     * 根据用户ID获取预约列表
-     */
-    List<ReservationDTO> getReservationsByUserId(Long userId);
-    
-    /**
-     * 根据车辆ID获取预约列表
-     */
-    List<ReservationDTO> getReservationsByVehicleId(Long vehicleId);
-    
-    /**
-     * 根据车位ID获取预约列表
-     */
-    List<ReservationDTO> getReservationsBySpaceId(Long spaceId);
-    
-    /**
-     * 根据预约类型获取预约列表
-     */
-    List<ReservationDTO> getReservationsByType(Integer reservationType);
-    
-    /**
-     * 根据审批状态获取预约列表
-     */
-    List<ReservationDTO> getReservationsByApprovalStatus(Integer approvalStatus);
-    
-    /**
-     * 根据预约状态获取预约列表
-     */
-    List<ReservationDTO> getReservationsByStatus(Integer status);
-    
-    /**
-     * 根据支付状态获取预约列表
-     */
-    List<ReservationDTO> getReservationsByPayStatus(Integer payStatus);
-    
-    /**
-     * 根据创建来源获取预约列表
-     */
-    List<ReservationDTO> getReservationsBySource(Integer source);
-    
-    /**
-     * 获取指定时间范围内的预约列表
-     */
-    List<ReservationDTO> getReservationsByTimeRange(LocalDateTime startTime, LocalDateTime endTime);
     
     /**
      * 审批预约
@@ -127,11 +87,6 @@ public interface ReservationService extends IService<Reservation> {
      * 批量更新预约状态
      */
     boolean batchUpdateReservationStatus(List<Long> ids, Integer status);
-    
-    /**
-     * 获取待审批的预约列表
-     */
-    List<ReservationDTO> getPendingApprovalReservations();
     
     /**
      * 获取用户当前有效的预约

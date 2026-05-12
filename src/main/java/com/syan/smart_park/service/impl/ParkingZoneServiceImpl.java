@@ -1,7 +1,9 @@
 package com.syan.smart_park.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.syan.smart_park.common.PageResult;
 import com.syan.smart_park.dao.ParkAreaMapper;
 import com.syan.smart_park.dao.ParkingZoneMapper;
 import com.syan.smart_park.entity.*;
@@ -29,16 +31,28 @@ public class ParkingZoneServiceImpl extends ServiceImpl<ParkingZoneMapper, Parki
     private final OperationLogService operationLogService;
 
     @Override
-    public List<ParkingZoneDTO> getAllParkingZones() {
+    public PageResult<ParkingZoneDTO> listParkingZones(Long parkAreaId, Integer status, String keyword, Integer page, Integer size) {
         LambdaQueryWrapper<ParkingZone> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(ParkingZone::getDeleted, 0)
-                   .orderByAsc(ParkingZone::getSortOrder)
+        queryWrapper.eq(ParkingZone::getDeleted, 0);
+        if (parkAreaId != null) {
+            queryWrapper.eq(ParkingZone::getParkAreaId, parkAreaId);
+        }
+        if (status != null) {
+            queryWrapper.eq(ParkingZone::getStatus, status);
+        }
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            queryWrapper.like(ParkingZone::getZoneName, keyword.trim());
+        }
+        queryWrapper.orderByAsc(ParkingZone::getSortOrder)
                    .orderByDesc(ParkingZone::getCreateTime);
-        
-        List<ParkingZone> parkingZones = parkingZoneMapper.selectList(queryWrapper);
-        return convertToParkingZoneDTOList(parkingZones);
+
+        Page<ParkingZone> mpPage = new Page<>(page, size);
+        Page<ParkingZone> resultPage = parkingZoneMapper.selectPage(mpPage, queryWrapper);
+
+        List<ParkingZoneDTO> dtos = convertToParkingZoneDTOList(resultPage.getRecords());
+        return PageResult.of(dtos, resultPage.getTotal(), resultPage.getCurrent(), resultPage.getSize());
     }
-    
+
     /**
      * 根据园区ID列表获取园区名称映射
      */
@@ -196,42 +210,6 @@ public class ParkingZoneServiceImpl extends ServiceImpl<ParkingZoneMapper, Parki
         }
         
         return result;
-    }
-
-    @Override
-    public List<ParkingZoneDTO> getParkingZonesByParkAreaId(Long parkAreaId) {
-        LambdaQueryWrapper<ParkingZone> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(ParkingZone::getDeleted, 0)
-                   .eq(ParkingZone::getParkAreaId, parkAreaId)
-                   .orderByAsc(ParkingZone::getSortOrder)
-                   .orderByDesc(ParkingZone::getCreateTime);
-        
-        List<ParkingZone> parkingZones = parkingZoneMapper.selectList(queryWrapper);
-        return convertToParkingZoneDTOList(parkingZones);
-    }
-
-    @Override
-    public List<ParkingZoneDTO> getParkingZonesByStatus(Integer status) {
-        LambdaQueryWrapper<ParkingZone> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(ParkingZone::getDeleted, 0)
-                   .eq(ParkingZone::getStatus, status)
-                   .orderByAsc(ParkingZone::getSortOrder)
-                   .orderByDesc(ParkingZone::getCreateTime);
-        
-        List<ParkingZone> parkingZones = parkingZoneMapper.selectList(queryWrapper);
-        return convertToParkingZoneDTOList(parkingZones);
-    }
-
-    @Override
-    public List<ParkingZoneDTO> searchParkingZones(String keyword) {
-        LambdaQueryWrapper<ParkingZone> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(ParkingZone::getDeleted, 0)
-                   .like(ParkingZone::getZoneName, keyword)
-                   .orderByAsc(ParkingZone::getSortOrder)
-                   .orderByDesc(ParkingZone::getCreateTime);
-        
-        List<ParkingZone> parkingZones = parkingZoneMapper.selectList(queryWrapper);
-        return convertToParkingZoneDTOList(parkingZones);
     }
 
     @Override

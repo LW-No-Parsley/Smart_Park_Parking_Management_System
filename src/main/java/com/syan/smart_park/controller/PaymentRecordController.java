@@ -166,16 +166,6 @@ public class PaymentRecordController {
     }
     
     /**
-     * 获取待处理的支付记录
-     */
-    @GetMapping("/pending")
-    @RequirePermission("payment:list")
-    public R<List<PaymentRecordDTO>> getPendingPaymentRecords() {
-        List<PaymentRecordDTO> paymentRecords = paymentRecordService.getPendingPaymentRecords();
-        return R.success(paymentRecords);
-    }
-    
-    /**
      * 批量更新支付状态
      */
     @PutMapping("/batch-update-payment-status")

@@ -37,6 +37,17 @@ public interface ReservationMapper extends BaseMapper<Reservation> {
                                        @Param("currentTime") LocalDateTime currentTime);
 
     /**
+     * 查询指定园区在指定时间有多少个车位被有效预约占用
+     */
+    @Select("SELECT COUNT(DISTINCT r.space_id) FROM reservation r " +
+            "INNER JOIN parking_space ps ON r.space_id = ps.id " +
+            "WHERE ps.park_area_id = #{parkAreaId} AND ps.deleted = 0 " +
+            "AND r.start_time <= #{currentTime} AND r.end_time >= #{currentTime} " +
+            "AND r.approval_status = 1 AND r.status IN (1, 2) AND r.deleted = 0")
+    Long countReservedSpacesByParkAreaIdAndTime(@Param("parkAreaId") Long parkAreaId,
+                                                 @Param("currentTime") LocalDateTime currentTime);
+
+    /**
      * 查询已过期的预约ID列表
      * 条件：end_time < NOW() 且 (approval_status=0 待审批 或 status=1 已预约未使用)
      *       且 deleted=0, status != 3

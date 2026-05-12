@@ -1,5 +1,6 @@
 package com.syan.smart_park.controller;
 
+import com.syan.smart_park.common.PageResult;
 import com.syan.smart_park.common.R;
 import com.syan.smart_park.common.annotation.RequirePermission;
 import com.syan.smart_park.common.exception.ReturnCode;
@@ -22,15 +23,22 @@ public class ParkAreaController {
     private final ParkAreaService parkAreaService;
 
     /**
-     * 获取所有园区列表
+     * 统一查询园区列表（支持多条件筛选 + 分页）
      *
-     * @return 园区列表
+     * @param status  园区状态：0-关闭，1-开放（可选）
+     * @param keyword 搜索关键词，按名称或地址模糊搜索（可选）
+     * @param page    页码（默认1）
+     * @param size    每页大小（默认10）
      */
     @GetMapping("/list")
     @RequirePermission("park:area:list")
-    public R<List<ParkAreaDTO>> getAllParkAreas() {
-        List<ParkAreaDTO> parkAreas = parkAreaService.getAllParkAreas();
-        return R.success(parkAreas);
+    public R<PageResult<ParkAreaDTO>> listParkAreas(
+            @RequestParam(required = false) Integer status,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(defaultValue = "10") Integer size) {
+        PageResult<ParkAreaDTO> result = parkAreaService.listParkAreas(status, keyword, page, size);
+        return R.success(result);
     }
 
     /**
@@ -96,32 +104,6 @@ public class ParkAreaController {
             return R.error(ReturnCode.RC601); // 园区不存在或删除失败
         }
         return R.success();
-    }
-
-    /**
-     * 根据状态获取园区列表
-     *
-     * @param status 园区状态：0-关闭，1-开放
-     * @return 园区列表
-     */
-    @GetMapping("/status/{status}")
-    @RequirePermission("park:area:list")
-    public R<List<ParkAreaDTO>> getParkAreasByStatus(@PathVariable Integer status) {
-        List<ParkAreaDTO> parkAreas = parkAreaService.getParkAreasByStatus(status);
-        return R.success(parkAreas);
-    }
-
-    /**
-     * 搜索园区（按名称或地址）
-     *
-     * @param keyword 搜索关键词
-     * @return 园区列表
-     */
-    @GetMapping("/search")
-    @RequirePermission("park:area:list")
-    public R<List<ParkAreaDTO>> searchParkAreas(@RequestParam String keyword) {
-        List<ParkAreaDTO> parkAreas = parkAreaService.searchParkAreas(keyword);
-        return R.success(parkAreas);
     }
 
     /**

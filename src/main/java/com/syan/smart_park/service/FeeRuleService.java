@@ -1,6 +1,7 @@
 package com.syan.smart_park.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.syan.smart_park.common.PageResult;
 import com.syan.smart_park.entity.FeeCalculationResult;
 import com.syan.smart_park.entity.FeeRule;
 import com.syan.smart_park.entity.FeeRuleDTO;
@@ -15,9 +16,14 @@ import java.util.List;
 public interface FeeRuleService extends IService<FeeRule> {
 
     /**
-     * 获取所有计费规则列表
+     * 统一查询计费规则列表（支持多条件筛选 + 分页）
+     *
+     * @param parkAreaId 园区ID（可选）
+     * @param status     状态：0-禁用，1-启用（可选）
+     * @param page       页码
+     * @param size       每页大小
      */
-    List<FeeRuleDTO> getAllFeeRules();
+    PageResult<FeeRuleDTO> listFeeRules(Long parkAreaId, Integer status, Integer page, Integer size);
 
     /**
      * 根据ID获取计费规则详情
@@ -38,16 +44,6 @@ public interface FeeRuleService extends IService<FeeRule> {
      * 删除计费规则
      */
     boolean deleteFeeRule(Long id);
-
-    /**
-     * 根据园区ID获取计费规则列表
-     */
-    List<FeeRuleDTO> getFeeRulesByParkAreaId(Long parkAreaId);
-
-    /**
-     * 根据状态获取计费规则列表
-     */
-    List<FeeRuleDTO> getFeeRulesByStatus(Integer status);
 
     /**
      * 计算停车费用

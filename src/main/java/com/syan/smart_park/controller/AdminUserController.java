@@ -1,5 +1,6 @@
 package com.syan.smart_park.controller;
 
+import com.syan.smart_park.common.PageResult;
 import com.syan.smart_park.common.R;
 import com.syan.smart_park.common.annotation.RequirePermission;
 import com.syan.smart_park.entity.AdminUserDTO;
@@ -22,13 +23,24 @@ public class AdminUserController {
 
     private final UserService userService;
 
+    /**
+     * 统一查询管理员用户列表（支持多条件筛选 + 分页）
+     *
+     * @param status 用户状态：0-禁用，1-启用（可选）
+     * @param page   页码（默认1）
+     * @param size   每页大小（默认10）
+     */
     @GetMapping("/list")
     @RequirePermission("system:user:list")
-    public R<List<AdminUserDTO>> getAllUsers() {
-        List<AdminUserDTO> dtos = userService.getAllUsers().stream()
+    public R<PageResult<AdminUserDTO>> listUsers(
+            @RequestParam(required = false) Integer status,
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(defaultValue = "10") Integer size) {
+        PageResult<User> result = userService.listUsers(status, page, size);
+        List<AdminUserDTO> dtos = result.getRecords().stream()
                 .map(AdminUserDTO::fromUser)
                 .collect(Collectors.toList());
-        return R.success(dtos);
+        return R.success(PageResult.of(dtos, result.getTotal(), result.getCurrent(), result.getSize()));
     }
 
     @GetMapping("/{id}")
@@ -51,7 +63,6 @@ public class AdminUserController {
     @RequirePermission("system:user:update")
     public R<AdminUserDTO> updateUser(@PathVariable Long id, @Valid @RequestBody User user) {
         // 防止客户端修改敏感字段
-        user.setStatus(null);
         user.setDeleted(null);
         return R.success(AdminUserDTO.fromUser(userService.updateUser(id, user)));
     }
@@ -61,14 +72,5 @@ public class AdminUserController {
     public R<Void> deleteUser(@PathVariable Long id) {
         userService.deleteUser(id);
         return R.success();
-    }
-
-    @GetMapping("/status/{status}")
-    @RequirePermission("system:user:list")
-    public R<List<AdminUserDTO>> getUsersByStatus(@PathVariable Integer status) {
-        List<AdminUserDTO> dtos = userService.getUsersByStatus(status).stream()
-                .map(AdminUserDTO::fromUser)
-                .collect(Collectors.toList());
-        return R.success(dtos);
     }
 }

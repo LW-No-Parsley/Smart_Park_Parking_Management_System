@@ -1,5 +1,6 @@
 package com.syan.smart_park.controller.app;
 
+import com.syan.smart_park.common.PageResult;
 import com.syan.smart_park.common.R;
 import com.syan.smart_park.common.exception.ReturnCode;
 import com.syan.smart_park.entity.ReservationDTO;
@@ -63,8 +64,9 @@ public class AppReservationController {
         if (userId == null) {
             return R.unauthorized();
         }
-        List<ReservationDTO> reservations = reservationService.getReservationsByUserId(userId);
-        return R.success(reservations);
+        PageResult<ReservationDTO> pageResult = reservationService.listReservations(
+                userId, null, null, null, null, null, null, null, null, null, 1, Integer.MAX_VALUE);
+        return R.success(pageResult.getRecords());
     }
 
     @GetMapping("/{id}")

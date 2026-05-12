@@ -1,5 +1,6 @@
 package com.syan.smart_park.service;
 
+import com.syan.smart_park.common.PageResult;
 import com.syan.smart_park.entity.User;
 
 import java.util.List;
@@ -27,9 +28,13 @@ public interface UserService {
     // ====== 管理员用户管理 ======
 
     /**
-     * 获取所有管理员用户
+     * 统一查询管理员用户列表（支持多条件筛选 + 分页）
+     *
+     * @param status 用户状态：0-禁用，1-启用（可选）
+     * @param page   页码
+     * @param size   每页大小
      */
-    List<User> getAllUsers();
+    PageResult<User> listUsers(Integer status, Integer page, Integer size);
 
     /**
      * 根据ID获取管理员用户
@@ -50,9 +55,4 @@ public interface UserService {
      * 删除管理员用户（软删除）
      */
     void deleteUser(Long id);
-
-    /**
-     * 根据状态获取管理员用户列表
-     */
-    List<User> getUsersByStatus(Integer status);
 }

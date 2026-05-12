@@ -1,5 +1,6 @@
 package com.syan.smart_park.controller;
 
+import com.syan.smart_park.common.PageResult;
 import com.syan.smart_park.common.R;
 import com.syan.smart_park.common.annotation.RequirePermission;
 import com.syan.smart_park.common.exception.ReturnCode;
@@ -22,29 +23,35 @@ public class ParkingZoneController {
     private final ParkingZoneService parkingZoneService;
 
     /**
-     * 获取所有车位分区列表
+     * 统一查询车位分区列表（支持多条件筛选 + 分页）
      *
-     * @return 车位分区列表
+     * @param parkAreaId 园区ID（可选）
+     * @param status     分区状态：0-禁用，1-启用（可选）
+     * @param keyword    搜索关键词，按分区名称模糊搜索（可选）
+     * @param page       页码（默认1）
+     * @param size       每页大小（默认10）
      */
     @GetMapping("/list")
     @RequirePermission("park:area:list")
-    public R<List<ParkingZoneDTO>> getAllParkingZones() {
-        List<ParkingZoneDTO> parkingZones = parkingZoneService.getAllParkingZones();
-        return R.success(parkingZones);
+    public R<PageResult<ParkingZoneDTO>> listParkingZones(
+            @RequestParam(required = false) Long parkAreaId,
+            @RequestParam(required = false) Integer status,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(defaultValue = "10") Integer size) {
+        PageResult<ParkingZoneDTO> result = parkingZoneService.listParkingZones(parkAreaId, status, keyword, page, size);
+        return R.success(result);
     }
 
     /**
      * 根据ID获取车位分区详情
-     *
-     * @param id 分区ID
-     * @return 车位分区详情
      */
     @GetMapping("/{id}")
     @RequirePermission("park:area:list")
     public R<ParkingZoneDTO> getParkingZoneById(@PathVariable Long id) {
         ParkingZoneDTO parkingZoneDTO = parkingZoneService.getParkingZoneById(id);
         if (parkingZoneDTO == null) {
-            return R.error(ReturnCode.RC1300); // 数据不存在
+            return R.error(ReturnCode.RC1300);
         }
         return R.success(parkingZoneDTO);
     }
@@ -96,45 +103,6 @@ public class ParkingZoneController {
             return R.error(ReturnCode.RC1300); // 数据不存在或删除失败
         }
         return R.success(true);
-    }
-
-    /**
-     * 根据园区ID获取车位分区列表
-     *
-     * @param parkAreaId 园区ID
-     * @return 车位分区列表
-     */
-    @GetMapping("/park-area/{parkAreaId}")
-    @RequirePermission("park:area:list")
-    public R<List<ParkingZoneDTO>> getParkingZonesByParkAreaId(@PathVariable Long parkAreaId) {
-        List<ParkingZoneDTO> parkingZones = parkingZoneService.getParkingZonesByParkAreaId(parkAreaId);
-        return R.success(parkingZones);
-    }
-
-    /**
-     * 根据状态获取车位分区列表
-     *
-     * @param status 分区状态：0-禁用，1-启用
-     * @return 车位分区列表
-     */
-    @GetMapping("/status/{status}")
-    @RequirePermission("park:area:list")
-    public R<List<ParkingZoneDTO>> getParkingZonesByStatus(@PathVariable Integer status) {
-        List<ParkingZoneDTO> parkingZones = parkingZoneService.getParkingZonesByStatus(status);
-        return R.success(parkingZones);
-    }
-
-    /**
-     * 搜索车位分区（按分区名称）
-     *
-     * @param keyword 搜索关键词
-     * @return 车位分区列表
-     */
-    @GetMapping("/search")
-    @RequirePermission("park:area:list")
-    public R<List<ParkingZoneDTO>> searchParkingZones(@RequestParam String keyword) {
-        List<ParkingZoneDTO> parkingZones = parkingZoneService.searchParkingZones(keyword);
-        return R.success(parkingZones);
     }
 
     /**

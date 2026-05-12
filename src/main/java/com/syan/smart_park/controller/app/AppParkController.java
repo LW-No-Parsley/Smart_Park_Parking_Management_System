@@ -1,5 +1,6 @@
 package com.syan.smart_park.controller.app;
 
+import com.syan.smart_park.common.PageResult;
 import com.syan.smart_park.common.R;
 import com.syan.smart_park.common.exception.ReturnCode;
 import com.syan.smart_park.entity.ParkAreaDTO;
@@ -25,8 +26,8 @@ public class AppParkController {
 
     @GetMapping("/park-area/list")
     public R<List<ParkAreaDTO>> getParkAreaList() {
-        List<ParkAreaDTO> parkAreas = parkAreaService.getParkAreasByStatus(1);
-        return R.success(parkAreas);
+        PageResult<ParkAreaDTO> pageResult = parkAreaService.listParkAreas(1, null, 1, Integer.MAX_VALUE);
+        return R.success(pageResult.getRecords());
     }
 
     @GetMapping("/park-area/{id}")
@@ -49,8 +50,8 @@ public class AppParkController {
 
     @GetMapping("/park-area/{parkAreaId}/zones")
     public R<List<ParkingZoneDTO>> getZonesByParkArea(@PathVariable Long parkAreaId) {
-        List<ParkingZoneDTO> zones = parkingZoneService.getParkingZonesByParkAreaId(parkAreaId);
-        return R.success(zones);
+        PageResult<ParkingZoneDTO> pageResult = parkingZoneService.listParkingZones(parkAreaId, null, null, 1, Integer.MAX_VALUE);
+        return R.success(pageResult.getRecords());
     }
 
     @GetMapping("/parking-space/available")
@@ -58,12 +59,13 @@ public class AppParkController {
             @RequestParam(required = false) Long parkAreaId,
             @RequestParam(required = false) String time) {
         if (parkAreaId != null) {
-            List<ParkingSpaceDTO> spaces = parkingSpaceService.getParkingSpacesByParkAreaIdWithOccupiedStatus(parkAreaId);
-            spaces.removeIf(s -> s.getCurrentOccupiedStatus() != null && s.getCurrentOccupiedStatus() == 1);
-            return R.success(spaces);
+            PageResult<ParkingSpaceDTO> pageResult = parkingSpaceService.listParkingSpaces(
+                    parkAreaId, null, null, null, null, null, true, 1, Integer.MAX_VALUE);
+            return R.success(pageResult.getRecords());
         }
-        List<ParkingSpaceDTO> spaces = parkingSpaceService.getAvailableParkingSpaces(time);
-        return R.success(spaces);
+        PageResult<ParkingSpaceDTO> pageResult = parkingSpaceService.listParkingSpaces(
+                null, null, null, null, null, null, true, 1, Integer.MAX_VALUE);
+        return R.success(pageResult.getRecords());
     }
 
     @GetMapping("/parking-space/{id}")

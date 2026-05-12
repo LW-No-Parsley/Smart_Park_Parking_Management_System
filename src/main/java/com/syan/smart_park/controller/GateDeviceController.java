@@ -97,6 +97,20 @@ public class GateDeviceController {
     }
 
     /**
+     * 更新单个设备状态
+     */
+    @PutMapping("/{id}/status")
+    @RequirePermission("gate:update")
+    public R<Boolean> updateGateDeviceStatus(@PathVariable Long id,
+                                             @RequestParam Integer status) {
+        boolean success = gateDeviceService.updateGateDeviceStatus(id, status);
+        if (!success) {
+            return R.error(ReturnCode.RC602);
+        }
+        return R.success(true);
+    }
+
+    /**
      * 批量更新设备状态
      */
     @PutMapping("/batch/status")
