@@ -35,6 +35,7 @@ public class AccessLogServiceImpl extends ServiceImpl<AccessLogMapper, AccessLog
     private static final Logger log = LoggerFactory.getLogger(AccessLogServiceImpl.class);
 
     private final AccessLogMapper accessLogMapper;
+    private final ParkAreaMapper parkAreaMapper;
     private final GateDeviceMapper gateDeviceMapper;
     private final VehicleMapper vehicleMapper;
     private final BlacklistMapper blacklistMapper;
@@ -44,12 +45,22 @@ public class AccessLogServiceImpl extends ServiceImpl<AccessLogMapper, AccessLog
     private final PaymentRecordMapper paymentRecordMapper;
     private final FeeRuleService feeRuleService;
 
+    /**
+     * 车位占用记录的默认结束时间（数据库 NOT NULL 约束要求，用"9999-12-31"表示"还在占用中"）
+     */
+    private static final LocalDateTime OCCUPY_END_DEFAULT = LocalDateTime.of(9999, 12, 31, 23, 59, 59);
+
     // ======================== 闸机入场逻辑 ========================
 
     @Override
     @Transactional
     public GateAccessResult handleEntry(GateAccessDTO dto) {
         GateAccessResult result = createBaseResult(dto);
+
+        // 闸机自动识别，忽略客户端传入的额外字段，使用系统当前时间
+        dto.setHandledBy(null);
+        dto.setRemark(null);
+        dto.setAccessTime(LocalDateTime.now());
 
         // 1. 校验基础参数
         if (dto.getParkAreaId() == null || dto.getDeviceSn() == null) {
@@ -75,6 +86,7 @@ public class AccessLogServiceImpl extends ServiceImpl<AccessLogMapper, AccessLog
             result.setAllowed(false);
             result.setRecognitionResult(2);
             result.setMessage("该车辆在黑名单中，禁止入场");
+            dto.setRemark("该车辆在黑名单中，禁止入场");
             AccessLog logEntry = buildAccessLog(dto, null, null, null, 2);
             this.save(logEntry);
             result.setAccessLogId(logEntry.getId());
@@ -112,9 +124,13 @@ public class AccessLogServiceImpl extends ServiceImpl<AccessLogMapper, AccessLog
             result.setRecognitionResult(1);
 
             // 更新预约状态为"已使用"，记录到达时间
-            reservation.setStatus(2); // 2-已使用
-            reservation.setArriveTime(LocalDateTime.now());
-            reservationMapper.updateById(reservation);
+            // 使用 LambdaUpdateWrapper 避免 @Version 乐观锁问题
+            LocalDateTime nowEntry = LocalDateTime.now();
+            LambdaUpdateWrapper<Reservation> entryUpdate = new LambdaUpdateWrapper<>();
+            entryUpdate.eq(Reservation::getId, reservation.getId());
+            entryUpdate.set(Reservation::getStatus, 2);
+            entryUpdate.set(Reservation::getArriveTime, nowEntry);
+            reservationMapper.update(null, entryUpdate);
 
             // 生成车位占用记录
             createSpaceOccupy(reservation.getSpaceId(), reservation.getId(),
@@ -129,16 +145,18 @@ public class AccessLogServiceImpl extends ServiceImpl<AccessLogMapper, AccessLog
             return result;
         }
 
-        // 6. 临时车处理（没有预约的普通车辆）
-        result.setAllowed(true);
+        // 6. 临时车处理（没有预约的普通车辆）- 禁止入场
+        result.setAllowed(false);
         result.setVehicleId(anyVehicle != null ? anyVehicle.getId() : null);
         result.setVehicleType(anyVehicle != null ? anyVehicle.getVehicleType() : null);
         result.setIsDefaultVehicle(false);
         result.setHasReservation(false);
-        result.setRecognitionResult(1);
-        result.setMessage("欢迎临时车辆入场");
+        result.setRecognitionResult(0);
+        result.setMessage("非业主车辆且无有效预约，禁止入场");
+        dto.setRemark("非业主车辆且无有效预约，禁止入场");
+        dto.setRecognitionResult(0);
         AccessLog logEntry = buildAccessLog(dto,
-                anyVehicle != null ? anyVehicle.getId() : null, null, null, 1);
+                anyVehicle != null ? anyVehicle.getId() : null, null, null, 0);
         this.save(logEntry);
         result.setAccessLogId(logEntry.getId());
         return result;
@@ -150,6 +168,12 @@ public class AccessLogServiceImpl extends ServiceImpl<AccessLogMapper, AccessLog
     @Transactional
     public GateAccessResult handleExit(GateAccessDTO dto) {
         GateAccessResult result = createBaseResult(dto);
+
+        // 闸机自动识别，忽略客户端传入的额外字段，使用系统当前时间
+        dto.setHandledBy(null);
+        dto.setRemark(null);
+        dto.setRecognitionResult(null);
+        dto.setAccessTime(LocalDateTime.now());
 
         // 1. 校验基础参数
         if (dto.getParkAreaId() == null || dto.getDeviceSn() == null) {
@@ -183,7 +207,7 @@ public class AccessLogServiceImpl extends ServiceImpl<AccessLogMapper, AccessLog
             return result;
         }
 
-        // 记录出场日志（携带入场记录的userId以便后续生成支付记录）
+        // 4. 记录出场日志（携带入场记录的关联信息）
         AccessLog exitLog = buildAccessLog(dto, entryLog.getVehicleId(), entryLog.getUserId(), entryLog.getReservationId(), 1);
         this.save(exitLog);
         result.setAccessLogId(exitLog.getId());
@@ -199,7 +223,7 @@ public class AccessLogServiceImpl extends ServiceImpl<AccessLogMapper, AccessLog
         }
         result.setUserId(entryLog.getUserId());
 
-        // 4. 计算停车费用
+        // 5. 计算停车费用
         LocalDateTime entryTime = entryLog.getAccessTime();
         LocalDateTime now = LocalDateTime.now();
         long minutes = ChronoUnit.MINUTES.between(entryTime, now);
@@ -216,30 +240,33 @@ public class AccessLogServiceImpl extends ServiceImpl<AccessLogMapper, AccessLog
         }
         result.setRecognitionResult(1);
 
-        // 5. 处理预约相关（如果有预约则释放占位、更新预约记录、生成支付记录）
+        // 6. 处理预约相关（如果有预约则释放占位、更新预约记录、生成支付记录）
         Long reservationId = entryLog.getReservationId();
         if (reservationId != null) {
             Reservation reservation = reservationMapper.selectById(reservationId);
             if (reservation != null) {
                 // 更新预约：离开时间、结算费用、支付状态
-                reservation.setLeaveTime(now);
-                reservation.setSettlementTime(now);
-                reservation.setTotalFee(totalAmount);
+                // 使用 LambdaUpdateWrapper 避免 @Version 乐观锁问题
+                LambdaUpdateWrapper<Reservation> exitUpdate = new LambdaUpdateWrapper<>();
+                exitUpdate.eq(Reservation::getId, reservation.getId());
+                exitUpdate.set(Reservation::getLeaveTime, now);
+                exitUpdate.set(Reservation::getSettlementTime, now);
+                exitUpdate.set(Reservation::getTotalFee, totalAmount);
                 if (totalAmount.compareTo(BigDecimal.ZERO) <= 0) {
-                    reservation.setPayStatus(1); // 免费，视为已支付
-                    reservation.setPaidAmount(BigDecimal.ZERO);
+                    exitUpdate.set(Reservation::getPayStatus, 1); // 免费，视为已支付
+                    exitUpdate.set(Reservation::getPaidAmount, BigDecimal.ZERO);
                 } else {
-                    reservation.setPayStatus(0); // 未支付
+                    exitUpdate.set(Reservation::getPayStatus, 0); // 未支付
                 }
-                reservation.setStatus(3); // 3-已过期/已完成
-                reservationMapper.updateById(reservation);
+                exitUpdate.set(Reservation::getStatus, 3); // 3-已过期/已完成
+                reservationMapper.update(null, exitUpdate);
 
-                // 释放预约车位占用
-                releaseSpaceOccupy(reservation.getSpaceId(), reservationId);
+                // 释放预约车位占用（查找当前占用 time_range 包含 now 的记录并设为 now）
+                releaseSpaceOccupy(reservation.getSpaceId(), reservation.getId());
 
-                // 生成支付记录（有费用才生成）
+                // 有费用才生成支付记录
                 if (totalAmount.compareTo(BigDecimal.ZERO) > 0) {
-                    createPaymentRecord(reservation.getUserId(), reservationId,
+                    createPaymentRecord(entryLog.getUserId(), reservation.getId(),
                             totalAmount, dto.getPlateNumber());
                 }
             }
@@ -250,7 +277,7 @@ public class AccessLogServiceImpl extends ServiceImpl<AccessLogMapper, AccessLog
             }
         }
 
-        // 6. 组装返回结果
+        // 7. 组装返回结果
         result.setAllowed(true);
         result.setMessage("出场成功");
         FeeCalculationResult feeInfo = new FeeCalculationResult();
@@ -485,19 +512,20 @@ public class AccessLogServiceImpl extends ServiceImpl<AccessLogMapper, AccessLog
     }
 
     /**
-     * 查找该车牌的默认车辆（有userId的业主车辆）
+     * 查找该车牌的默认车辆（is_default = 1 的业主默认车辆）
+     *
+     * Bug Fix: vehicle.user_id 是 NOT NULL（所有车辆都有 userId），
+     * 不能用 getUserId() != null 判断默认车辆。
+     * 应查 is_default = 1，且用户状态正常。
      */
     private Vehicle findDefaultVehicle(String plateNumber) {
         LambdaQueryWrapper<Vehicle> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(Vehicle::getPlateNumber, plateNumber);
+        wrapper.eq(Vehicle::getIsDefault, 1);
+        wrapper.eq(Vehicle::getStatus, 1);
+        wrapper.eq(Vehicle::getDeleted, 0);
         List<Vehicle> vehicles = vehicleMapper.selectList(wrapper);
-        if (vehicles.isEmpty()) {
-            return null;
-        }
-        return vehicles.stream()
-                .filter(v -> v.getUserId() != null)
-                .findFirst()
-                .orElse(null);
+        return vehicles.isEmpty() ? null : vehicles.get(0);
     }
 
     /**
@@ -513,6 +541,8 @@ public class AccessLogServiceImpl extends ServiceImpl<AccessLogMapper, AccessLog
     /**
      * 查找当天有效的预约记录
      * 通过 vehicleId 关联车牌，再通过该预约绑定车位的园区ID判断是否属于该园区
+     *
+     * 数据库约束：只有 approval_status=1（已通过）的预约才算有效，防止查到待审批或已拒绝的预约
      */
     private Reservation findValidReservation(Long vehicleId, Long parkAreaId) {
         if (vehicleId == null) {
@@ -524,10 +554,11 @@ public class AccessLogServiceImpl extends ServiceImpl<AccessLogMapper, AccessLog
 
         LambdaQueryWrapper<Reservation> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(Reservation::getVehicleId, vehicleId);
-        wrapper.ge(Reservation::getStartTime, todayStart);
+        wrapper.eq(Reservation::getApprovalStatus, 1); // Bug Fix: 只有已通过的预约才算有效
+        wrapper.ge(Reservation::getEndTime, now.minusMinutes(15)); // 结束时间未过期（含15分钟宽限）的预约都算有效
         wrapper.in(Reservation::getStatus, 1, 2);
         wrapper.orderByAsc(Reservation::getEndTime);
-        wrapper.last("LIMIT 50"); // 取最多50条，然后内存过滤
+        wrapper.last("LIMIT 50");
 
         List<Reservation> list = reservationMapper.selectList(wrapper);
         if (list.isEmpty()) {
@@ -608,6 +639,10 @@ public class AccessLogServiceImpl extends ServiceImpl<AccessLogMapper, AccessLog
 
     /**
      * 创建车位占用记录
+     *
+     * 数据库约束：space_occupy.end_time 是 NOT NULL，
+     * 所以先用一个大值（9999-12-31 23:59:59）表示"还在占用中"，
+     * 出场时再改为实际的离开时间。
      */
     private void createSpaceOccupy(Long spaceId, Long reservationId, Long vehicleId) {
         try {
@@ -616,6 +651,8 @@ public class AccessLogServiceImpl extends ServiceImpl<AccessLogMapper, AccessLog
             occupy.setReservationId(reservationId);
             occupy.setVehicleId(vehicleId);
             occupy.setStartTime(LocalDateTime.now());
+            // Bug Fix: end_time NOT NULL，用 9999-12-31 表示"仍在占用"
+            occupy.setEndTime(OCCUPY_END_DEFAULT);
             spaceOccupyMapper.insert(occupy);
 
             // 更新车位状态（使用正确的字段名 space_occupy 没有 status 字段）
@@ -628,17 +665,37 @@ public class AccessLogServiceImpl extends ServiceImpl<AccessLogMapper, AccessLog
 
     /**
      * 释放车位占用（出场时调用）
+     *
+     * 使用时间范围查询（startTime <= now <= endTime）来定位"正在占用"的记录，
+     * 避免 datetime(6) 的微秒精度导致 endTime 精确匹配 OCCUPY_END_DEFAULT 失败的问题。
+     * 如果仍查不到，回退到按 startTime 降序取最新的记录。
      */
     private void releaseSpaceOccupy(Long spaceId, Long reservationId) {
         try {
+            LocalDateTime now = LocalDateTime.now();
             LambdaQueryWrapper<SpaceOccupy> wrapper = new LambdaQueryWrapper<>();
             wrapper.eq(SpaceOccupy::getSpaceId, spaceId);
             wrapper.eq(SpaceOccupy::getReservationId, reservationId);
-            wrapper.isNull(SpaceOccupy::getEndTime);
+            // 查"当前正在占用"的记录：startTime <= now <= endTime
+            wrapper.le(SpaceOccupy::getStartTime, now);
+            wrapper.ge(SpaceOccupy::getEndTime, now);
             List<SpaceOccupy> occupies = spaceOccupyMapper.selectList(wrapper);
+
+            // 如果时间范围查询没找到，回退方案：按 startTime 降序取最新一条
+            if (occupies.isEmpty()) {
+                log.warn("时间范围查询未找到占用记录(spaceId={},reservationId={})，回退按startTime取最新", spaceId, reservationId);
+                LambdaQueryWrapper<SpaceOccupy> fallbackWrapper = new LambdaQueryWrapper<>();
+                fallbackWrapper.eq(SpaceOccupy::getSpaceId, spaceId);
+                fallbackWrapper.eq(SpaceOccupy::getReservationId, reservationId);
+                fallbackWrapper.orderByDesc(SpaceOccupy::getStartTime);
+                fallbackWrapper.last("LIMIT 1");
+                occupies = spaceOccupyMapper.selectList(fallbackWrapper);
+            }
+
             for (SpaceOccupy occupy : occupies) {
-                occupy.setEndTime(LocalDateTime.now());
+                occupy.setEndTime(now);
                 spaceOccupyMapper.updateById(occupy);
+                log.info("已释放车位占用: spaceId={}, reservationId={}, occupyId={}", spaceId, reservationId, occupy.getId());
             }
         } catch (Exception e) {
             log.error("释放车位占用失败，spaceId={}", spaceId, e);
@@ -647,6 +704,15 @@ public class AccessLogServiceImpl extends ServiceImpl<AccessLogMapper, AccessLog
 
     /**
      * 生成支付记录
+     *
+     * Bug Fix: payment_record.reservation_id 已改为允许 NULL（SQL DDL 已更新），
+     * 临时车（reservationId = null）也可以生成支付记录。
+     * payment_method 必须设置默认值（1-微信支付）。
+     *
+     * @param userId 用户ID
+     * @param reservationId 预约ID（临时车可为null）
+     * @param amount 金额
+     * @param plateNumber 车牌号（仅日志）
      */
     private void createPaymentRecord(Long userId, Long reservationId, BigDecimal amount, String plateNumber) {
         try {
@@ -654,6 +720,8 @@ public class AccessLogServiceImpl extends ServiceImpl<AccessLogMapper, AccessLog
             record.setUserId(userId);
             record.setReservationId(reservationId);
             record.setAmount(amount);
+            // Bug Fix: payment_method NOT NULL，需要设置默认值
+            record.setPaymentMethod(1); // 1-微信支付（默认）
             record.setPaymentStatus(0); // 0-未支付
             paymentRecordMapper.insert(record);
         } catch (Exception e) {
@@ -669,9 +737,21 @@ public class AccessLogServiceImpl extends ServiceImpl<AccessLogMapper, AccessLog
         AccessLogDTO dto = new AccessLogDTO();
         dto.setId(log.getId());
         dto.setParkAreaId(log.getParkAreaId());
+        // 填充园区名称
+        if (log.getParkAreaId() != null) {
+            ParkArea area = parkAreaMapper.selectById(log.getParkAreaId());
+            dto.setParkAreaName(area != null ? area.getName() : null);
+        }
         dto.setGateId(log.getGateId());
+        // 填充道闸名称
+        if (log.getGateId() != null) {
+            GateDevice gate = gateDeviceMapper.selectById(log.getGateId());
+            dto.setGateName(gate != null ? gate.getGateName() : null);
+        }
         dto.setPlateNumber(log.getPlateNumber());
         dto.setVehicleId(log.getVehicleId());
+        dto.setUserId(log.getUserId());
+        dto.setReservationId(log.getReservationId());
         dto.setAccessType(log.getAccessType());
         dto.setImageUrl(log.getImageUrl());
         dto.setRecognitionResult(log.getRecognitionResult());
@@ -694,6 +774,8 @@ public class AccessLogServiceImpl extends ServiceImpl<AccessLogMapper, AccessLog
         log.setGateId(dto.getGateId());
         log.setPlateNumber(dto.getPlateNumber());
         log.setVehicleId(dto.getVehicleId());
+        log.setUserId(dto.getUserId());
+        log.setReservationId(dto.getReservationId());
         log.setAccessType(dto.getAccessType());
         log.setImageUrl(dto.getImageUrl());
         log.setRecognitionResult(dto.getRecognitionResult());

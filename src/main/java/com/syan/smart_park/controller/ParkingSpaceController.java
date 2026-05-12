@@ -171,7 +171,6 @@ public class ParkingSpaceController {
         return R.success(parkingSpace);
     }
     
-    
     /**
      * 根据园区ID获取车位列表（包含当前占用状态）
      */
@@ -190,5 +189,16 @@ public class ParkingSpaceController {
     public R<Boolean> isSpaceOccupied(@PathVariable Long id) {
         boolean isOccupied = parkingSpaceService.isSpaceOccupied(id);
         return R.success(isOccupied);
+    }
+    
+    /**
+     * 获取可用于车辆绑定（长期占用）的车位列表
+     * 预约产生的临时占用不影响绑定选择
+     */
+    @GetMapping("/available-for-binding")
+    @RequirePermission("park:space:list")
+    public R<List<ParkingSpaceDTO>> getSpacesAvailableForBinding() {
+        List<ParkingSpaceDTO> parkingSpaces = parkingSpaceService.getSpacesAvailableForBinding();
+        return R.success(parkingSpaces);
     }
 }

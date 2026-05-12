@@ -32,7 +32,7 @@ public interface ReservationMapper extends BaseMapper<Reservation> {
      */
     @Select("SELECT COUNT(*) FROM reservation WHERE space_id = #{spaceId} " +
             "AND start_time <= #{currentTime} AND end_time >= #{currentTime} " +
-            "AND approval_status = 1 AND status != 0 AND deleted = 0")
+            "AND approval_status = 1 AND status IN (1, 2) AND deleted = 0")
     Long countReservedBySpaceIdAndTime(@Param("spaceId") Long spaceId,
                                        @Param("currentTime") LocalDateTime currentTime);
 

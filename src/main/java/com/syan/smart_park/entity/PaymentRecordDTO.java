@@ -31,6 +31,11 @@ public class PaymentRecordDTO {
     private Long userId;
     
     /**
+     * 用户名（关联查询，不写入数据库）
+     */
+    private String username;
+    
+    /**
      * 支付金额
      */
     @Positive(message = "支付金额必须大于零")

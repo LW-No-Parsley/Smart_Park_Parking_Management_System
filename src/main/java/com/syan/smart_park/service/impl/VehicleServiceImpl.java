@@ -81,13 +81,16 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
 
     /**
      * 填充单个车辆的绑定车位ID
+     * 只查询 reservationId=0 的长期绑定记录，排除预约产生的临时占用
      */
     private void fillSpaceId(VehicleDTO dto) {
         if (dto == null || dto.getId() == null) {
             return;
         }
         LambdaQueryWrapper<SpaceOccupy> query = new LambdaQueryWrapper<>();
-        query.eq(SpaceOccupy::getVehicleId, dto.getId()).last("LIMIT 1");
+        query.eq(SpaceOccupy::getVehicleId, dto.getId())
+             .eq(SpaceOccupy::getReservationId, 0L)
+             .last("LIMIT 1");
         SpaceOccupy occupy = spaceOccupyMapper.selectOne(query);
         if (occupy != null) {
             dto.setSpaceId(occupy.getSpaceId());
@@ -96,6 +99,7 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
 
     /**
      * 批量填充车辆DTO列表中的绑定车位ID
+     * 只查询 reservationId=0 的长期绑定记录，排除预约产生的临时占用
      */
     private void fillSpaceIds(List<VehicleDTO> dtos) {
         if (dtos == null || dtos.isEmpty()) {
@@ -110,7 +114,8 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
             return;
         }
         LambdaQueryWrapper<SpaceOccupy> query = new LambdaQueryWrapper<>();
-        query.in(SpaceOccupy::getVehicleId, vehicleIds);
+        query.in(SpaceOccupy::getVehicleId, vehicleIds)
+             .eq(SpaceOccupy::getReservationId, 0L);
         List<SpaceOccupy> occupys = spaceOccupyMapper.selectList(query);
 
         Map<Long, Long> spaceIdMap = occupys.stream()
@@ -172,7 +177,7 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
         logDTO.setDetail("车辆ID:" + vehicle.getId() + "，车牌号:" + vehicle.getPlateNumber() + "，用户ID:" + vehicle.getUserId());
         operationLogService.createOperationLog(logDTO);
 
-        // 车位绑定：如果传了spaceId则使用指定车位，否则业主自动查找绑定车位
+        // 车位绑定：只有前端明确传了spaceId才绑定，不自动绑定任何车位
         ParkingSpace targetSpace = null;
 
         if (vehicleDTO.getSpaceId() != null) {
@@ -182,16 +187,14 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
                 throw new com.syan.smart_park.common.exception.BusinessException(
                     com.syan.smart_park.common.exception.ReturnCode.RC1404, "指定的车位不存在");
             }
-        } else {
-            // 业主自动绑定其固定车位（向后兼容）
-            ParkUser parkUser = parkUserMapper.selectById(vehicleDTO.getUserId());
-            if (parkUser != null && parkUser.getUserType() != null && parkUser.getUserType() == 1) {
-                LambdaQueryWrapper<ParkingSpace> spaceWrapper = new LambdaQueryWrapper<>();
-                spaceWrapper.eq(ParkingSpace::getBindUserId, vehicleDTO.getUserId());
-                List<ParkingSpace> boundSpaces = parkingSpaceMapper.selectList(spaceWrapper);
-                if (!boundSpaces.isEmpty()) {
-                    targetSpace = boundSpaces.get(0);
-                }
+            // 检查该车位是否已被其他车辆长期绑定
+            LambdaQueryWrapper<SpaceOccupy> boundCheck = new LambdaQueryWrapper<>();
+            boundCheck.eq(SpaceOccupy::getSpaceId, targetSpace.getId())
+                      .eq(SpaceOccupy::getReservationId, 0L);
+            Long boundCount = spaceOccupyMapper.selectCount(boundCheck);
+            if (boundCount > 0) {
+                throw new com.syan.smart_park.common.exception.BusinessException(
+                    com.syan.smart_park.common.exception.ReturnCode.RC400, "该车位已被其他车辆绑定");
             }
         }
 
@@ -209,8 +212,7 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
             occupyLog.setAction("业主车位绑定");
             occupyLog.setDetail("车辆ID:" + vehicle.getId()
                     + "，用户ID:" + vehicleDTO.getUserId()
-                    + "，车位:" + targetSpace.getSpaceNumber()
-                    + (vehicleDTO.getSpaceId() != null ? "（手动选择）" : "（自动绑定）")
+                + "，车位:" + targetSpace.getSpaceNumber()
                     + "，占用至2999年");
             operationLogService.createOperationLog(occupyLog);
             dto.setSpaceId(targetSpace.getId());
@@ -242,25 +244,14 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
             }
         }
 
-        // 处理 isDefault：如果设为默认，先取消该用户其他默认车辆
-        if (vehicleDTO.getIsDefault() != null && vehicleDTO.getIsDefault() == 1) {
-            LambdaQueryWrapper<Vehicle> defaultWrapper = new LambdaQueryWrapper<>();
-            defaultWrapper.eq(Vehicle::getUserId, existingVehicle.getUserId())
-                         .eq(Vehicle::getIsDefault, 1)
-                         .ne(Vehicle::getId, id);
-            List<Vehicle> defaultVehicles = this.list(defaultWrapper);
-            for (Vehicle v : defaultVehicles) {
-                v.setIsDefault(0);
-                this.updateById(v);
-            }
-        }
+        // 允许一个用户有多辆默认车辆，所以不需要取消其他默认车辆
 
         // 处理 spaceId：更新车位绑定
         Long oldSpaceId = null;
-        // 查找当前已有长期占用的 spaceId（通过 vehicleId 精确匹配）
+        // 查找当前已有长期占用的 spaceId（通过 vehicleId 精确匹配，reservationId=0 表示长期绑定）
         LambdaQueryWrapper<SpaceOccupy> occupyQuery = new LambdaQueryWrapper<>();
         occupyQuery.eq(SpaceOccupy::getVehicleId, id)
-                   .isNull(SpaceOccupy::getReservationId);
+                   .eq(SpaceOccupy::getReservationId, 0L);
         SpaceOccupy existingOccupy = spaceOccupyMapper.selectOne(occupyQuery);
 
         if (vehicleDTO.getSpaceId() != null) {
@@ -268,7 +259,17 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
             if (existingOccupy != null && existingOccupy.getSpaceId().equals(vehicleDTO.getSpaceId())) {
                 // 同一个车位，不做变化
             } else {
-                // 删除旧占用
+                // 检查新车位是否已被其他车辆长期绑定
+                LambdaQueryWrapper<SpaceOccupy> boundCheck = new LambdaQueryWrapper<>();
+                boundCheck.eq(SpaceOccupy::getSpaceId, vehicleDTO.getSpaceId())
+                          .eq(SpaceOccupy::getReservationId, 0L)
+                          .ne(SpaceOccupy::getVehicleId, id);
+                Long boundCount = spaceOccupyMapper.selectCount(boundCheck);
+                if (boundCount > 0) {
+                    throw new com.syan.smart_park.common.exception.BusinessException(
+                        com.syan.smart_park.common.exception.ReturnCode.RC400, "该车位已被其他车辆绑定");
+                }
+                // 逻辑删除旧占用
                 if (existingOccupy != null) {
                     spaceOccupyMapper.deleteById(existingOccupy.getId());
                 }
@@ -293,7 +294,7 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
                 operationLogService.createOperationLog(occupyLog);
             }
         } else {
-            // 没传 spaceId → 解除原有绑定
+            // 没传 spaceId → 解除原有绑定（逻辑删除）
             if (existingOccupy != null) {
                 spaceOccupyMapper.deleteById(existingOccupy.getId());
 
@@ -330,9 +331,10 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
             return false;
         }
 
-        // 删除关联的长期占用记录（vehicleId 精确匹配）
+        // 逻辑删除关联的长期占用记录（只删除 reservationId=0 的长期绑定，不删除预约产生的临时占用）
         LambdaQueryWrapper<SpaceOccupy> occupyQuery = new LambdaQueryWrapper<>();
-        occupyQuery.eq(SpaceOccupy::getVehicleId, id);
+        occupyQuery.eq(SpaceOccupy::getVehicleId, id)
+                   .eq(SpaceOccupy::getReservationId, 0L);
         spaceOccupyMapper.delete(occupyQuery);
 
         boolean result = this.removeById(id);

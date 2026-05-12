@@ -34,6 +34,7 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper, Reser
     private final ParkUserMapper parkUserMapper;
     private final VehicleMapper vehicleMapper;
     private final ParkingSpaceMapper parkingSpaceMapper;
+    private final SpaceOccupyMapper spaceOccupyMapper;
     private final FeeRuleService feeRuleService;
     private final ParkingSpaceService parkingSpaceService;
     private final PaymentRecordService paymentRecordService;
@@ -99,7 +100,10 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper, Reser
         // 检查车位是否可用
         if (!isSpaceAvailable(reservationDTO.getSpaceId(), reservationDTO.getStartTime(), 
                 reservationDTO.getEndTime(), null)) {
-            throw new RuntimeException("车位在指定时间不可用");
+            throw new com.syan.smart_park.common.exception.BusinessException(
+                com.syan.smart_park.common.exception.ReturnCode.RC400,
+                "车位在指定时间不可用"
+            );
         }
         
         Reservation reservation = reservationDTO.toReservation();
@@ -123,7 +127,10 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper, Reser
         // 检查车位是否可用（排除当前预约）
         if (!isSpaceAvailable(reservationDTO.getSpaceId(), reservationDTO.getStartTime(), 
                 reservationDTO.getEndTime(), id)) {
-            throw new RuntimeException("车位在指定时间不可用");
+            throw new com.syan.smart_park.common.exception.BusinessException(
+                com.syan.smart_park.common.exception.ReturnCode.RC400,
+                "车位在指定时间不可用"
+            );
         }
         
         // 保存原始版本号
@@ -612,22 +619,43 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper, Reser
 
     @Override
     public boolean isSpaceAvailable(Long spaceId, LocalDateTime startTime, LocalDateTime endTime, Long excludeReservationId) {
-        LambdaQueryWrapper<Reservation> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(Reservation::getSpaceId, spaceId)
-                   .eq(Reservation::getApprovalStatus, 1) // 已通过
-                   .ne(Reservation::getStatus, 0) // 不是已取消
-                   .and(wrapper -> wrapper
-                       .and(inner -> inner
-                           .le(Reservation::getStartTime, endTime)
-                           .ge(Reservation::getEndTime, startTime))
-                   );
+        LocalDateTime now = LocalDateTime.now();
+
+        // 1. 检查 space_occupy 实际占用表：是否有车辆正在占用该车位（车还停在里面）
+        // 判断"正在占用"的标准：endTime 被设为默认大值（9999-12-31），表示车还没开走
+        // 如果车已离场，endTime 会被更新为实际离场时间（如 01:10:31），
+        // 即使新预约的 startTime 比离场时间早，该记录也不应被视为"正在占用"
+        // 所以用 endTime >= OCCUPY_END_DEFAULT 来判断，而不是 endTime > startTime
+        LambdaQueryWrapper<SpaceOccupy> occupyQuery = new LambdaQueryWrapper<>();
+        occupyQuery.eq(SpaceOccupy::getSpaceId, spaceId)
+                   .ge(SpaceOccupy::getEndTime, LocalDateTime.of(9999, 12, 31, 0, 0)); // 只有endTime="还在占用中"的大值才算被占用
         
         if (excludeReservationId != null) {
-            queryWrapper.ne(Reservation::getId, excludeReservationId);
+            occupyQuery.ne(SpaceOccupy::getReservationId, excludeReservationId);
         }
         
-        long count = this.count(queryWrapper);
-        return count == 0;
+        long occupyCount = spaceOccupyMapper.selectCount(occupyQuery);
+        if (occupyCount > 0) {
+            return false; // 车位实际被占用（车仍停在里面）
+        }
+        
+        // 2. 检查 reservation 预约表：是否有已通过但还未入场的预约冲突
+        // 只查 status=1（已预约，还没入场）的预约，因为已入场(status=2)的已在 space_occupy 中体现
+        // 且新预约的 startTime/endTime 范围不能与已有未入场预约的冲突
+        LambdaQueryWrapper<Reservation> reservationQuery = new LambdaQueryWrapper<>();
+        reservationQuery.eq(Reservation::getSpaceId, spaceId)
+                        .eq(Reservation::getApprovalStatus, 1)  // 已审批通过
+                        .eq(Reservation::getStatus, 1)          // 已预约（尚未入场）
+                        .and(wrapper -> wrapper
+                            .le(Reservation::getStartTime, endTime)
+                            .ge(Reservation::getEndTime, startTime));
+        
+        if (excludeReservationId != null) {
+            reservationQuery.ne(Reservation::getId, excludeReservationId);
+        }
+        
+        long reservationCount = this.count(reservationQuery);
+        return reservationCount == 0;
     }
 
     @Override

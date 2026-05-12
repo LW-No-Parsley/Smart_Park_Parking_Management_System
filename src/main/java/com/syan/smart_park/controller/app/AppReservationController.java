@@ -48,6 +48,7 @@ public class AppReservationController {
         dto.setEndTime(request.getEndTime());
         dto.setReservationType(1);
         dto.setSource(1);
+        dto.setApprovalStatus(0); // 小程序提交默认为待审批
 
         ReservationDTO result = reservationService.createReservation(dto);
         if (result == null) {

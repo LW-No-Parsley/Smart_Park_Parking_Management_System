@@ -355,4 +355,31 @@ public class ParkingSpaceServiceImpl extends ServiceImpl<ParkingSpaceMapper, Par
                 })
                 .collect(Collectors.toList());
     }
+
+    @Override
+    public List<ParkingSpaceDTO> getSpacesAvailableForBinding() {
+        // 1. 获取所有状态正常的车位
+        LambdaQueryWrapper<ParkingSpace> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(ParkingSpace::getStatus, 1);
+        List<ParkingSpace> allNormalSpaces = this.list(queryWrapper);
+
+        // 2. 查询已被长期绑定（reservationId=0）的车位ID列表
+        LambdaQueryWrapper<SpaceOccupy> occupyQuery = new LambdaQueryWrapper<>();
+        occupyQuery.eq(SpaceOccupy::getReservationId, 0L)
+                   .ge(SpaceOccupy::getEndTime, LocalDateTime.of(9999, 12, 31, 0, 0));
+        List<SpaceOccupy> boundOccupies = spaceOccupyMapper.selectList(occupyQuery);
+        java.util.Set<Long> boundSpaceIds = boundOccupies.stream()
+                .map(SpaceOccupy::getSpaceId)
+                .collect(Collectors.toSet());
+
+        // 3. 过滤掉已被长期绑定的车位
+        return allNormalSpaces.stream()
+                .filter(space -> !boundSpaceIds.contains(space.getId()))
+                .map(space -> {
+                    ParkingSpaceDTO dto = ParkingSpaceDTO.fromParkingSpace(space);
+                    dto.setCurrentOccupiedStatus(0);
+                    return dto;
+                })
+                .collect(Collectors.toList());
+    }
 }

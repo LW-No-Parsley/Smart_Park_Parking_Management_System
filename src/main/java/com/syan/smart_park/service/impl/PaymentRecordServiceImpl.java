@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.syan.smart_park.common.PageResult;
 import com.syan.smart_park.dao.PaymentRecordMapper;
+import com.syan.smart_park.dao.ParkUserMapper;
 import com.syan.smart_park.entity.*;
 import com.syan.smart_park.entity.PaymentRecord;
 import com.syan.smart_park.entity.PaymentRecordDTO;
@@ -18,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -28,6 +30,7 @@ import java.util.stream.Collectors;
 public class PaymentRecordServiceImpl extends ServiceImpl<PaymentRecordMapper, PaymentRecord> implements PaymentRecordService {
     
     private final PaymentRecordMapper paymentRecordMapper;
+    private final ParkUserMapper parkUserMapper;
     private final OperationLogService operationLogService;
 
     @Override
@@ -50,6 +53,20 @@ public class PaymentRecordServiceImpl extends ServiceImpl<PaymentRecordMapper, P
         List<PaymentRecordDTO> dtoList = page.getRecords().stream()
                 .map(PaymentRecordDTO::fromPaymentRecord)
                 .collect(Collectors.toList());
+
+        // 批量填充用户名
+        List<Long> userIds = dtoList.stream()
+                .map(PaymentRecordDTO::getUserId)
+                .filter(java.util.Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
+        if (!userIds.isEmpty()) {
+            Map<Long, String> userMap = parkUserMapper.selectBatchIds(userIds).stream()
+                    .collect(Collectors.toMap(ParkUser::getId, ParkUser::getUsername));
+            for (PaymentRecordDTO dto : dtoList) {
+                dto.setUsername(userMap.get(dto.getUserId()));
+            }
+        }
 
         return PageResult.of(dtoList, page.getTotal(), page.getCurrent(), page.getSize());
     }

@@ -27,6 +27,8 @@ CREATE TABLE `access_log`  (
   `gate_id` bigint NOT NULL COMMENT '道闸ID',
   `plate_number` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '识别车牌号',
   `vehicle_id` bigint NULL DEFAULT NULL COMMENT '关联车辆ID（可为空）',
+  `user_id` bigint NULL DEFAULT NULL COMMENT '关联业主用户ID（park_user.id，可为空）',
+  `reservation_id` bigint NULL DEFAULT NULL COMMENT '关联预约ID（reservation.id，可为空）',
   `access_type` tinyint NOT NULL COMMENT '进出类型：1-入场，2-出场',
   `image_url` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '抓拍图片地址',
   `recognition_result` tinyint NULL DEFAULT 1 COMMENT '识别结果：0-失败，1-成功，2-黑名单',
@@ -40,12 +42,16 @@ CREATE TABLE `access_log`  (
   INDEX `idx_access_time`(`access_time` ASC) USING BTREE,
   INDEX `idx_gate`(`gate_id` ASC) USING BTREE,
   INDEX `idx_vehicle`(`vehicle_id` ASC) USING BTREE,
+  INDEX `idx_user`(`user_id` ASC) USING BTREE,
+  INDEX `idx_reservation`(`reservation_id` ASC) USING BTREE,
   INDEX `idx_park_area`(`park_area_id` ASC) USING BTREE,
   INDEX `idx_handled_by`(`handled_by` ASC) USING BTREE,
   CONSTRAINT `fk_access_gate` FOREIGN KEY (`gate_id`) REFERENCES `gate_device` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
   CONSTRAINT `fk_access_handled_by_sys_user` FOREIGN KEY (`handled_by`) REFERENCES `sys_user` (`id`) ON DELETE SET NULL ON UPDATE RESTRICT,
   CONSTRAINT `fk_access_park_area` FOREIGN KEY (`park_area_id`) REFERENCES `park_area` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
-  CONSTRAINT `fk_access_vehicle` FOREIGN KEY (`vehicle_id`) REFERENCES `vehicle` (`id`) ON DELETE SET NULL ON UPDATE RESTRICT
+  CONSTRAINT `fk_access_vehicle` FOREIGN KEY (`vehicle_id`) REFERENCES `vehicle` (`id`) ON DELETE SET NULL ON UPDATE RESTRICT,
+  CONSTRAINT `fk_access_user` FOREIGN KEY (`user_id`) REFERENCES `park_user` (`id`) ON DELETE SET NULL ON UPDATE RESTRICT,
+  CONSTRAINT `fk_access_reservation` FOREIGN KEY (`reservation_id`) REFERENCES `reservation` (`id`) ON DELETE SET NULL ON UPDATE RESTRICT
 ) ENGINE = InnoDB AUTO_INCREMENT = 4 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '进出记录表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
@@ -275,8 +281,8 @@ CREATE TABLE `parking_zone`  (
 DROP TABLE IF EXISTS `payment_record`;
 CREATE TABLE `payment_record`  (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT '支付记录ID',
-  `reservation_id` bigint NOT NULL COMMENT '预约ID',
-  `user_id` bigint NOT NULL COMMENT '用户ID',
+  `reservation_id` bigint NULL DEFAULT NULL COMMENT '预约ID（预约车关联 reservation.id，临时车为NULL）',
+  `user_id` bigint NULL DEFAULT NULL COMMENT '用户ID（临时车可为NULL）',
   `amount` decimal(10, 2) NOT NULL COMMENT '支付金额',
   `payment_method` tinyint NOT NULL COMMENT '支付方式：1-微信支付，2-支付宝，3-余额支付',
   `transaction_id` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '第三方支付交易ID',
@@ -289,8 +295,8 @@ CREATE TABLE `payment_record`  (
   INDEX `idx_reservation`(`reservation_id` ASC) USING BTREE,
   INDEX `idx_user`(`user_id` ASC) USING BTREE,
   INDEX `idx_payment_time`(`payment_time` ASC) USING BTREE,
-  CONSTRAINT `fk_payment_reservation` FOREIGN KEY (`reservation_id`) REFERENCES `reservation` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
-  CONSTRAINT `fk_payment_user` FOREIGN KEY (`user_id`) REFERENCES `park_user` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT
+  CONSTRAINT `fk_payment_reservation` FOREIGN KEY (`reservation_id`) REFERENCES `reservation` (`id`) ON DELETE SET NULL ON UPDATE RESTRICT,
+  CONSTRAINT `fk_payment_user` FOREIGN KEY (`user_id`) REFERENCES `park_user` (`id`) ON DELETE SET NULL ON UPDATE RESTRICT
 ) ENGINE = InnoDB AUTO_INCREMENT = 4 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '支付记录表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------

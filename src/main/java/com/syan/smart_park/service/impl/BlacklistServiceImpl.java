@@ -31,8 +31,7 @@ public class BlacklistServiceImpl extends ServiceImpl<BlacklistMapper, Blacklist
     @Override
     public List<BlacklistDTO> getAllBlacklists() {
         LambdaQueryWrapper<Blacklist> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(Blacklist::getDeleted, 0)
-                   .orderByDesc(Blacklist::getCreateTime);
+        queryWrapper.orderByDesc(Blacklist::getCreateTime);
         
         List<Blacklist> blacklists = blacklistMapper.selectList(queryWrapper);
         return blacklists.stream()
@@ -86,16 +85,13 @@ public class BlacklistServiceImpl extends ServiceImpl<BlacklistMapper, Blacklist
             return false;
         }
         
-        blacklist.setDeleted(1);
-        int result = blacklistMapper.updateById(blacklist);
-        return result > 0;
+        return this.removeById(id);
     }
 
     @Override
     public List<BlacklistDTO> getBlacklistsByPlateNumber(String plateNumber) {
         LambdaQueryWrapper<Blacklist> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(Blacklist::getDeleted, 0)
-                   .eq(Blacklist::getPlateNumber, plateNumber)
+        queryWrapper.eq(Blacklist::getPlateNumber, plateNumber)
                    .orderByDesc(Blacklist::getCreateTime);
         
         List<Blacklist> blacklists = blacklistMapper.selectList(queryWrapper);
@@ -107,8 +103,7 @@ public class BlacklistServiceImpl extends ServiceImpl<BlacklistMapper, Blacklist
     @Override
     public List<BlacklistDTO> getBlacklistsByStatus(Integer status) {
         LambdaQueryWrapper<Blacklist> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(Blacklist::getDeleted, 0)
-                   .eq(Blacklist::getStatus, status)
+        queryWrapper.eq(Blacklist::getStatus, status)
                    .orderByDesc(Blacklist::getCreateTime);
         
         List<Blacklist> blacklists = blacklistMapper.selectList(queryWrapper);
@@ -120,8 +115,7 @@ public class BlacklistServiceImpl extends ServiceImpl<BlacklistMapper, Blacklist
     @Override
     public boolean isPlateNumberInBlacklist(String plateNumber) {
         LambdaQueryWrapper<Blacklist> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(Blacklist::getDeleted, 0)
-                   .eq(Blacklist::getPlateNumber, plateNumber)
+        queryWrapper.eq(Blacklist::getPlateNumber, plateNumber)
                    .eq(Blacklist::getStatus, 1) // 生效状态
                    .le(Blacklist::getStartTime, LocalDateTime.now()) // 生效时间 <= 当前时间
                    .ge(Blacklist::getEndTime, LocalDateTime.now()); // 失效时间 >= 当前时间

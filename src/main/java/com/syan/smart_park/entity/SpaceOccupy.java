@@ -1,8 +1,6 @@
 package com.syan.smart_park.entity;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -41,7 +39,7 @@ public class SpaceOccupy {
     private LocalDateTime startTime;
 
     /**
-     * 占用结束时间
+     * 占用结束时间（NULL表示仍在占用中）
      */
     private LocalDateTime endTime;
 
@@ -49,4 +47,11 @@ public class SpaceOccupy {
      * 创建时间
      */
     private LocalDateTime createTime;
+
+    /**
+     * 逻辑删除：0-未删除，1-已删除
+     */
+    @TableLogic
+    @TableField(select = false)
+    private Integer deleted;
 }

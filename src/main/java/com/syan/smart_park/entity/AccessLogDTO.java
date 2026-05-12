@@ -21,9 +21,19 @@ public class AccessLogDTO {
     private Long parkAreaId;
     
     /**
+     * 园区名称（前端展示用，非数据库字段）
+     */
+    private String parkAreaName;
+    
+    /**
      * 道闸ID
      */
     private Long gateId;
+    
+    /**
+     * 道闸名称（前端展示用，非数据库字段）
+     */
+    private String gateName;
     
     /**
      * 识别车牌号
@@ -34,6 +44,16 @@ public class AccessLogDTO {
      * 关联车辆ID（可为空）
      */
     private Long vehicleId;
+    
+    /**
+     * 关联业主用户ID（park_user.id，可为空）
+     */
+    private Long userId;
+    
+    /**
+     * 关联预约ID（reservation.id，可为空）
+     */
+    private Long reservationId;
     
     /**
      * 进出类型：1-入场，2-出场
@@ -94,6 +114,8 @@ public class AccessLogDTO {
         dto.setGateId(accessLog.getGateId());
         dto.setPlateNumber(accessLog.getPlateNumber());
         dto.setVehicleId(accessLog.getVehicleId());
+        dto.setUserId(accessLog.getUserId());
+        dto.setReservationId(accessLog.getReservationId());
         dto.setAccessType(accessLog.getAccessType());
         dto.setImageUrl(accessLog.getImageUrl());
         dto.setRecognitionResult(accessLog.getRecognitionResult());
@@ -117,6 +139,8 @@ public class AccessLogDTO {
         accessLog.setGateId(this.gateId);
         accessLog.setPlateNumber(this.plateNumber);
         accessLog.setVehicleId(this.vehicleId);
+        accessLog.setUserId(this.userId);
+        accessLog.setReservationId(this.reservationId);
         accessLog.setAccessType(this.accessType);
         accessLog.setImageUrl(this.imageUrl);
         accessLog.setRecognitionResult(this.recognitionResult);

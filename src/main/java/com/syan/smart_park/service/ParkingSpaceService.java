@@ -99,4 +99,13 @@ public interface ParkingSpaceService extends IService<ParkingSpace> {
      * @return 车位列表（包含占用状态）
      */
     List<ParkingSpaceDTO> getParkingSpacesByParkAreaIdWithOccupiedStatus(Long parkAreaId);
+
+    /**
+     * 获取可用于车辆绑定（长期占用）的车位列表
+     * 返回状态正常且没有被其他车辆长期绑定的车位
+     * 预约产生的临时占用不影响绑定选择
+     *
+     * @return 可用于绑定的车位列表
+     */
+    List<ParkingSpaceDTO> getSpacesAvailableForBinding();
 }

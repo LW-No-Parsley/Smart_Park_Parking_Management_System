@@ -22,7 +22,7 @@ public interface SpaceOccupyMapper extends BaseMapper<SpaceOccupy> {
      * @return 占用记录数量
      */
     @Select("SELECT COUNT(*) FROM space_occupy WHERE space_id = #{spaceId} " +
-            "AND start_time <= #{currentTime} AND end_time >= #{currentTime}")
+            "AND deleted = 0 AND start_time <= #{currentTime} AND end_time >= #{currentTime}")
     Long countOccupiedBySpaceIdAndTime(@Param("spaceId") Long spaceId, 
                                       @Param("currentTime") LocalDateTime currentTime);
 
@@ -36,6 +36,7 @@ public interface SpaceOccupyMapper extends BaseMapper<SpaceOccupy> {
     @Select("SELECT COUNT(DISTINCT so.space_id) FROM space_occupy so " +
             "INNER JOIN parking_space ps ON so.space_id = ps.id " +
             "WHERE ps.park_area_id = #{parkAreaId} AND ps.deleted = 0 " +
+            "AND so.deleted = 0 " +
             "AND so.start_time <= #{currentTime} AND so.end_time >= #{currentTime}")
     Long countOccupiedSpacesByParkAreaIdAndTime(@Param("parkAreaId") Long parkAreaId,
                                                @Param("currentTime") LocalDateTime currentTime);

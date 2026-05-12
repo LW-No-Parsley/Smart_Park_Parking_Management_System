@@ -21,6 +21,11 @@ public class ExceptionReportDTO {
     private Long userId;
     
     /**
+     * 上报用户姓名（关联查询，不写入数据库）
+     */
+    private String userName;
+    
+    /**
      * 关联车位ID
      */
     private Long spaceId;
@@ -49,6 +54,11 @@ public class ExceptionReportDTO {
      * 处理人员ID（后台 sys_user.id）
      */
     private Long handledBy;
+    
+    /**
+     * 处理人姓名（关联查询，不写入数据库）
+     */
+    private String handledByName;
     
     /**
      * 处理时间
@@ -92,6 +102,7 @@ public class ExceptionReportDTO {
         dto.setImageUrl(exceptionReport.getImageUrl());
         dto.setStatus(exceptionReport.getStatus());
         dto.setHandledBy(exceptionReport.getHandledBy());
+        // handledByName 是 DTO 扩展字段，由 Service 层单独填充，不从实体转换
         dto.setHandleTime(exceptionReport.getHandleTime());
         dto.setHandleResult(exceptionReport.getHandleResult());
         dto.setCreateTime(exceptionReport.getCreateTime());
@@ -114,6 +125,7 @@ public class ExceptionReportDTO {
         exceptionReport.setImageUrl(this.getImageUrl());
         exceptionReport.setStatus(this.getStatus());
         exceptionReport.setHandledBy(this.getHandledBy());
+        // handledByName 是 DTO 扩展字段，不写入实体
         exceptionReport.setHandleTime(this.getHandleTime());
         exceptionReport.setHandleResult(this.getHandleResult());
         exceptionReport.setCreateTime(this.getCreateTime());

@@ -6,20 +6,30 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.syan.smart_park.common.PageResult;
 import com.syan.smart_park.dao.ExceptionReportMapper;
+import com.syan.smart_park.dao.ParkUserMapper;
+import com.syan.smart_park.dao.UserMapper;
 import com.syan.smart_park.entity.ExceptionReport;
 import com.syan.smart_park.entity.ExceptionReportDTO;
+import com.syan.smart_park.entity.ParkUser;
+import com.syan.smart_park.entity.User;
 import com.syan.smart_park.service.ExceptionReportService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
  * 异常上报服务实现类
  */
 @Service
+@RequiredArgsConstructor
 public class ExceptionReportServiceImpl extends ServiceImpl<ExceptionReportMapper, ExceptionReport> implements ExceptionReportService {
+
+    private final UserMapper userMapper;
+    private final ParkUserMapper parkUserMapper;
 
     @Override
     public PageResult<ExceptionReportDTO> pageExceptionReports(long current, long size,
@@ -54,6 +64,34 @@ public class ExceptionReportServiceImpl extends ServiceImpl<ExceptionReportMappe
                 .map(ExceptionReportDTO::fromExceptionReport)
                 .collect(Collectors.toList());
 
+        // 批量填充处理人姓名
+        List<Long> handlerIds = dtoList.stream()
+                .map(ExceptionReportDTO::getHandledBy)
+                .filter(java.util.Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
+        if (!handlerIds.isEmpty()) {
+            Map<Long, String> userMap = userMapper.selectBatchIds(handlerIds).stream()
+                    .collect(Collectors.toMap(User::getId, User::getUsername));
+            for (ExceptionReportDTO dto : dtoList) {
+                dto.setHandledByName(userMap.get(dto.getHandledBy()));
+            }
+        }
+
+        // 批量填充上报用户姓名
+        List<Long> reporterIds = dtoList.stream()
+                .map(ExceptionReportDTO::getUserId)
+                .filter(java.util.Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
+        if (!reporterIds.isEmpty()) {
+            Map<Long, String> reporterMap = parkUserMapper.selectBatchIds(reporterIds).stream()
+                    .collect(Collectors.toMap(ParkUser::getId, ParkUser::getUsername));
+            for (ExceptionReportDTO dto : dtoList) {
+                dto.setUserName(reporterMap.get(dto.getUserId()));
+            }
+        }
+
         return PageResult.of(dtoList, page.getTotal(), page.getCurrent(), page.getSize());
     }
     
@@ -63,7 +101,9 @@ public class ExceptionReportServiceImpl extends ServiceImpl<ExceptionReportMappe
         if (exceptionReport == null || exceptionReport.getDeleted() == 1) {
             return null;
         }
-        return ExceptionReportDTO.fromExceptionReport(exceptionReport);
+        ExceptionReportDTO dto = ExceptionReportDTO.fromExceptionReport(exceptionReport);
+        fillUserNames(dto);
+        return dto;
     }
     
     @Override
@@ -108,5 +148,26 @@ public class ExceptionReportServiceImpl extends ServiceImpl<ExceptionReportMappe
         
         this.updateById(exceptionReport);
         return ExceptionReportDTO.fromExceptionReport(exceptionReport);
+    }
+
+    /**
+     * 填充单个DTO的上报用户姓名和处理人姓名
+     */
+    private void fillUserNames(ExceptionReportDTO dto) {
+        if (dto == null) {
+            return;
+        }
+        if (dto.getUserId() != null) {
+            ParkUser parkUser = parkUserMapper.selectById(dto.getUserId());
+            if (parkUser != null) {
+                dto.setUserName(parkUser.getUsername());
+            }
+        }
+        if (dto.getHandledBy() != null) {
+            User user = userMapper.selectById(dto.getHandledBy());
+            if (user != null) {
+                dto.setHandledByName(user.getUsername());
+            }
+        }
     }
 }
