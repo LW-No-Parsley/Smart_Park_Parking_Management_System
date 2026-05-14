@@ -33,6 +33,13 @@ public class JwtUtil {
 
     private final TokenBlacklistMapper tokenBlacklistMapper;
 
+    @PostConstruct
+    public void init() {
+        System.out.println("JwtUtil initialized with secret (first 20 chars): " + 
+            (secret.length() > 20 ? secret.substring(0, 20) + "..." : secret));
+        System.out.println("JwtUtil initialized with expiration: " + expiration + "ms");
+    }
+
     // token类型常量
     private static final String TOKEN_TYPE_ACCESS = "access";
     private static final String TOKEN_TYPE_REFRESH = "refresh";

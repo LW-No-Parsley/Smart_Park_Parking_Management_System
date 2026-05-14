@@ -34,18 +34,15 @@ public class AppAuthController {
             return R.error(ReturnCode.RC500, "登录尝试次数过多，请稍后再试");
         }
 
-        // 优先通过 code 换取真实 openid，防止客户端伪造
-        String realOpenid = null;
-        if (loginRequest.getCode() != null && !loginRequest.getCode().isBlank()) {
-            realOpenid = wechatService.getOpenidByCode(loginRequest.getCode(), true);
+        // 通过 code 换取真实 openid，防止客户端伪造
+        if (loginRequest.getCode() == null || loginRequest.getCode().isBlank()) {
+            return R.error(ReturnCode.RC400, "微信临时登录凭证(code)不能为空");
         }
-        if (realOpenid == null && loginRequest.getCode() != null && !loginRequest.getCode().isBlank()) {
+        String realOpenid = wechatService.getOpenidByCode(loginRequest.getCode(), false);
+        if (realOpenid == null) {
             return R.error(ReturnCode.RC500, "微信登录凭证校验失败");
         }
-        String effectiveOpenid = realOpenid != null ? realOpenid : loginRequest.getOpenid();
-        if (realOpenid == null) {
-            log.warn("未通过 code2session 验证 openid，请配置微信 app-id 和 app-secret");
-        }
+        String effectiveOpenid = realOpenid;
 
         ParkUserDTO parkUserDTO = parkUserService.getByOpenid(effectiveOpenid);
 

@@ -19,6 +19,7 @@ public class ParkUserLoginRequestDTO {
      * 微信临时登录凭证（wx.login() 返回的 code）
      * 生产环境中后端将用此 code 换取真实 openid，忽略前端传入的 openid
      */
+    @NotBlank(message = "微信临时登录凭证(code)不能为空")
     private String code;
     
     /**

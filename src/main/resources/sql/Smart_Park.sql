@@ -508,8 +508,7 @@ CREATE TABLE `sys_token_jti_blacklist`  (
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `uk_jti`(`jti` ASC) USING BTREE,
   INDEX `idx_expiration_time`(`expiration_time` ASC) USING BTREE,
-  INDEX `idx_user_id`(`user_id` ASC) USING BTREE,
-  CONSTRAINT `fk_jti_user` FOREIGN KEY (`user_id`) REFERENCES `sys_user` (`id`) ON DELETE SET NULL ON UPDATE RESTRICT
+  INDEX `idx_user_id`(`user_id` ASC) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 58 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = 'JWT jti黑名单表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------

@@ -1,6 +1,7 @@
 package com.syan.smart_park.service;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -61,11 +62,17 @@ public class WechatService {
 
         String url = String.format(urlTemplate, appId, appSecret, code);
         try {
-            WechatSessionResponse resp = restTemplate.getForObject(url, WechatSessionResponse.class);
-            if (resp == null) {
+            // 先用 String 接收，避免微信返回非标准 Content-Type 导致转换失败
+            String respBody = restTemplate.getForObject(url, String.class);
+            if (respBody == null) {
                 log.error("code2session 响应为空");
                 return null;
             }
+            log.debug("code2session 原始响应: {}", respBody);
+
+            ObjectMapper mapper = new ObjectMapper();
+            WechatSessionResponse resp = mapper.readValue(respBody, WechatSessionResponse.class);
+
             if (resp.getErrcode() != null && resp.getErrcode() != 0) {
                 log.error("code2session 失败，errcode: {}, errmsg: {}", resp.getErrcode(), resp.getErrmsg());
                 return null;

@@ -53,6 +53,11 @@ public class ReservationDTO {
     private String spaceNumber;
     
     /**
+     * 园区名称
+     */
+    private String parkName;
+    
+    /**
      * 预约类型：1-车主预约，2-访客申请，3-保安现场
      */
     @Min(1) @Max(3)

@@ -3,6 +3,7 @@ package com.syan.smart_park.config;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -38,6 +39,10 @@ public class SecurityConfig {
                         // App端公开接口
                         .requestMatchers("/api/app/login").permitAll()
                         .requestMatchers("/api/app/refresh").permitAll()
+                        
+                        // 小程序公开浏览接口（无需登录即可查看停车场、车位等）
+                        .requestMatchers(HttpMethod.GET, "/api/app/park-area/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/app/parking-space/**").permitAll()
 
                         // 静态资源
                         .requestMatchers("/api/resources/**").permitAll()

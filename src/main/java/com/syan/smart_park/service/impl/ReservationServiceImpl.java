@@ -36,6 +36,7 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper, Reser
     private final ParkUserMapper parkUserMapper;
     private final VehicleMapper vehicleMapper;
     private final ParkingSpaceMapper parkingSpaceMapper;
+    private final ParkAreaMapper parkAreaMapper;
     private final SpaceOccupyMapper spaceOccupyMapper;
     private final FeeRuleService feeRuleService;
     private final ParkingSpaceService parkingSpaceService;
@@ -95,7 +96,7 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper, Reser
     }
 
     /**
-     * 批量填充预约DTO中的用户名、车牌号、车位编号
+     * 批量填充预约DTO中的用户名、车牌号、车位编号、园区名称
      */
     private void fillReservationDTOs(List<ReservationDTO> dtos) {
         if (dtos == null || dtos.isEmpty()) {
@@ -115,17 +116,60 @@ public class ReservationServiceImpl extends ServiceImpl<ReservationMapper, Reser
             parkingSpaceMapper.selectBatchIds(spaceIds).stream()
                 .collect(Collectors.toMap(ParkingSpace::getId, ParkingSpace::getSpaceNumber));
 
+        // 批量查询车位关联的园区ID，再查园区名称
+        Map<Long, Long> spaceParkAreaMap = Map.of();
+        if (!spaceIds.isEmpty()) {
+            spaceParkAreaMap = parkingSpaceMapper.selectBatchIds(spaceIds).stream()
+                .collect(Collectors.toMap(ParkingSpace::getId, ParkingSpace::getParkAreaId));
+        }
+        Map<Long, String> parkNameMap = Map.of();
+        if (!spaceParkAreaMap.isEmpty()) {
+            List<Long> parkAreaIds = spaceParkAreaMap.values().stream()
+                .filter(java.util.Objects::nonNull).distinct().collect(Collectors.toList());
+            if (!parkAreaIds.isEmpty()) {
+                parkNameMap = parkAreaMapper.selectBatchIds(parkAreaIds).stream()
+                    .collect(Collectors.toMap(ParkArea::getId, ParkArea::getName));
+            }
+        }
+
         for (ReservationDTO dto : dtos) {
             dto.setUsername(userMap.get(dto.getUserId()));
             dto.setPlateNumber(vehicleMap.get(dto.getVehicleId()));
             dto.setSpaceNumber(spaceMap.get(dto.getSpaceId()));
+            // 填充园区名称
+            Long paId = spaceParkAreaMap.get(dto.getSpaceId());
+            if (paId != null) {
+                dto.setParkName(parkNameMap.get(paId));
+            }
         }
     }
 
     @Override
     public ReservationDTO getReservationById(Long id) {
         Reservation reservation = this.getById(id);
-        return ReservationDTO.fromReservation(reservation);
+        ReservationDTO dto = ReservationDTO.fromReservation(reservation);
+        if (dto != null) {
+            // 填充关联数据
+            if (dto.getUserId() != null) {
+                ParkUser user = parkUserMapper.selectById(dto.getUserId());
+                if (user != null) dto.setUsername(user.getUsername());
+            }
+            if (dto.getVehicleId() != null) {
+                Vehicle vehicle = vehicleMapper.selectById(dto.getVehicleId());
+                if (vehicle != null) dto.setPlateNumber(vehicle.getPlateNumber());
+            }
+            if (dto.getSpaceId() != null) {
+                ParkingSpace space = parkingSpaceMapper.selectById(dto.getSpaceId());
+                if (space != null) {
+                    dto.setSpaceNumber(space.getSpaceNumber());
+                    if (space.getParkAreaId() != null) {
+                        ParkArea parkArea = parkAreaMapper.selectById(space.getParkAreaId());
+                        if (parkArea != null) dto.setParkName(parkArea.getName());
+                    }
+                }
+            }
+        }
+        return dto;
     }
 
     @Override
