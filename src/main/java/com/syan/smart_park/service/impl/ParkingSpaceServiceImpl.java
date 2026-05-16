@@ -68,7 +68,8 @@ public class ParkingSpaceServiceImpl extends ServiceImpl<ParkingSpaceMapper, Par
         if (bindUserId != null) {
             queryWrapper.eq(ParkingSpace::getBindUserId, bindUserId);
         }
-        queryWrapper.orderByAsc(ParkingSpace::getSpaceNumber);
+        queryWrapper.orderByAsc(ParkingSpace::getParkAreaId)
+                    .orderByAsc(ParkingSpace::getSpaceNumber);
 
         Page<ParkingSpace> mpPage = new Page<>(page, size);
         Page<ParkingSpace> resultPage = this.page(mpPage, queryWrapper);
@@ -150,6 +151,56 @@ public class ParkingSpaceServiceImpl extends ServiceImpl<ParkingSpaceMapper, Par
         operationLogService.createOperationLog(logDTO);
         
         return ParkingSpaceDTO.fromParkingSpace(parkingSpace);
+    }
+
+    @Override
+    @Transactional
+    public List<ParkingSpaceDTO> batchCreateParkingSpaces(ParkingSpaceDTO dto, String prefix, int startNumber, int count) {
+        if (count <= 0 || count > 200) {
+            throw new com.syan.smart_park.common.exception.BusinessException(
+                com.syan.smart_park.common.exception.ReturnCode.RC400,
+                "批量创建数量必须在1-200之间"
+            );
+        }
+        if (dto.getParkAreaId() == null) {
+            throw new com.syan.smart_park.common.exception.BusinessException(
+                com.syan.smart_park.common.exception.ReturnCode.RC400,
+                "请选择所属园区"
+            );
+        }
+
+        List<ParkingSpaceDTO> result = new java.util.ArrayList<>();
+        StringBuilder detailLog = new StringBuilder();
+
+        for (int i = 0; i < count; i++) {
+            int num = startNumber + i;
+            String spaceNumber = prefix + "-" + String.format("%03d", num);
+
+            ParkingSpace space = new ParkingSpace();
+            space.setParkAreaId(dto.getParkAreaId());
+            space.setZoneId(dto.getZoneId());
+            space.setSpaceNumber(spaceNumber);
+            space.setSpaceType(dto.getSpaceType() != null ? dto.getSpaceType() : 1);
+            space.setStatus(dto.getStatus() != null ? dto.getStatus() : 1);
+            space.setLatitude(dto.getLatitude());
+            space.setLongitude(dto.getLongitude());
+            this.save(space);
+
+            ParkingSpaceDTO spaceDTO = ParkingSpaceDTO.fromParkingSpace(space);
+            result.add(spaceDTO);
+            if (detailLog.length() > 0) detailLog.append("，");
+            detailLog.append(spaceNumber);
+        }
+
+        parkAreaService.updateTotalSpaces(dto.getParkAreaId());
+
+        OperationLogDTO logDTO = new OperationLogDTO();
+        logDTO.setModule("车位管理");
+        logDTO.setAction("批量创建车位");
+        logDTO.setDetail("园区ID:" + dto.getParkAreaId() + "，数量:" + count + "，编号范围:" + prefix + "-" + String.format("%03d", startNumber) + " ~ " + prefix + "-" + String.format("%03d", startNumber + count - 1));
+        operationLogService.createOperationLog(logDTO);
+
+        return result;
     }
 
     @Override

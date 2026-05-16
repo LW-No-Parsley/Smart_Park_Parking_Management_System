@@ -32,7 +32,7 @@ public class ParkingZoneController {
      * @param size       每页大小（默认10）
      */
     @GetMapping("/list")
-    @RequirePermission("park:area:list")
+    @RequirePermission("park:zone:list")
     public R<PageResult<ParkingZoneDTO>> listParkingZones(
             @RequestParam(required = false) Long parkAreaId,
             @RequestParam(required = false) Integer status,
@@ -47,7 +47,7 @@ public class ParkingZoneController {
      * 根据ID获取车位分区详情
      */
     @GetMapping("/{id}")
-    @RequirePermission("park:area:list")
+    @RequirePermission("park:zone:list")
     public R<ParkingZoneDTO> getParkingZoneById(@PathVariable Long id) {
         ParkingZoneDTO parkingZoneDTO = parkingZoneService.getParkingZoneById(id);
         if (parkingZoneDTO == null) {
@@ -63,7 +63,7 @@ public class ParkingZoneController {
      * @return 创建的车位分区
      */
     @PostMapping
-    @RequirePermission("park:area:update")
+    @RequirePermission("park:zone:create")
     public R<ParkingZoneDTO> createParkingZone(@Valid @RequestBody ParkingZoneDTO parkingZoneDTO) {
         ParkingZoneDTO createdParkingZone = parkingZoneService.createParkingZone(parkingZoneDTO);
         if (createdParkingZone == null) {
@@ -80,7 +80,7 @@ public class ParkingZoneController {
      * @return 更新后的车位分区
      */
     @PutMapping("/{id}")
-    @RequirePermission("park:area:update")
+    @RequirePermission("park:zone:update")
     public R<ParkingZoneDTO> updateParkingZone(@PathVariable Long id, @Valid @RequestBody ParkingZoneDTO parkingZoneDTO) {
         ParkingZoneDTO updatedParkingZone = parkingZoneService.updateParkingZone(id, parkingZoneDTO);
         if (updatedParkingZone == null) {
@@ -96,7 +96,7 @@ public class ParkingZoneController {
      * @return 删除结果
      */
     @DeleteMapping("/{id}")
-    @RequirePermission("park:area:update")
+    @RequirePermission("park:zone:delete")
     public R<Boolean> deleteParkingZone(@PathVariable Long id) {
         boolean success = parkingZoneService.deleteParkingZone(id);
         if (!success) {
@@ -113,7 +113,7 @@ public class ParkingZoneController {
      * @return 更新结果
      */
     @PutMapping("/batch/status")
-    @RequirePermission("park:area:update")
+    @RequirePermission("park:zone:update")
     public R<Boolean> batchUpdateParkingZoneStatus(@RequestParam List<Long> ids, @RequestParam Integer status) {
         boolean success = parkingZoneService.batchUpdateParkingZoneStatus(ids, status);
         if (!success) {
@@ -129,7 +129,7 @@ public class ParkingZoneController {
      * @return 删除结果
      */
     @DeleteMapping("/batch")
-    @RequirePermission("park:area:update")
+    @RequirePermission("park:zone:delete")
     public R<Boolean> batchDeleteParkingZones(@RequestParam List<Long> ids) {
         boolean success = parkingZoneService.batchDeleteParkingZones(ids);
         if (!success) {

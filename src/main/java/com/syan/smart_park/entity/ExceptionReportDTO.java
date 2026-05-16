@@ -81,11 +81,6 @@ public class ExceptionReportDTO {
     private LocalDateTime updateTime;
     
     /**
-     * 逻辑删除：0-未删除，1-已删除
-     */
-    private Integer deleted;
-    
-    /**
      * 从ExceptionReport实体转换为DTO
      */
     public static ExceptionReportDTO fromExceptionReport(ExceptionReport exceptionReport) {
@@ -107,7 +102,6 @@ public class ExceptionReportDTO {
         dto.setHandleResult(exceptionReport.getHandleResult());
         dto.setCreateTime(exceptionReport.getCreateTime());
         dto.setUpdateTime(exceptionReport.getUpdateTime());
-        dto.setDeleted(exceptionReport.getDeleted());
         
         return dto;
     }
@@ -130,7 +124,6 @@ public class ExceptionReportDTO {
         exceptionReport.setHandleResult(this.getHandleResult());
         exceptionReport.setCreateTime(this.getCreateTime());
         exceptionReport.setUpdateTime(this.getUpdateTime());
-        exceptionReport.setDeleted(this.getDeleted());
         
         return exceptionReport;
     }

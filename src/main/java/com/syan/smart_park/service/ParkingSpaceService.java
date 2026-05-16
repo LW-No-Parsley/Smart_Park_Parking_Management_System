@@ -51,6 +51,17 @@ public interface ParkingSpaceService extends IService<ParkingSpace> {
     boolean batchUpdateParkingSpaceStatus(List<Long> ids, Integer status);
     
     /**
+     * 批量创建车位
+     *
+     * @param dto 车位模板（包含园区、分区、类型、状态等公共信息）
+     * @param prefix 车位编号前缀（如 "A"）
+     * @param startNumber 起始编号
+     * @param count 创建数量
+     * @return 创建成功的车位列表
+     */
+    List<ParkingSpaceDTO> batchCreateParkingSpaces(ParkingSpaceDTO dto, String prefix, int startNumber, int count);
+
+    /**
      * 检查车位在当前时间是否被占用
      *
      * @param spaceId 车位ID

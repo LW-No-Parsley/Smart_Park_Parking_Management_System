@@ -49,12 +49,7 @@ public class OperationLogDTO {
      * 更新时间
      */
     private LocalDateTime updateTime;
-    
-    /**
-     * 逻辑删除：0-未删除，1-已删除
-     */
-    private Integer deleted;
-    
+
     /**
      * 从OperationLog实体转换为DTO
      */
@@ -72,7 +67,6 @@ public class OperationLogDTO {
         dto.setIp(operationLog.getIp());
         dto.setCreateTime(operationLog.getCreateTime());
         dto.setUpdateTime(operationLog.getUpdateTime());
-        dto.setDeleted(operationLog.getDeleted());
         
         return dto;
     }
@@ -90,7 +84,6 @@ public class OperationLogDTO {
         operationLog.setIp(this.getIp());
         operationLog.setCreateTime(this.getCreateTime());
         operationLog.setUpdateTime(this.getUpdateTime());
-        operationLog.setDeleted(this.getDeleted());
         
         return operationLog;
     }

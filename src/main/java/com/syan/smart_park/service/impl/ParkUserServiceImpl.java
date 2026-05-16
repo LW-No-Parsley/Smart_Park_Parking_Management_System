@@ -187,12 +187,22 @@ public class ParkUserServiceImpl implements ParkUserService {
     @Override
     @Transactional
     public void deleteParkUser(Long id) {
+        // 先检查用户是否存在（selectById 受 @TableLogic 影响，会自动过滤 deleted=1 的记录）
         ParkUser parkUser = parkUserMapper.selectById(id);
-        if (parkUser == null || parkUser.getDeleted() == 1) {
+        if (parkUser == null) {
             throw new BusinessException(ReturnCode.RC600); // 用户不存在
         }
-        parkUser.setDeleted(1);
-        parkUser.setUpdateTime(LocalDateTime.now());
-        parkUserMapper.updateById(parkUser);
+
+        // 使用 UpdateWrapper 执行逻辑删除，避免 @TableLogic 对 updateById 的潜在影响
+        UpdateWrapper<ParkUser> updateWrapper = new UpdateWrapper<>();
+        updateWrapper.eq("id", id)
+                     .eq("deleted", 0)   // 确保只更新未删除的记录
+                     .set("deleted", 1)
+                     .set("update_time", LocalDateTime.now());
+        int rows = parkUserMapper.update(null, updateWrapper);
+
+        if (rows <= 0) {
+            throw new BusinessException(ReturnCode.RC500, "删除用户失败，用户可能已被删除");
+        }
     }
 }

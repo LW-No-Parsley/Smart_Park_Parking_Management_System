@@ -213,15 +213,16 @@ public class RoleServiceImpl implements RoleService {
         // 检查角色是否存在
         getRoleById(roleId);
 
-        // 删除原有权限关联
-        QueryWrapper<RolePermission> deleteWrapper = new QueryWrapper<>();
-        deleteWrapper.eq("role_id", roleId);
-        rolePermissionMapper.delete(deleteWrapper);
+        // 删除原有权限关联（使用 Mapper 中的物理删除方法）
+        rolePermissionMapper.deleteByRoleId(roleId);
 
-        // 批量插入新权限关联
+        // 批量插入新权限关联（先去重）
         if (permissionIds != null && !permissionIds.isEmpty()) {
-            for (Long permId : permissionIds) {
-                if (permId == null) continue;
+            List<Long> distinctIds = permissionIds.stream()
+                    .filter(java.util.Objects::nonNull)
+                    .distinct()
+                    .collect(java.util.stream.Collectors.toList());
+            for (Long permId : distinctIds) {
                 RolePermission rp = new RolePermission();
                 rp.setRoleId(roleId);
                 rp.setPermissionId(permId);

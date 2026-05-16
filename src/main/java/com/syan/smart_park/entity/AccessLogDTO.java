@@ -94,12 +94,7 @@ public class AccessLogDTO {
      * 更新时间
      */
     private LocalDateTime updateTime;
-    
-    /**
-     * 逻辑删除：0-未删除，1-已删除
-     */
-    private Integer deleted;
-    
+
     /**
      * 静态方法：从AccessLog实体转换为AccessLogDTO
      */
@@ -124,7 +119,6 @@ public class AccessLogDTO {
         dto.setRemark(accessLog.getRemark());
         dto.setCreateTime(accessLog.getCreateTime());
         dto.setUpdateTime(accessLog.getUpdateTime());
-        dto.setDeleted(accessLog.getDeleted());
         
         return dto;
     }
@@ -147,7 +141,8 @@ public class AccessLogDTO {
         accessLog.setAccessTime(this.accessTime);
         accessLog.setHandledBy(this.handledBy);
         accessLog.setRemark(this.remark);
-        accessLog.setDeleted(this.deleted);
+        accessLog.setCreateTime(this.createTime);
+        accessLog.setUpdateTime(this.updateTime);
         
         return accessLog;
     }

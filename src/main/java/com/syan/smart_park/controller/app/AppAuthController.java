@@ -38,7 +38,7 @@ public class AppAuthController {
         if (loginRequest.getCode() == null || loginRequest.getCode().isBlank()) {
             return R.error(ReturnCode.RC400, "微信临时登录凭证(code)不能为空");
         }
-        String realOpenid = wechatService.getOpenidByCode(loginRequest.getCode(), false);
+        String realOpenid = wechatService.getOpenidByCode(loginRequest.getCode());
         if (realOpenid == null) {
             return R.error(ReturnCode.RC500, "微信登录凭证校验失败");
         }

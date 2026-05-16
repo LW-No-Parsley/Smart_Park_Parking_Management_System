@@ -77,7 +77,33 @@ public class ParkingSpaceController {
         }
         return R.success(createdParkingSpace);
     }
-    
+
+    /**
+     * 批量创建车位请求体
+     */
+    @lombok.Data
+    public static class BatchCreateRequest {
+        @jakarta.validation.constraints.NotNull(message = "车位模板不能为空")
+        private ParkingSpaceDTO template;
+        @jakarta.validation.constraints.NotBlank(message = "编号前缀不能为空")
+        private String prefix;
+        private int startNumber = 1;
+        @jakarta.validation.constraints.Min(1)
+        @jakarta.validation.constraints.Max(200)
+        private int count = 10;
+    }
+
+    /**
+     * 批量创建车位
+     */
+    @PostMapping("/batch")
+    @RequirePermission("park:space:create")
+    public R<List<ParkingSpaceDTO>> batchCreateParkingSpaces(@Valid @RequestBody BatchCreateRequest request) {
+        List<ParkingSpaceDTO> result = parkingSpaceService.batchCreateParkingSpaces(
+                request.getTemplate(), request.getPrefix(), request.getStartNumber(), request.getCount());
+        return R.success(result);
+    }
+
     /**
      * 更新车位
      */

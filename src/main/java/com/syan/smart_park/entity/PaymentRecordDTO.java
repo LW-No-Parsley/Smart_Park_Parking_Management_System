@@ -73,12 +73,7 @@ public class PaymentRecordDTO {
      * 更新时间
      */
     private LocalDateTime updateTime;
-    
-    /**
-     * 逻辑删除：0-未删除，1-已删除
-     */
-    private Integer deleted;
-    
+
     /**
      * 静态方法：从PaymentRecord实体转换为PaymentRecordDTO
      */
@@ -98,7 +93,6 @@ public class PaymentRecordDTO {
         dto.setPaymentTime(paymentRecord.getPaymentTime());
         dto.setCreateTime(paymentRecord.getCreateTime());
         dto.setUpdateTime(paymentRecord.getUpdateTime());
-        dto.setDeleted(paymentRecord.getDeleted());
         
         return dto;
     }
@@ -116,7 +110,6 @@ public class PaymentRecordDTO {
         paymentRecord.setTransactionId(this.transactionId);
         paymentRecord.setPaymentStatus(this.paymentStatus);
         paymentRecord.setPaymentTime(this.paymentTime);
-        paymentRecord.setDeleted(this.deleted);
         
         return paymentRecord;
     }

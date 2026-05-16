@@ -29,38 +29,24 @@ public class WechatService {
     @Value("${wechat.miniapp.login-url:}")
     private String miniAppLoginUrl;
 
-    @Value("${wechat.app.app-id:}")
-    private String appAppId;
-
-    @Value("${wechat.app.app-secret:}")
-    private String appAppSecret;
-
-    @Value("${wechat.app.login-url:}")
-    private String appLoginUrl;
-
     /**
      * 通过临时 code 获取微信 openid
      *
-     * @param code    微信临时登录凭证
-     * @param isApp   是否为 App 端（false 则为小程序）
+     * @param code  微信临时登录凭证
      * @return openid，验证失败返回 null
      */
-    public String getOpenidByCode(String code, boolean isApp) {
+    public String getOpenidByCode(String code) {
         if (code == null || code.isBlank()) {
             log.warn("code 为空，无法通过微信验证");
             return null;
         }
 
-        String appId = isApp ? appAppId : miniAppId;
-        String appSecret = isApp ? appAppSecret : miniAppSecret;
-        String urlTemplate = isApp ? appLoginUrl : miniAppLoginUrl;
-
-        if (appId.isEmpty() || appSecret.isEmpty()) {
-            log.warn("微信 {} 配置不完整（app-id 或 app-secret 为空），跳过 code2session 验证", isApp ? "App" : "小程序");
+        if (miniAppId.isEmpty() || miniAppSecret.isEmpty()) {
+            log.warn("微信小程序配置不完整（app-id 或 app-secret 为空），跳过 code2session 验证");
             return null;
         }
 
-        String url = String.format(urlTemplate, appId, appSecret, code);
+        String url = String.format(miniAppLoginUrl, miniAppId, miniAppSecret, code);
         try {
             // 先用 String 接收，避免微信返回非标准 Content-Type 导致转换失败
             String respBody = restTemplate.getForObject(url, String.class);

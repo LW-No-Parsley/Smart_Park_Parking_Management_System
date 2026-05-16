@@ -81,7 +81,7 @@ public class ExceptionReportController {
      * 删除异常上报记录
      */
     @DeleteMapping("/{id}")
-    @RequirePermission("exception:list")
+    @RequirePermission("exception:delete")
     public R<Boolean> deleteExceptionReport(@PathVariable Long id) {
         boolean result = exceptionReportService.deleteExceptionReport(id);
         if (!result) {
